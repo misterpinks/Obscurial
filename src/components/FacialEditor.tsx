@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
-import { Camera, Upload, Download, Image } from "lucide-react";
+import { Camera, Upload, Download, Image as ImageIcon } from "lucide-react";
 
 interface FeatureSlider {
   id: string;
@@ -110,7 +110,7 @@ const FacialEditor = () => {
     if (ctx) {
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       
-      const img = new Image();
+      const img = new Image(); // Using the HTMLImageElement constructor properly
       img.onload = () => {
         setOriginalImage(img);
         setActiveTab("edit");
@@ -135,7 +135,7 @@ const FacialEditor = () => {
     
     const reader = new FileReader();
     reader.onload = (event) => {
-      const img = new Image();
+      const img = new Image(); // Using the HTMLImageElement constructor properly
       img.onload = () => {
         setOriginalImage(img);
         setActiveTab("edit");
@@ -377,7 +377,7 @@ const FacialEditor = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="upload" value={activeTab} onValueChange={handleSliderChange}>
+      <Tabs defaultValue="upload" value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto mb-8">
           <TabsTrigger value="upload" onClick={() => handleTabChange("upload")}>
             <Upload className="h-4 w-4 mr-2" />
@@ -388,7 +388,7 @@ const FacialEditor = () => {
             Webcam
           </TabsTrigger>
           <TabsTrigger value="edit" onClick={() => handleTabChange("edit")} disabled={!originalImage}>
-            <Image className="h-4 w-4 mr-2" />
+            <ImageIcon className="h-4 w-4 mr-2" />
             Edit
           </TabsTrigger>
         </TabsList>
