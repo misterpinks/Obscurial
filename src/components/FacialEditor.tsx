@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
@@ -31,19 +30,19 @@ const FacialEditor = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Feature adjustment sliders configuration
+  // Feature adjustment sliders configuration - increased range to -50/50
   const featureSliders: FeatureSlider[] = [
-    { id: 'eyeSize', name: 'Eye Size', min: -30, max: 30, step: 1, defaultValue: 0, category: 'Eyes' },
-    { id: 'eyeSpacing', name: 'Eye Spacing', min: -30, max: 30, step: 1, defaultValue: 0, category: 'Eyes' },
-    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -30, max: 30, step: 1, defaultValue: 0, category: 'Eyes' },
-    { id: 'noseWidth', name: 'Nose Width', min: -30, max: 30, step: 1, defaultValue: 0, category: 'Nose' },
-    { id: 'noseLength', name: 'Nose Length', min: -30, max: 30, step: 1, defaultValue: 0, category: 'Nose' },
-    { id: 'mouthWidth', name: 'Mouth Width', min: -30, max: 30, step: 1, defaultValue: 0, category: 'Mouth' },
-    { id: 'mouthHeight', name: 'Mouth Height', min: -30, max: 30, step: 1, defaultValue: 0, category: 'Mouth' },
-    { id: 'faceWidth', name: 'Face Width', min: -30, max: 30, step: 1, defaultValue: 0, category: 'Face' },
-    { id: 'chinShape', name: 'Chin Shape', min: -30, max: 30, step: 1, defaultValue: 0, category: 'Face' },
-    { id: 'jawline', name: 'Jawline', min: -30, max: 30, step: 1, defaultValue: 0, category: 'Face' },
-    { id: 'noiseLevel', name: 'Noise Level', min: 0, max: 20, step: 1, defaultValue: 5, category: 'Privacy' },
+    { id: 'eyeSize', name: 'Eye Size', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes' },
+    { id: 'eyeSpacing', name: 'Eye Spacing', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes' },
+    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes' },
+    { id: 'noseWidth', name: 'Nose Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose' },
+    { id: 'noseLength', name: 'Nose Length', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose' },
+    { id: 'mouthWidth', name: 'Mouth Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth' },
+    { id: 'mouthHeight', name: 'Mouth Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth' },
+    { id: 'faceWidth', name: 'Face Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face' },
+    { id: 'chinShape', name: 'Chin Shape', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face' },
+    { id: 'jawline', name: 'Jawline', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face' },
+    { id: 'noiseLevel', name: 'Noise Level', min: 0, max: 30, step: 1, defaultValue: 10, category: 'Privacy' },
   ];
 
   const [sliderValues, setSliderValues] = useState<Record<string, number>>(() => {
@@ -158,9 +157,6 @@ const FacialEditor = () => {
     canvas.width = originalImage.width;
     canvas.height = originalImage.height;
     
-    // Draw the original image first
-    ctx.drawImage(originalImage, 0, 0);
-    
     // Apply feature transformations based on slider values
     applyFeatureTransformations(ctx, canvas.width, canvas.height);
     
@@ -207,6 +203,9 @@ const FacialEditor = () => {
     const faceWidth = width * 0.5; // approximate face width
     const faceHeight = height * 0.6; // approximate face height
     
+    // Amplification factor for transformations
+    const amplificationFactor = 1.5; // Increase the effect of all transformations
+    
     // Apply distortions based on slider values
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -232,44 +231,44 @@ const FacialEditor = () => {
         
         // Eye region - top quarter of face, left and right sides
         if (normY < -0.2 && normY > -0.6 && Math.abs(normX) > 0.15 && Math.abs(normX) < 0.4) {
-          // Apply eye size transformation
-          displacementX += (sliderValues.eyeSize / 100) * normX;
-          displacementY += (sliderValues.eyeSize / 100) * normY;
+          // Apply eye size transformation - amplified
+          displacementX += (sliderValues.eyeSize / 75) * normX * amplificationFactor;
+          displacementY += (sliderValues.eyeSize / 75) * normY * amplificationFactor;
           
-          // Apply eye spacing transformation
-          displacementX += (sliderValues.eyeSpacing / 100) * (normX > 0 ? 1 : -1);
+          // Apply eye spacing transformation - amplified
+          displacementX += (sliderValues.eyeSpacing / 75) * (normX > 0 ? 1 : -1) * amplificationFactor;
         }
         
         // Eyebrow region - just above eyes
         if (normY < -0.3 && normY > -0.7 && Math.abs(normX) > 0.1 && Math.abs(normX) < 0.45) {
-          displacementY -= sliderValues.eyebrowHeight / 100;
+          displacementY -= (sliderValues.eyebrowHeight / 75) * amplificationFactor;
         }
         
         // Nose region - center of face
         if (Math.abs(normX) < 0.2 && normY > -0.3 && normY < 0.2) {
-          displacementX += (sliderValues.noseWidth / 100) * normX;
-          displacementY += (sliderValues.noseLength / 100) * (normY > 0 ? 1 : -1);
+          displacementX += (sliderValues.noseWidth / 75) * normX * amplificationFactor;
+          displacementY += (sliderValues.noseLength / 75) * (normY > 0 ? 1 : -1) * amplificationFactor;
         }
         
         // Mouth region - lower third of face, center
         if (Math.abs(normX) < 0.3 && normY > 0.1 && normY < 0.4) {
-          displacementX += (sliderValues.mouthWidth / 100) * normX;
-          displacementY += (sliderValues.mouthHeight / 100) * (normY - 0.25);
+          displacementX += (sliderValues.mouthWidth / 75) * normX * amplificationFactor;
+          displacementY += (sliderValues.mouthHeight / 75) * (normY - 0.25) * amplificationFactor;
         }
         
         // Overall face width
         if (distFromCenter > 0.5 && distFromCenter < 1) {
-          displacementX += (sliderValues.faceWidth / 100) * normX;
+          displacementX += (sliderValues.faceWidth / 75) * normX * amplificationFactor;
         }
         
         // Chin shape - bottom of face
         if (normY > 0.4 && Math.abs(normX) < 0.3) {
-          displacementY += (sliderValues.chinShape / 100) * (normY - 0.4);
+          displacementY += (sliderValues.chinShape / 75) * (normY - 0.4) * amplificationFactor;
         }
         
         // Jawline - sides of lower face
         if (normY > 0.2 && Math.abs(normX) > 0.3 && Math.abs(normX) < 0.6) {
-          displacementX += (sliderValues.jawline / 100) * (normX > 0 ? 1 : -1);
+          displacementX += (sliderValues.jawline / 75) * (normX > 0 ? 1 : -1) * amplificationFactor;
         }
         
         // Calculate sample position with displacement
@@ -298,9 +297,9 @@ const FacialEditor = () => {
           const bottom = bottomLeft + (bottomRight - bottomLeft) * xWeight;
           let interpolated = top + (bottom - top) * yWeight;
           
-          // Add noise based on noise level slider
+          // Add amplified noise based on noise level slider
           if (sliderValues.noiseLevel > 0) {
-            const noise = (Math.random() - 0.5) * sliderValues.noiseLevel;
+            const noise = (Math.random() - 0.5) * sliderValues.noiseLevel * 1.5;
             interpolated += noise;
           }
           
