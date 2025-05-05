@@ -13,18 +13,18 @@ export interface FeatureSlider {
 }
 
 export const useFeatureSliders = () => {
-  // Updated slider ranges from -100 to 100 for more dramatic effects
+  // Updated slider ranges from -75 to 75 to prevent glitching at extreme values
   const featureSliders: FeatureSlider[] = [
-    { id: 'eyeSize', name: 'Eye Size', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
-    { id: 'eyeSpacing', name: 'Eye Spacing', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
-    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
-    { id: 'noseWidth', name: 'Nose Width', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
-    { id: 'noseLength', name: 'Nose Length', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
-    { id: 'mouthWidth', name: 'Mouth Width', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
-    { id: 'mouthHeight', name: 'Mouth Height', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
-    { id: 'faceWidth', name: 'Face Width', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
-    { id: 'chinShape', name: 'Chin Shape', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
-    { id: 'jawline', name: 'Jawline', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'eyeSize', name: 'Eye Size', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'eyeSpacing', name: 'Eye Spacing', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'noseWidth', name: 'Nose Width', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
+    { id: 'noseLength', name: 'Nose Length', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
+    { id: 'mouthWidth', name: 'Mouth Width', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
+    { id: 'mouthHeight', name: 'Mouth Height', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
+    { id: 'faceWidth', name: 'Face Width', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'chinShape', name: 'Chin Shape', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'jawline', name: 'Jawline', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
   ];
 
   const [sliderValues, setSliderValues] = useState<Record<string, number>>(() => {
