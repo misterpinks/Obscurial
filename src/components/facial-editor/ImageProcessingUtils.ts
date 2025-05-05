@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 // Helper to create image from canvas
@@ -59,9 +60,9 @@ export const applyFeatureTransformations = ({
     faceHeight = box.height * 1.25;
   }
   
-  // Amplification factor for transformations - adjusted for -100/+100 range
-  // Less amplification needed since the slider range is already doubled
-  const amplificationFactor = 2.0;
+  // Amplification factor for transformations - significantly increased for more dramatic effects
+  // Increase amplification factor from 2.0 to 3.5
+  const amplificationFactor = 3.5;
   
   // Apply distortions based on slider values
   for (let y = 0; y < height; y++) {
@@ -86,53 +87,57 @@ export const applyFeatureTransformations = ({
       let displacementX = 0;
       let displacementY = 0;
       
-      // Eye region - expanded region
+      // Eye region - expanded region and effect
       if (normY < -0.15 && normY > -0.65 && Math.abs(normX) > 0.1 && Math.abs(normX) < 0.45) {
-        // Apply eye size transformation
-        // Scale by 100 instead of 50 for the new slider range
+        // Apply eye size transformation with increased effect
         displacementX += (sliderValues.eyeSize / 100) * normX * amplificationFactor;
         displacementY += (sliderValues.eyeSize / 100) * normY * amplificationFactor;
         
-        // Apply eye spacing transformation
+        // Apply eye spacing transformation with increased effect
         displacementX += (sliderValues.eyeSpacing / 100) * (normX > 0 ? 1 : -1) * amplificationFactor;
       }
       
-      // Eyebrow region - just above eyes - expanded
+      // Eyebrow region - just above eyes - expanded and intensified
       if (normY < -0.25 && normY > -0.75 && Math.abs(normX) > 0.05 && Math.abs(normX) < 0.5) {
-        displacementY -= (sliderValues.eyebrowHeight / 100) * amplificationFactor;
+        // Increased effect for eyebrow height
+        displacementY -= (sliderValues.eyebrowHeight / 100) * amplificationFactor * 1.25;
       }
       
-      // Nose region - expanded
+      // Nose region - expanded with more dramatic effects
       if (Math.abs(normX) < 0.25 && normY > -0.4 && normY < 0.25) {
-        displacementX += (sliderValues.noseWidth / 100) * normX * amplificationFactor;
-        displacementY += (sliderValues.noseLength / 100) * (normY > 0 ? 1 : -1) * amplificationFactor;
+        // Intensified nose transformations
+        displacementX += (sliderValues.noseWidth / 100) * normX * amplificationFactor * 1.5;
+        displacementY += (sliderValues.noseLength / 100) * (normY > 0 ? 1 : -1) * amplificationFactor * 1.2;
       }
       
-      // Mouth region - expanded
+      // Mouth region - expanded with more dramatic effects
       if (Math.abs(normX) < 0.35 && normY > 0.05 && normY < 0.45) {
-        displacementX += (sliderValues.mouthWidth / 100) * normX * amplificationFactor;
-        displacementY += (sliderValues.mouthHeight / 100) * (normY - 0.25) * amplificationFactor;
+        // Intensified mouth transformations
+        displacementX += (sliderValues.mouthWidth / 100) * normX * amplificationFactor * 1.5;
+        displacementY += (sliderValues.mouthHeight / 100) * (normY - 0.25) * amplificationFactor * 1.3;
       }
       
-      // Overall face width - expanded
+      // Overall face width - expanded with more dramatic effect
       if (distFromCenter > 0.4 && distFromCenter < 1.1) {
-        displacementX += (sliderValues.faceWidth / 100) * normX * amplificationFactor;
+        // More dramatic face width transformation
+        displacementX += (sliderValues.faceWidth / 100) * normX * amplificationFactor * 1.4;
       }
       
-      // Chin shape - expanded
+      // Chin shape - expanded with more dramatic effect
       if (normY > 0.35 && Math.abs(normX) < 0.35) {
-        displacementY += (sliderValues.chinShape / 100) * (normY - 0.4) * amplificationFactor;
+        // More dramatic chin shape transformation
+        displacementY += (sliderValues.chinShape / 100) * (normY - 0.4) * amplificationFactor * 1.6;
       }
       
-      // Jawline - expanded
+      // Jawline - expanded with more dramatic effect
       if (normY > 0.15 && Math.abs(normX) > 0.25 && Math.abs(normX) < 0.65) {
-        displacementX += (sliderValues.jawline / 100) * (normX > 0 ? 1 : -1) * amplificationFactor;
+        // More dramatic jawline transformation
+        displacementX += (sliderValues.jawline / 100) * (normX > 0 ? 1 : -1) * amplificationFactor * 1.5;
       }
       
       // Apply custom landmark deformation if available
       if (faceDetection?.landmarks?.positions) {
         // This is a simplified approach that could be enhanced further
-        // We could use the manually moved landmarks to influence nearby pixels
       }
       
       // Calculate sample position with displacement
@@ -188,7 +193,7 @@ export const drawFaceLandmarks = (
   // Color coding by feature groups
   const featureGroups = {
     eyes: { points: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47], color: '#1EAEDB' },
-    nose: { points: [27, 28, 29, 30, 31, 32, 33, 34, 35], color: '#222222' }, // Changed from yellow to dark gray
+    nose: { points: [27, 28, 29, 30, 31, 32, 33, 34, 35], color: '#222222' },
     mouth: { points: [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67], color: '#ea384c' },
     face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#F97316' }
   };
