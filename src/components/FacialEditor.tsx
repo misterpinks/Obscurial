@@ -104,12 +104,19 @@ const FacialEditor = () => {
     loadModels();
   }, []);
 
+  // Ensure image is processed immediately after loading, not just on slider change
+  useEffect(() => {
+    if (originalImage) {
+      processImage();
+    }
+  }, [originalImage]);
+  
   // Process the image whenever slider values change or when a new image is loaded
   useEffect(() => {
     if (originalImage) {
       processImage();
     }
-  }, [sliderValues, originalImage]);
+  }, [sliderValues]);
 
   // When face-api loads and we have an original image, detect features
   useEffect(() => {
@@ -545,7 +552,9 @@ const FacialEditor = () => {
   };
 
   const triggerFileInput = () => {
+    // Reset the input value first to allow selecting the same file again
     if (fileInputRef.current) {
+      fileInputRef.current.value = '';
       fileInputRef.current.click();
     }
   };
