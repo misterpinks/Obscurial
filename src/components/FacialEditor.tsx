@@ -35,6 +35,7 @@ const FacialEditor = () => {
   const [activeTab, setActiveTab] = useState("upload");
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [processedImageURL, setProcessedImageURL] = useState<string>("");
+  const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>(""); // For download without landmarks
   const [isProcessing, setIsProcessing] = useState(false);
   const [isFaceApiLoaded, setIsFaceApiLoaded] = useState(false);
   const [faceDetection, setFaceDetection] = useState<FaceDetection | null>(null);
@@ -45,22 +46,23 @@ const FacialEditor = () => {
   
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement>(null);
+  const cleanProcessedCanvasRef = useRef<HTMLCanvasElement>(null); // Clean version without landmarks
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Feature adjustment sliders configuration with color coding
+  // Feature adjustment sliders configuration with updated colors
   const featureSliders: FeatureSlider[] = [
-    { id: 'eyeSize', name: 'Eye Size', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#ea384c' },
-    { id: 'eyeSpacing', name: 'Eye Spacing', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#ea384c' },
-    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#ea384c' },
-    { id: 'noseWidth', name: 'Nose Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#1EAEDB' },
-    { id: 'noseLength', name: 'Nose Length', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#1EAEDB' },
-    { id: 'mouthWidth', name: 'Mouth Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#8E9196' },
-    { id: 'mouthHeight', name: 'Mouth Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#8E9196' },
-    { id: 'faceWidth', name: 'Face Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#1A1F2C' },
-    { id: 'chinShape', name: 'Chin Shape', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#1A1F2C' },
-    { id: 'jawline', name: 'Jawline', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#1A1F2C' },
+    { id: 'eyeSize', name: 'Eye Size', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'eyeSpacing', name: 'Eye Spacing', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'noseWidth', name: 'Nose Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#FEF7CD' },
+    { id: 'noseLength', name: 'Nose Length', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#FEF7CD' },
+    { id: 'mouthWidth', name: 'Mouth Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
+    { id: 'mouthHeight', name: 'Mouth Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
+    { id: 'faceWidth', name: 'Face Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'chinShape', name: 'Chin Shape', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'jawline', name: 'Jawline', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
     { id: 'noiseLevel', name: 'Noise Level', min: 0, max: 30, step: 1, defaultValue: 10, category: 'Privacy' },
   ];
 
@@ -112,8 +114,11 @@ const FacialEditor = () => {
     if (originalImage && originalCanvasRef.current) {
       const origCtx = originalCanvasRef.current.getContext("2d");
       if (origCtx) {
+        // Set canvas dimensions to match image
         originalCanvasRef.current.width = originalImage.width;
         originalCanvasRef.current.height = originalImage.height;
+        
+        // Draw the image to canvas
         origCtx.drawImage(originalImage, 0, 0);
       }
       
@@ -178,6 +183,7 @@ const FacialEditor = () => {
         });
         
         // Even if no face is detected, we should still process the image to show it
+        setInitialProcessingDone(true);
         processImage();
       }
     } catch (error) {
@@ -190,11 +196,12 @@ const FacialEditor = () => {
       });
       
       // Even if face detection fails, we should still process the image to show it
+      setInitialProcessingDone(true);
       processImage();
     }
   };
   
-  // Draw landmarks on the processed canvas instead of a separate analysis canvas
+  // Draw landmarks on the processed canvas with updated colors
   const drawFaceLandmarks = () => {
     if (!faceDetection?.landmarks || !processedCanvasRef.current || !originalImage) return;
     
@@ -202,16 +209,16 @@ const FacialEditor = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Color coding by feature groups
+    // Color coding by feature groups with updated colors
     const featureGroups = {
-      eyes: { points: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47], color: '#ea384c' },
-      nose: { points: [27, 28, 29, 30, 31, 32, 33, 34, 35], color: '#1EAEDB' },
-      mouth: { points: [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67], color: '#8E9196' },
-      face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#1A1F2C' }
+      eyes: { points: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47], color: '#1EAEDB' },
+      nose: { points: [27, 28, 29, 30, 31, 32, 33, 34, 35], color: '#FEF7CD' },
+      mouth: { points: [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67], color: '#ea384c' },
+      face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#F97316' }
     };
     
-    // Draw face bounding box
-    ctx.strokeStyle = '#1A1F2C';
+    // Draw face bounding box - light green
+    ctx.strokeStyle = '#F2FCE2';
     ctx.lineWidth = 2;
     const box = faceDetection.detection.box;
     ctx.strokeRect(box.x, box.y, box.width, box.height);
@@ -251,10 +258,10 @@ const FacialEditor = () => {
   };
   
   const analyzeModifiedImage = async () => {
-    if (!processedCanvasRef.current || !isFaceApiLoaded) return;
+    if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded) return;
     
     try {
-      const processedImage = await createImageFromCanvas(processedCanvasRef.current);
+      const processedImage = await createImageFromCanvas(cleanProcessedCanvasRef.current);
       const detections = await faceapi
         .detectSingleFace(processedImage, new faceapi.TinyFaceDetectorOptions())
         .withFaceLandmarks()
@@ -372,10 +379,26 @@ const FacialEditor = () => {
   };
 
   const processImage = () => {
-    if (!originalImage || !processedCanvasRef.current) return;
+    if (!originalImage || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) return;
     
     setIsProcessing(true);
     
+    // First process the clean canvas (without landmarks)
+    const cleanCanvas = cleanProcessedCanvasRef.current;
+    const cleanCtx = cleanCanvas.getContext("2d");
+    if (!cleanCtx) return;
+    
+    // Set canvas dimensions to match image
+    cleanCanvas.width = originalImage.width;
+    cleanCanvas.height = originalImage.height;
+    
+    // Apply feature transformations to the clean canvas
+    applyFeatureTransformations(cleanCtx, cleanCanvas.width, cleanCanvas.height);
+    
+    // Update clean processed image URL for download
+    setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
+    
+    // Now process the canvas with landmarks
     const canvas = processedCanvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -384,15 +407,15 @@ const FacialEditor = () => {
     canvas.width = originalImage.width;
     canvas.height = originalImage.height;
     
-    // Apply feature transformations based on slider values
-    applyFeatureTransformations(ctx, canvas.width, canvas.height);
+    // Copy the clean processed image to the display canvas
+    ctx.drawImage(cleanCanvas, 0, 0);
     
     // Draw landmarks on top of the processed image
     if (faceDetection) {
       drawFaceLandmarks();
     }
     
-    // Update processed image URL
+    // Update processed image URL (with landmarks)
     setProcessedImageURL(canvas.toDataURL("image/png"));
     setIsProcessing(false);
     
@@ -553,10 +576,10 @@ const FacialEditor = () => {
   };
 
   const downloadImage = () => {
-    if (!processedImageURL) return;
+    if (!cleanProcessedImageURL) return;
     
     const link = document.createElement("a");
-    link.href = processedImageURL;
+    link.href = cleanProcessedImageURL;
     link.download = "privacy-protected-image.png";
     document.body.appendChild(link);
     link.click();
@@ -684,7 +707,7 @@ const FacialEditor = () => {
 
         <TabsContent value="edit">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left side - original and processed images */}
+            {/* Left side - original, processed with landmarks, and clean images */}
             <div className="lg:col-span-2 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
@@ -733,6 +756,11 @@ const FacialEditor = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Hidden clean processed canvas (for download without landmarks) */}
+                <div className="hidden">
+                  <canvas ref={cleanProcessedCanvasRef} />
+                </div>
               </div>
               
               {/* Analysis information below images */}
@@ -759,20 +787,24 @@ const FacialEditor = () => {
                         <h3 className="text-lg font-medium mb-2">Feature Legend</h3>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <div className="flex items-center">
-                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#ea384c'}}></div>
+                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#1EAEDB'}}></div>
                             <span>Eyes/Eyebrows</span>
                           </div>
                           <div className="flex items-center">
-                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#1EAEDB'}}></div>
+                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#FEF7CD'}}></div>
                             <span>Nose</span>
                           </div>
                           <div className="flex items-center">
-                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#8E9196'}}></div>
+                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#ea384c'}}></div>
                             <span>Mouth</span>
                           </div>
                           <div className="flex items-center">
-                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#1A1F2C'}}></div>
+                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#F97316'}}></div>
                             <span>Face/Jawline</span>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#F2FCE2'}}></div>
+                            <span>Face Square</span>
                           </div>
                         </div>
                       </div>
@@ -792,7 +824,7 @@ const FacialEditor = () => {
                 <Button 
                   className="bg-editor-purple hover:bg-editor-accent"
                   onClick={downloadImage}
-                  disabled={!processedImageURL}
+                  disabled={!cleanProcessedImageURL}
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download
