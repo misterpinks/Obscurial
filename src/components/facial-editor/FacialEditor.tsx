@@ -10,6 +10,9 @@ import WebcamCapture from './WebcamCapture';
 import ImagePreview from './ImagePreview';
 import FaceAnalysis from './FaceAnalysis';
 import AdjustmentSliders from './AdjustmentSliders';
+import RandomizeButton from './RandomizeButton';
+import EditorImageControls from './EditorImageControls';
+import EditorHeader from './EditorHeader';
 import {
   useFaceApiModels,
   useFeatureSliders,
@@ -38,7 +41,7 @@ const FacialEditor = () => {
 
   // Custom hooks for models loading, facial processing, and sliders
   const { isFaceApiLoaded, modelsLoadingStatus } = useFaceApiModels();
-  const { featureSliders, sliderValues, handleSliderChange, resetSliders } = useFeatureSliders();
+  const { featureSliders, sliderValues, handleSliderChange, resetSliders, randomizeSliders } = useFeatureSliders();
   const {
     isAnalyzing,
     faceDetection,
@@ -243,14 +246,8 @@ const FacialEditor = () => {
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold mb-2 text-editor-dark">Obscurial</h1>
-        <p className="text-muted-foreground">
-          Subtly modify facial features to help defeat facial recognition while maintaining visual similarity
-        </p>
-      </div>
+      <EditorHeader />
 
-      {/* Add the model setup component that will handle model downloads */}
       {modelsLoadingStatus === 'error' && <ModelSetup />}
 
       <Tabs defaultValue="upload" value={activeTab} onValueChange={handleTabChange}>
@@ -306,7 +303,6 @@ const FacialEditor = () => {
                   canvasRef={cleanProcessedCanvasRef}
                   originalImage={originalImage}
                 />
-
               </div>
               
               {/* Analysis information below images - always show if we have an image */}
@@ -315,45 +311,32 @@ const FacialEditor = () => {
                 facialDifference={facialDifference}
               />
               
-              <div className="flex justify-center space-x-4">
-                <Button 
-                  className="bg-editor-dark hover:bg-editor-accent"
-                  onClick={triggerFileInput}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Change Image
-                </Button>
-                <input 
-                  type="file" 
-                  ref={fileInputRef}
-                  accept="image/*" 
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-                <Button 
-                  className="bg-editor-purple hover:bg-editor-accent"
-                  onClick={downloadImage}
-                  disabled={!cleanProcessedImageURL}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </Button>
-              </div>
+              <EditorImageControls
+                triggerFileInput={triggerFileInput}
+                fileInputRef={fileInputRef}
+                handleImageUpload={handleImageUpload}
+                downloadImage={downloadImage}
+                hasProcessedImage={!!cleanProcessedImageURL}
+              />
             </div>
             
             {/* Right side - adjustment sliders */}
-            <AdjustmentSliders 
-              featureSliders={featureSliders}
-              sliderValues={sliderValues}
-              onSliderChange={handleSliderChange}
-              onReset={() => {
-                resetSliders();
-                toast({
-                  title: "Settings Reset",
-                  description: "All adjustments have been reset to default values."
-                });
-              }}
-            />
+            <div className="space-y-4">
+              <RandomizeButton onRandomize={randomizeSliders} />
+              
+              <AdjustmentSliders 
+                featureSliders={featureSliders}
+                sliderValues={sliderValues}
+                onSliderChange={handleSliderChange}
+                onReset={() => {
+                  resetSliders();
+                  toast({
+                    title: "Settings Reset",
+                    description: "All adjustments have been reset to default values."
+                  });
+                }}
+              />
+            </div>
           </div>
         </TabsContent>
       </Tabs>
