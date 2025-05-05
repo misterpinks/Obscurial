@@ -2,8 +2,31 @@
 import * as faceapi from 'face-api.js';
 
 /**
+ * Load models directly from GitHub instead of relying on local files
+ */
+export const loadModelsFromGitHub = async () => {
+  try {
+    const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+    
+    console.log('Loading face-api.js models directly from GitHub...');
+    
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+    ]);
+    
+    console.log('Models loaded successfully!');
+    return true;
+  } catch (error) {
+    console.error('Failed to load face-api.js models:', error);
+    return false;
+  }
+};
+
+/**
  * This function helps download the necessary model files for face-api.js
- * It should be run once to set up the application
+ * for users who want to save them locally (no longer primary method)
  */
 export const downloadFaceApiModels = async () => {
   // URLs for the models on the face-api.js GitHub repository
@@ -46,15 +69,14 @@ export const downloadFaceApiModels = async () => {
 
 /**
  * Helper function to check if the models are loaded correctly
+ * This is no longer used as the primary check but kept for compatibility
  */
 export const checkModelsExist = async () => {
   try {
-    const response = await fetch('/models/tiny_face_detector_model-weights_manifest.json');
-    const data = await response.json();
-    console.log('Face-api.js models found!', data);
-    return true;
+    // Quick check if TinyFaceDetector is usable
+    return faceapi.nets.tinyFaceDetector.isLoaded;
   } catch (error) {
-    console.error('Face-api.js models not found!', error);
+    console.error('Face-api.js models check failed:', error);
     return false;
   }
 };

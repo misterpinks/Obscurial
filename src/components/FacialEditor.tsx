@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Camera, Upload, Download, ImageIcon, Circle } from "lucide-react";
 import * as faceapi from 'face-api.js';
 import ModelSetup from './ModelSetup';
+import { loadModelsFromGitHub } from '@/utils/downloadModels';
 
 interface FeatureSlider {
   id: string;
@@ -68,35 +69,26 @@ const FacialEditor = () => {
     }, {} as Record<string, number>);
   });
 
-  // Load face-api.js models with better error handling
+  // Load face-api.js models with improved approach
   useEffect(() => {
     const loadModels = async () => {
       try {
-        // First check if the models exist
-        try {
-          await fetch('/models/tiny_face_detector_model-weights_manifest.json');
-        } catch (error) {
-          console.error("Models not found:", error);
-          setModelsLoadingStatus('error');
-          return;
-        }
-        
         setModelsLoadingStatus('loading');
         
-        // Load models with explicit paths
-        await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-          faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-        ]);
+        // Try to load models directly from GitHub
+        const success = await loadModelsFromGitHub();
         
-        setIsFaceApiLoaded(true);
-        setModelsLoadingStatus('success');
-        
-        toast({
-          title: "Face Recognition Models Loaded",
-          description: "Ready to process facial features."
-        });
+        if (success) {
+          setIsFaceApiLoaded(true);
+          setModelsLoadingStatus('success');
+          
+          toast({
+            title: "Face Recognition Models Loaded",
+            description: "Ready to process facial features."
+          });
+        } else {
+          setModelsLoadingStatus('error');
+        }
       } catch (error) {
         console.error("Failed to load face-api models:", error);
         setModelsLoadingStatus('error');
@@ -104,7 +96,7 @@ const FacialEditor = () => {
         toast({
           variant: "destructive",
           title: "Failed to load face models",
-          description: "Check the console for more details."
+          description: "Please try loading them manually."
         });
       }
     };

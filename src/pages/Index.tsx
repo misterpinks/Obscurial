@@ -1,5 +1,6 @@
 
 import FacialEditor from "@/components/FacialEditor";
+import { Toaster } from "@/components/ui/toaster";
 
 const Index = () => {
   return (
@@ -14,6 +15,9 @@ const Index = () => {
       <div className="relative z-10">
         <FacialEditor />
       </div>
+      
+      {/* Add Toaster for notifications */}
+      <Toaster />
     </div>
   );
 };

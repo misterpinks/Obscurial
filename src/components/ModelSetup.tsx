@@ -1,36 +1,40 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { downloadFaceApiModels, checkModelsExist } from '@/utils/downloadModels';
+import { loadModelsFromGitHub, downloadFaceApiModels } from '@/utils/downloadModels';
 import { AlertCircle, Download, Check } from 'lucide-react';
 
 const ModelSetup = () => {
-  const [modelsExist, setModelsExist] = useState<boolean | null>(null);
-  const [downloading, setDownloading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isDownloadingManually, setIsDownloadingManually] = useState(false);
 
-  useEffect(() => {
-    const checkModels = async () => {
-      const exist = await checkModelsExist();
-      setModelsExist(exist);
-    };
+  const handleLoadModels = async () => {
+    setIsLoading(true);
+    const success = await loadModelsFromGitHub();
+    setIsLoading(false);
+    setIsSuccess(success);
     
-    checkModels();
-  }, []);
-
-  const handleDownloadModels = async () => {
-    setDownloading(true);
-    await downloadFaceApiModels();
-    setDownloading(false);
+    // Reload the page to apply changes
+    if (success) {
+      window.location.reload();
+    }
   };
 
-  if (modelsExist === true) {
+  const handleDownloadManually = async () => {
+    setIsDownloadingManually(true);
+    await downloadFaceApiModels();
+    setIsDownloadingManually(false);
+  };
+
+  if (isSuccess) {
     return (
       <Alert className="bg-green-50 border-green-200 mb-6">
         <Check className="h-5 w-5 text-green-600" />
-        <AlertTitle>Models ready</AlertTitle>
+        <AlertTitle>Models loaded successfully</AlertTitle>
         <AlertDescription>
-          Face recognition models are properly installed and ready to use.
+          Face recognition models are now ready to use.
         </AlertDescription>
       </Alert>
     );
@@ -39,32 +43,39 @@ const ModelSetup = () => {
   return (
     <Alert className="bg-amber-50 border-amber-200 mb-6">
       <AlertCircle className="h-5 w-5 text-amber-600" />
-      <AlertTitle>Missing model files</AlertTitle>
+      <AlertTitle>Face recognition models required</AlertTitle>
       <AlertDescription className="space-y-4">
         <p>
-          Face-api.js requires model files to function correctly. These files need to be placed
-          in your <code className="bg-gray-100 px-1 rounded">public/models/</code> directory.
+          Face-api.js requires model files to function. We'll load them directly from GitHub.
         </p>
         
         <Button 
-          onClick={handleDownloadModels} 
-          disabled={downloading}
+          onClick={handleLoadModels} 
+          disabled={isLoading}
           className="bg-amber-600 hover:bg-amber-700"
         >
-          <Download className="h-4 w-4 mr-2" />
-          {downloading ? 'Preparing downloads...' : 'Download model files'}
+          {isLoading ? 'Loading models...' : 'Load Face Recognition Models'}
         </Button>
         
-        {downloading && (
+        {isLoading && (
           <div className="text-sm text-muted-foreground mt-2">
-            <p>After downloading:</p>
-            <ol className="list-decimal list-inside ml-4 mt-1 space-y-1">
-              <li>Save all files to your computer</li>
-              <li>Move them to the <code className="bg-gray-100 px-1 rounded">public/models/</code> directory in your project</li>
-              <li>Refresh this page</li>
-            </ol>
+            <p>Please wait while we load the models directly from GitHub...</p>
           </div>
         )}
+        
+        <div className="pt-2 border-t">
+          <p className="text-sm text-muted-foreground mb-2">
+            Alternatively, you can download the models manually:
+          </p>
+          <Button 
+            variant="outline"
+            onClick={handleDownloadManually} 
+            disabled={isDownloadingManually}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {isDownloadingManually ? 'Preparing downloads...' : 'Download model files'}
+          </Button>
+        </div>
       </AlertDescription>
     </Alert>
   );
