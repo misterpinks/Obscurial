@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
-import { Camera, Upload, Download, ImageIcon } from "lucide-react";
+import { Camera, Upload, Download, ImageIcon, Circle } from "lucide-react";
+import * as faceapi from 'face-api.js';
 
 interface FeatureSlider {
   id: string;
@@ -18,20 +19,32 @@ interface FeatureSlider {
   category: string;
 }
 
+interface FaceDetection {
+  landmarks?: any;
+  detection?: any;
+  confidence?: number;
+  original?: any;
+  modified?: any;
+}
+
 const FacialEditor = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("upload");
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [processedImageURL, setProcessedImageURL] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isFaceApiLoaded, setIsFaceApiLoaded] = useState(false);
+  const [faceDetection, setFaceDetection] = useState<FaceDetection | null>(null);
+  const [initialProcessingDone, setInitialProcessingDone] = useState(false);
   
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement>(null);
+  const analysisCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Feature adjustment sliders configuration - increased range to -50/50
+  // Feature adjustment sliders configuration - range -50/50
   const featureSliders: FeatureSlider[] = [
     { id: 'eyeSize', name: 'Eye Size', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes' },
     { id: 'eyeSpacing', name: 'Eye Spacing', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes' },
@@ -54,12 +67,49 @@ const FacialEditor = () => {
     }, {} as Record<string, number>);
   });
 
+  // Load face-api.js models
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+          faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+        ]);
+        setIsFaceApiLoaded(true);
+        toast({
+          title: "Face Recognition Models Loaded",
+          description: "Ready to process facial features."
+        });
+        
+        // Create directory for face-api models if needed
+        console.log("Face-API models directory needs to be created in public/models");
+      } catch (error) {
+        console.error("Failed to load face-api models:", error);
+        toast({
+          variant: "destructive",
+          title: "Failed to load face models",
+          description: "Unable to initialize facial recognition features."
+        });
+      }
+    };
+
+    loadModels();
+  }, []);
+
   // Process the image whenever slider values change or when a new image is loaded
   useEffect(() => {
     if (originalImage) {
       processImage();
     }
   }, [sliderValues, originalImage]);
+
+  // When face-api loads and we have an original image, detect features
+  useEffect(() => {
+    if (isFaceApiLoaded && originalImage && !initialProcessingDone) {
+      detectFaces();
+    }
+  }, [isFaceApiLoaded, originalImage, initialProcessingDone]);
 
   // Clean up webcam stream on unmount
   useEffect(() => {
@@ -69,6 +119,122 @@ const FacialEditor = () => {
       }
     };
   }, []);
+
+  const detectFaces = async () => {
+    if (!originalImage || !isFaceApiLoaded) return;
+    
+    try {
+      const detections = await faceapi
+        .detectSingleFace(originalImage, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+      
+      if (detections) {
+        setFaceDetection({
+          landmarks: detections.landmarks,
+          detection: detections.detection,
+          confidence: detections.detection.score,
+          original: detections.descriptor
+        });
+        
+        // After face detection is complete, draw landmarks on analysis canvas
+        drawFaceLandmarks();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "No Face Detected",
+          description: "Try uploading a clearer image with a face."
+        });
+      }
+    } catch (error) {
+      console.error("Error detecting face:", error);
+    }
+  };
+  
+  const drawFaceLandmarks = () => {
+    if (!faceDetection?.landmarks || !analysisCanvasRef.current || !originalImage) return;
+    
+    const canvas = analysisCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    canvas.width = originalImage.width;
+    canvas.height = originalImage.height;
+    
+    // Draw original image as background
+    ctx.drawImage(originalImage, 0, 0);
+    
+    // Draw landmarks
+    ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+    ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
+    ctx.lineWidth = 1;
+    
+    // Draw face bounding box
+    const box = faceDetection.detection.box;
+    ctx.strokeRect(box.x, box.y, box.width, box.height);
+    
+    // Draw all landmarks points
+    const landmarks = faceDetection.landmarks.positions;
+    landmarks.forEach((point: { x: number, y: number }) => {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+    
+    // Draw confidence score
+    ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
+    ctx.font = '14px Arial';
+    ctx.fillText(`Recognition confidence: ${Math.round(faceDetection.confidence * 100)}%`, 10, 20);
+    
+    // After modification, try to detect on modified image
+    setTimeout(analyzeModifiedImage, 500);
+  };
+  
+  const analyzeModifiedImage = async () => {
+    if (!processedCanvasRef.current || !isFaceApiLoaded) return;
+    
+    try {
+      const processedImage = await createImageFromCanvas(processedCanvasRef.current);
+      const detections = await faceapi
+        .detectSingleFace(processedImage, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+        
+      if (detections && faceDetection) {
+        // Update state with modified face descriptor
+        setFaceDetection(prev => ({
+          ...prev!,
+          modified: detections.descriptor
+        }));
+        
+        // Calculate similarity between original and modified faces
+        if (faceDetection.original) {
+          const distance = faceapi.euclideanDistance(
+            faceDetection.original, 
+            detections.descriptor
+          );
+          
+          // Update analysis canvas with distance info
+          const ctx = analysisCanvasRef.current?.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.fillText(`Facial difference: ${distance.toFixed(2)} (>0.6 likely defeats recognition)`, 10, 40);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error analyzing modified image:", error);
+    }
+  };
+  
+  const createImageFromCanvas = (canvas: HTMLCanvasElement): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = canvas.toDataURL('image/png');
+    });
+  };
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -138,6 +304,7 @@ const FacialEditor = () => {
       const img = new Image();
       img.onload = () => {
         setOriginalImage(img);
+        setInitialProcessingDone(false);
         setActiveTab("edit");
       };
       img.src = event.target?.result as string;
@@ -165,6 +332,11 @@ const FacialEditor = () => {
     setProcessedImageURL(canvas.toDataURL("image/png"));
     setIsProcessing(false);
     
+    // Initial processing completed
+    if (!initialProcessingDone) {
+      setInitialProcessingDone(true);
+    }
+    
     // Also draw the original image on the reference canvas
     if (originalCanvasRef.current) {
       const origCtx = originalCanvasRef.current.getContext("2d");
@@ -174,6 +346,11 @@ const FacialEditor = () => {
         origCtx.drawImage(originalImage, 0, 0);
       }
     }
+    
+    // If we have face data, analyze the modified image
+    if (faceDetection && isFaceApiLoaded) {
+      setTimeout(analyzeModifiedImage, 300);
+    }
   };
 
   const applyFeatureTransformations = (
@@ -181,8 +358,7 @@ const FacialEditor = () => {
     width: number,
     height: number
   ) => {
-    // This is a simplified version of the transformation algorithm
-    // In a real implementation, we would need more sophisticated face detection and manipulation
+    // This is a more robust transformation algorithm with expanded boundaries
     
     // Create an off-screen canvas for processing
     const offCanvas = document.createElement("canvas");
@@ -198,14 +374,24 @@ const FacialEditor = () => {
     // Create output image data
     const outputData = ctx.createImageData(width, height);
     
-    // Approximate face center - in real implementation we would use face detection
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const faceWidth = width * 0.5; // approximate face width
-    const faceHeight = height * 0.6; // approximate face height
+    // Approximate face center - use face detection if available, otherwise estimate
+    let centerX = width / 2;
+    let centerY = height / 2;
+    let faceWidth = width * 0.6; // Expanded face width coverage (was 0.5)
+    let faceHeight = height * 0.7; // Expanded face height coverage (was 0.6)
+    
+    // Use detected face box if available
+    if (faceDetection && faceDetection.detection) {
+      const box = faceDetection.detection.box;
+      centerX = box.x + box.width / 2;
+      centerY = box.y + box.height / 2;
+      // Make face area 25% larger than detected to avoid edge artifacts
+      faceWidth = box.width * 1.25;
+      faceHeight = box.height * 1.25;
+    }
     
     // Amplification factor for transformations - DRAMATICALLY INCREASED
-    const amplificationFactor = 3.5; // Dramatically increased from 1.5 to 3.5
+    const amplificationFactor = 3.5;
     
     // Apply distortions based on slider values
     for (let y = 0; y < height; y++) {
@@ -215,8 +401,8 @@ const FacialEditor = () => {
         const normY = (y - centerY) / (faceHeight / 2);
         const distFromCenter = Math.sqrt(normX * normX + normY * normY);
         
-        // Skip if outside approximate face area
-        if (distFromCenter > 1.2) {
+        // Skip if outside approximate face area (expanded to 1.3 from 1.2)
+        if (distFromCenter > 1.3) {
           // Just copy original pixel for areas outside the face
           const i = (y * width + x) * 4;
           outputData.data[i] = originalData.data[i];
@@ -230,8 +416,8 @@ const FacialEditor = () => {
         let displacementX = 0;
         let displacementY = 0;
         
-        // Eye region - top quarter of face, left and right sides
-        if (normY < -0.2 && normY > -0.6 && Math.abs(normX) > 0.15 && Math.abs(normX) < 0.4) {
+        // Eye region - expanded region
+        if (normY < -0.15 && normY > -0.65 && Math.abs(normX) > 0.1 && Math.abs(normX) < 0.45) {
           // Apply eye size transformation - amplified
           displacementX += (sliderValues.eyeSize / 50) * normX * amplificationFactor;
           displacementY += (sliderValues.eyeSize / 50) * normY * amplificationFactor;
@@ -240,35 +426,35 @@ const FacialEditor = () => {
           displacementX += (sliderValues.eyeSpacing / 50) * (normX > 0 ? 1 : -1) * amplificationFactor;
         }
         
-        // Eyebrow region - just above eyes
-        if (normY < -0.3 && normY > -0.7 && Math.abs(normX) > 0.1 && Math.abs(normX) < 0.45) {
+        // Eyebrow region - just above eyes - expanded
+        if (normY < -0.25 && normY > -0.75 && Math.abs(normX) > 0.05 && Math.abs(normX) < 0.5) {
           displacementY -= (sliderValues.eyebrowHeight / 50) * amplificationFactor;
         }
         
-        // Nose region - center of face
-        if (Math.abs(normX) < 0.2 && normY > -0.3 && normY < 0.2) {
+        // Nose region - expanded
+        if (Math.abs(normX) < 0.25 && normY > -0.4 && normY < 0.25) {
           displacementX += (sliderValues.noseWidth / 50) * normX * amplificationFactor;
           displacementY += (sliderValues.noseLength / 50) * (normY > 0 ? 1 : -1) * amplificationFactor;
         }
         
-        // Mouth region - lower third of face, center
-        if (Math.abs(normX) < 0.3 && normY > 0.1 && normY < 0.4) {
+        // Mouth region - expanded
+        if (Math.abs(normX) < 0.35 && normY > 0.05 && normY < 0.45) {
           displacementX += (sliderValues.mouthWidth / 50) * normX * amplificationFactor;
           displacementY += (sliderValues.mouthHeight / 50) * (normY - 0.25) * amplificationFactor;
         }
         
-        // Overall face width
-        if (distFromCenter > 0.5 && distFromCenter < 1) {
+        // Overall face width - expanded
+        if (distFromCenter > 0.4 && distFromCenter < 1.1) {
           displacementX += (sliderValues.faceWidth / 50) * normX * amplificationFactor;
         }
         
-        // Chin shape - bottom of face
-        if (normY > 0.4 && Math.abs(normX) < 0.3) {
+        // Chin shape - expanded
+        if (normY > 0.35 && Math.abs(normX) < 0.35) {
           displacementY += (sliderValues.chinShape / 50) * (normY - 0.4) * amplificationFactor;
         }
         
-        // Jawline - sides of lower face
-        if (normY > 0.2 && Math.abs(normX) > 0.3 && Math.abs(normX) < 0.6) {
+        // Jawline - expanded
+        if (normY > 0.15 && Math.abs(normX) > 0.25 && Math.abs(normX) < 0.65) {
           displacementX += (sliderValues.jawline / 50) * (normX > 0 ? 1 : -1) * amplificationFactor;
         }
         
@@ -298,9 +484,9 @@ const FacialEditor = () => {
           const bottom = bottomLeft + (bottomRight - bottomLeft) * xWeight;
           let interpolated = top + (bottom - top) * yWeight;
           
-          // Add amplified noise based on noise level slider - INCREASED NOISE EFFECT
+          // Add amplified noise based on noise level slider
           if (sliderValues.noiseLevel > 0) {
-            const noise = (Math.random() - 0.5) * sliderValues.noiseLevel * 2.5; // Increased noise effect from 1.5 to 2.5
+            const noise = (Math.random() - 0.5) * sliderValues.noiseLevel * 2.5;
             interpolated += noise;
           }
           
@@ -446,7 +632,7 @@ const FacialEditor = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left side - original and processed images */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                   <CardContent className="p-4">
                     <div className="text-center font-medium mb-2">Original</div>
@@ -475,6 +661,26 @@ const FacialEditor = () => {
                       {isProcessing && (
                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                           <div className="text-white">Processing...</div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-center font-medium mb-2">Analysis</div>
+                    <div className="relative border rounded-lg overflow-hidden flex items-center justify-center bg-gray-50 h-[300px]">
+                      <canvas 
+                        ref={analysisCanvasRef}
+                        className="max-w-full max-h-full"
+                      />
+                      {!faceDetection && originalImage && (
+                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                          <div className="flex flex-col items-center">
+                            <Circle className="h-6 w-6 animate-spin mb-2" />
+                            <span>Analyzing face...</span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -551,4 +757,3 @@ const FacialEditor = () => {
 };
 
 export default FacialEditor;
-
