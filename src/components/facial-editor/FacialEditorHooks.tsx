@@ -127,9 +127,9 @@ export const useFaceAnalysis = (
     try {
       setIsAnalyzing(true);
       
-      // Set higher confidence threshold (0.5) to reduce false positives
+      // Use a lower confidence threshold (0.3 instead of 0.5) to improve face detection
       const detections = await faceapi
-        .detectSingleFace(originalImage, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
+        .detectSingleFace(originalImage, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.3 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
       
@@ -187,8 +187,10 @@ export const useFaceAnalysis = (
     
     try {
       const processedImage = await createImageFromCanvas(cleanProcessedCanvasRef.current);
+      
+      // Use the same lower confidence threshold for consistency
       const detections = await faceapi
-        .detectSingleFace(processedImage, new faceapi.TinyFaceDetectorOptions())
+        .detectSingleFace(processedImage, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.3 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
         
@@ -206,8 +208,11 @@ export const useFaceAnalysis = (
             detections.descriptor
           );
           
+          console.log("Facial difference calculated:", distance);
           setFacialDifference(distance);
         }
+      } else {
+        console.log("No face detected in modified image");
       }
     } catch (error) {
       console.error("Error analyzing modified image:", error);

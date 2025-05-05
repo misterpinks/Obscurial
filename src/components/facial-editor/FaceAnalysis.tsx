@@ -11,6 +11,7 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
   confidence, 
   facialDifference 
 }) => {
+  // Show analysis box even when no face is detected, with appropriate messaging
   return (
     <Card className="mt-3">
       <CardContent className="p-4">
@@ -20,13 +21,16 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
             <ul className="space-y-1 text-sm">
               <li className="flex justify-between">
                 <span>Recognition confidence:</span>
-                <span className="font-medium">{confidence ? `${Math.round(confidence * 100)}%` : 'No face detected'}</span>
+                <span className="font-medium">{confidence !== undefined && confidence !== null ? 
+                  `${Math.round(confidence * 100)}%` : 'No face detected'}</span>
               </li>
               <li className="flex justify-between">
                 <span>Facial difference:</span>
-                <span className="font-medium">{facialDifference ? 
-                  `${facialDifference.toFixed(2)} ${facialDifference > 0.6 ? '(likely defeats recognition)' : '(may not defeat recognition)'}` 
-                  : confidence ? 'Analyzing...' : 'N/A'}</span>
+                <span className="font-medium">
+                  {facialDifference !== undefined && facialDifference !== null ? 
+                    `${facialDifference.toFixed(2)} ${facialDifference > 0.6 ? '(likely defeats recognition)' : '(may not defeat recognition)'}` 
+                    : (confidence !== undefined && confidence !== null ? 'Analyzing...' : 'N/A')}
+                </span>
               </li>
             </ul>
           </div>
