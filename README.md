@@ -1,4 +1,4 @@
-# Face Veil Disguise
+# Obscurial : Face Veil Disguise
 
 A JavaScript-based face veiling tool that helps protect privacy in images by applying various disguise filters to detected faces to break facial recognition tools such as Pimeyes or Clearview.
 
