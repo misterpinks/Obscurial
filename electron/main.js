@@ -1,7 +1,12 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
-const fs = require('fs');
-const url = require('url');
+import { app, BrowserWindow, ipcMain } from 'electron';
+import path from 'path';
+import fs from 'fs';
+import url from 'url';
+import { fileURLToPath } from 'url';
+
+// Get the directory name using ES modules approach
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;

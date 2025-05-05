@@ -1,5 +1,5 @@
 
-module.exports = {
+export default {
   packagerConfig: {
     asar: true,
     icon: './src/assets/icon' // no file extension required

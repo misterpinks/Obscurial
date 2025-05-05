@@ -1,9 +1,15 @@
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get the directory name using ES modules approach
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Read the original package.json
-const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+const packageJsonPath = path.join(__dirname, 'package.json');
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
 
 // Add the Electron-specific scripts
 packageJson.scripts = {
@@ -17,6 +23,6 @@ packageJson.scripts = {
 };
 
 // Write the updated package.json
-fs.writeFileSync('package.json', JSON.stringify(packageJson, null, 2));
+fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
 console.log('Successfully added Electron scripts to package.json');
