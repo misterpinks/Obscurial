@@ -57,10 +57,25 @@ if (rootElement) {
     }, 3000);
     
     // In Electron, we need to ensure the React app has access to the window object
+    // Fixed TypeScript errors by using a more appropriate type declaration
     if (isElectron) {
-      // Force global context to be window
-      window.React = window.React || {};
-      window.ReactDOM = window.ReactDOM || {};
+      // Making sure global variables exist but not overriding them if they do
+      // This avoids TypeScript errors while still providing necessary globals
+      if (!window.hasOwnProperty('React')) {
+        Object.defineProperty(window, 'React', {
+          value: {},
+          writable: true,
+          configurable: true
+        });
+      }
+      
+      if (!window.hasOwnProperty('ReactDOM')) {
+        Object.defineProperty(window, 'ReactDOM', {
+          value: {},
+          writable: true,
+          configurable: true
+        });
+      }
     }
     
     createRoot(rootElement).render(<App />);

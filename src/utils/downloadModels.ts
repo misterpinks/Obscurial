@@ -1,6 +1,19 @@
 
 import * as faceapi from 'face-api.js';
 
+// Polyfill TextEncoder if it doesn't exist (needed for face-api.js in Electron)
+if (typeof window !== 'undefined' && !window.TextEncoder) {
+  console.log('Polyfilling TextEncoder for face-api.js');
+  window.TextEncoder = function TextEncoder() {};
+  window.TextEncoder.prototype.encode = function encode(str) {
+    const bytes = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) {
+      bytes[i] = str.charCodeAt(i) & 0xff;
+    }
+    return bytes;
+  };
+}
+
 /**
  * Load models directly from GitHub instead of relying on local files
  */

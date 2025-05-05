@@ -36,6 +36,11 @@ export default defineConfig(({ mode }) => ({
   // Ensure proper handling of static assets for Electron
   publicDir: 'public',
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom']
+    include: ['react', 'react-dom', 'react-router-dom', 'face-api.js']
+  },
+  // Fix for Electron - provide Node.js polyfills for browser environment
+  define: {
+    'process.env': process.env,
+    'global': 'globalThis',
   }
 }));
