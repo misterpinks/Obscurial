@@ -20,8 +20,8 @@ function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
+      nodeIntegration: false, // Changed for security
+      contextIsolation: true, // Enable context isolation
       preload: path.join(__dirname, 'preload.js')
     }
   });
@@ -35,6 +35,17 @@ function createWindow() {
     // In development, use the Vite dev server
     const startUrl = 'http://localhost:8080';
     console.log('Loading URL:', startUrl);
+    
+    // Set Content-Security-Policy to ensure scripts load correctly
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': ["script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* https://cdn.gpteng.co"]
+        }
+      });
+    });
+    
     mainWindow.loadURL(startUrl);
     // Open the DevTools automatically
     mainWindow.webContents.openDevTools();
@@ -63,19 +74,24 @@ function createWindow() {
   
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('Page loaded successfully');
-    // Check for content after a short delay
+    // Do a health check a little later to ensure everything rendered
     setTimeout(() => {
       mainWindow.webContents.executeJavaScript(`
+        console.log('==== ELECTRON APP HEALTH CHECK ====');
         console.log('Document ready state:', document.readyState);
-        console.log('Root element:', document.getElementById('root'));
-        console.log('Root innerHTML:', document.getElementById('root').innerHTML);
-        document.body.innerHTML
-      `).then((result) => {
-        console.log('Body content available:', result.length > 0);
+        console.log('Root element exists:', document.getElementById('root') !== null);
+        if (document.getElementById('root')) {
+          console.log('Root content length:', document.getElementById('root').innerHTML.length);
+          console.log('Root children count:', document.getElementById('root').childNodes.length);
+        }
+        document.body.innerHTML.length;
+      `).then((contentLength) => {
+        console.log('Body content length:', contentLength);
+        console.log('App should be visible now');
       }).catch(err => {
-        console.error('Error checking content:', err);
+        console.error('Error in health check:', err);
       });
-    }, 1000);
+    }, 1500);
   });
 }
 

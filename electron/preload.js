@@ -29,6 +29,32 @@ window.addEventListener('DOMContentLoaded', () => {
   info.style.padding = '5px';
   info.textContent = `Electron v${process.versions.electron} | Node ${process.versions.node}`;
   document.body.appendChild(info);
+
+  // Force React to render by adding a temporary element
+  // This can help kick-start the rendering process in Electron
+  setTimeout(() => {
+    console.log("Attempting to force render React app...");
+    const rootElement = document.getElementById('root');
+    if (rootElement && (!rootElement.childNodes.length || rootElement.innerHTML.trim() === '')) {
+      console.log("Root element is empty, adding temporary content and forcing reflow");
+      
+      // Create a temporary element to trigger a reflow
+      const tempElement = document.createElement('div');
+      tempElement.id = 'electron-temp-render';
+      tempElement.style.display = 'none';
+      rootElement.appendChild(tempElement);
+      
+      // Force a reflow
+      void rootElement.offsetHeight;
+      
+      // Remove after a short delay
+      setTimeout(() => {
+        if (document.getElementById('electron-temp-render')) {
+          document.getElementById('electron-temp-render').remove();
+        }
+      }, 100);
+    }
+  }, 1000);
   
   // Check if React root exists and its content
   const rootElement = document.getElementById('root');

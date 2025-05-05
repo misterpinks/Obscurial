@@ -32,5 +32,10 @@ export default defineConfig(({ mode }) => ({
         manualChunks: undefined
       }
     }
+  },
+  // Ensure proper handling of static assets for Electron
+  publicDir: 'public',
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom']
   }
 }));

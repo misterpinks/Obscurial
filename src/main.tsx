@@ -56,6 +56,13 @@ if (rootElement) {
       }
     }, 3000);
     
+    // In Electron, we need to ensure the React app has access to the window object
+    if (isElectron) {
+      // Force global context to be window
+      window.React = window.React || {};
+      window.ReactDOM = window.ReactDOM || {};
+    }
+    
     createRoot(rootElement).render(<App />);
     console.log('React render completed');
     
