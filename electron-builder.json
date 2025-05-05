@@ -2,7 +2,6 @@
 {
   "appId": "app.lovable.obscurial",
   "productName": "Obscurial",
-  "description": "Facial Privacy Editor Application",
   "directories": {
     "output": "release/"
   },
@@ -12,6 +11,9 @@
     "src/assets/**/*",
     "public/models/**/*"
   ],
+  "extraMetadata": {
+    "description": "Facial Privacy Editor Application"
+  },
   "extraResources": [
     {
       "from": "public/models",
