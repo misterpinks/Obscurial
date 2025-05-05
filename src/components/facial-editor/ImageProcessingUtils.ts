@@ -1,16 +1,7 @@
 
-import * as faceapi from 'face-api.js';
+import React from 'react';
 
-interface FeatureTransformationProps {
-  ctx: CanvasRenderingContext2D;
-  originalImage: HTMLImageElement;
-  width: number;
-  height: number;
-  faceDetection: any | null;
-  sliderValues: Record<string, number>;
-}
-
-// Export the createImageFromCanvas function for use in other files
+// Helper to create image from canvas
 export const createImageFromCanvas = (canvas: HTMLCanvasElement): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -20,7 +11,17 @@ export const createImageFromCanvas = (canvas: HTMLCanvasElement): Promise<HTMLIm
   });
 };
 
-// Apply facial feature transformations to the image
+// Interface for the parameters of applyFeatureTransformations
+interface TransformationParams {
+  ctx: CanvasRenderingContext2D;
+  originalImage: HTMLImageElement;
+  width: number;
+  height: number;
+  faceDetection: any;
+  sliderValues: Record<string, number>;
+}
+
+// Updated function signature to accept a single object parameter
 export const applyFeatureTransformations = ({
   ctx,
   originalImage,
@@ -28,7 +29,7 @@ export const applyFeatureTransformations = ({
   height,
   faceDetection,
   sliderValues
-}: FeatureTransformationProps) => {
+}: TransformationParams) => {
   // This is a more robust transformation algorithm with expanded boundaries
   
   // Create an off-screen canvas for processing
@@ -36,7 +37,7 @@ export const applyFeatureTransformations = ({
   offCanvas.width = width;
   offCanvas.height = height;
   const offCtx = offCanvas.getContext("2d");
-  if (!offCtx) return;
+  if (!offCtx || !originalImage) return;
   
   // Draw original to off-screen canvas
   offCtx.drawImage(originalImage, 0, 0);
@@ -61,7 +62,7 @@ export const applyFeatureTransformations = ({
     faceHeight = box.height * 1.25;
   }
   
-  // Amplification factor for transformations - DRAMATICALLY INCREASED
+  // Amplification factor for transformations
   const amplificationFactor = 3.5;
   
   // Apply distortions based on slider values
@@ -72,7 +73,7 @@ export const applyFeatureTransformations = ({
       const normY = (y - centerY) / (faceHeight / 2);
       const distFromCenter = Math.sqrt(normX * normX + normY * normY);
       
-      // Skip if outside approximate face area (expanded to 1.3 from 1.2)
+      // Skip if outside approximate face area
       if (distFromCenter > 1.3) {
         // Just copy original pixel for areas outside the face
         const i = (y * width + x) * 4;
@@ -174,7 +175,7 @@ export const applyFeatureTransformations = ({
   ctx.putImageData(outputData, 0, 0);
 };
 
-// Draw face landmarks on the canvas
+// Draw landmarks on the processed canvas
 export const drawFaceLandmarks = (
   canvas: HTMLCanvasElement, 
   faceDetection: any, 
@@ -185,10 +186,10 @@ export const drawFaceLandmarks = (
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   
-  // Color coding by feature groups with updated colors
+  // Color coding by feature groups
   const featureGroups = {
     eyes: { points: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47], color: '#1EAEDB' },
-    nose: { points: [27, 28, 29, 30, 31, 32, 33, 34, 35], color: '#222222' },
+    nose: { points: [27, 28, 29, 30, 31, 32, 33, 34, 35], color: '#222222' }, // Changed from yellow to dark gray
     mouth: { points: [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67], color: '#ea384c' },
     face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#F97316' }
   };
@@ -206,7 +207,6 @@ export const drawFaceLandmarks = (
   Object.entries(featureGroups).forEach(([groupName, group]) => {
     ctx.fillStyle = group.color;
     ctx.strokeStyle = group.color;
-    ctx.lineWidth = 1.5;  // Make lines a bit thicker for visibility
     
     // Connect points for better visualization
     if (group.points.length > 1) {

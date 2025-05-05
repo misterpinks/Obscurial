@@ -166,15 +166,15 @@ const FacialEditor = () => {
     cleanCanvas.width = originalImage.width;
     cleanCanvas.height = originalImage.height;
     
-    // Apply feature transformations to the clean canvas
-    applyFeatureTransformations(
-      cleanCtx, 
+    // Apply feature transformations to the clean canvas - FIX: Pass the correct arguments
+    applyFeatureTransformations({
+      ctx: cleanCtx,
       originalImage, 
-      cleanCanvas.width, 
-      cleanCanvas.height, 
+      width: cleanCanvas.width, 
+      height: cleanCanvas.height, 
       faceDetection, 
       sliderValues
-    );
+    });
     
     // Update clean processed image URL for download
     setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
