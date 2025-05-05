@@ -9,6 +9,9 @@ window.addEventListener('DOMContentLoaded', () => {
   console.log('Document object available:', document !== undefined);
   console.log('Document ready state:', document.readyState);
   
+  // Check if TextEncoder is available
+  console.log('TextEncoder available:', typeof window.TextEncoder !== 'undefined');
+  
   const replaceText = (selector, text) => {
     const element = document.getElementById(selector);
     if (element) element.innerText = text;

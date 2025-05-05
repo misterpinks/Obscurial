@@ -4,14 +4,24 @@ import * as faceapi from 'face-api.js';
 // Polyfill TextEncoder if it doesn't exist (needed for face-api.js in Electron)
 if (typeof window !== 'undefined' && !window.TextEncoder) {
   console.log('Polyfilling TextEncoder for face-api.js');
-  window.TextEncoder = function TextEncoder() {};
-  window.TextEncoder.prototype.encode = function encode(str) {
-    const bytes = new Uint8Array(str.length);
-    for (let i = 0; i < str.length; i++) {
-      bytes[i] = str.charCodeAt(i) & 0xff;
+  
+  // Define TextEncoder as a class to match expected type
+  class TextEncoderPolyfill {
+    encode(str: string): Uint8Array {
+      const bytes = new Uint8Array(str.length);
+      for (let i = 0; i < str.length; i++) {
+        bytes[i] = str.charCodeAt(i) & 0xff;
+      }
+      return bytes;
     }
-    return bytes;
-  };
+  }
+  
+  // Assign the polyfill to window
+  Object.defineProperty(window, 'TextEncoder', {
+    value: TextEncoderPolyfill,
+    writable: false,
+    configurable: true
+  });
 }
 
 /**
