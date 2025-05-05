@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
@@ -8,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import { Camera, Upload, Download, ImageIcon, Circle } from "lucide-react";
 import * as faceapi from 'face-api.js';
+import ModelSetup from './ModelSetup';
 
 interface FeatureSlider {
   id: string;
@@ -36,6 +36,7 @@ const FacialEditor = () => {
   const [isFaceApiLoaded, setIsFaceApiLoaded] = useState(false);
   const [faceDetection, setFaceDetection] = useState<FaceDetection | null>(null);
   const [initialProcessingDone, setInitialProcessingDone] = useState(false);
+  const [modelsLoadingStatus, setModelsLoadingStatus] = useState<'loading' | 'success' | 'error'>('loading');
   
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -67,29 +68,43 @@ const FacialEditor = () => {
     }, {} as Record<string, number>);
   });
 
-  // Load face-api.js models
+  // Load face-api.js models with better error handling
   useEffect(() => {
     const loadModels = async () => {
       try {
+        // First check if the models exist
+        try {
+          await fetch('/models/tiny_face_detector_model-weights_manifest.json');
+        } catch (error) {
+          console.error("Models not found:", error);
+          setModelsLoadingStatus('error');
+          return;
+        }
+        
+        setModelsLoadingStatus('loading');
+        
+        // Load models with explicit paths
         await Promise.all([
           faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
           faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
           faceapi.nets.faceRecognitionNet.loadFromUri('/models')
         ]);
+        
         setIsFaceApiLoaded(true);
+        setModelsLoadingStatus('success');
+        
         toast({
           title: "Face Recognition Models Loaded",
           description: "Ready to process facial features."
         });
-        
-        // Create directory for face-api models if needed
-        console.log("Face-API models directory needs to be created in public/models");
       } catch (error) {
         console.error("Failed to load face-api models:", error);
+        setModelsLoadingStatus('error');
+        
         toast({
           variant: "destructive",
           title: "Failed to load face models",
-          description: "Unable to initialize facial recognition features."
+          description: "Check the console for more details."
         });
       }
     };
@@ -148,6 +163,11 @@ const FacialEditor = () => {
       }
     } catch (error) {
       console.error("Error detecting face:", error);
+      toast({
+        variant: "destructive",
+        title: "Face Detection Error",
+        description: "Could not analyze facial features."
+      });
     }
   };
   
@@ -562,6 +582,9 @@ const FacialEditor = () => {
           Subtly modify facial features to help defeat facial recognition while maintaining visual similarity
         </p>
       </div>
+
+      {/* Add the model setup component that will handle model downloads */}
+      {modelsLoadingStatus === 'error' && <ModelSetup />}
 
       <Tabs defaultValue="upload" value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto mb-8">
