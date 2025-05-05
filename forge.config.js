@@ -1,7 +1,8 @@
+
 module.exports = {
   packagerConfig: {
     asar: true,
-    icon: './assets/icon' // no file extension required
+    icon: './src/assets/icon' // no file extension required
   },
   rebuildConfig: {},
   makers: [
@@ -9,7 +10,7 @@ module.exports = {
       name: '@electron-forge/maker-squirrel',
       config: {
         // The ICO file to use as the icon for the generated Setup.exe
-        setupIcon: './assets/icon.ico',
+        setupIcon: './src/assets/icon.ico',
         // An array of strings which are .exe files to sign
         certificateFile: undefined,
         certificatePassword: undefined
