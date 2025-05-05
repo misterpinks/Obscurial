@@ -8,11 +8,13 @@
   "files": [
     "dist/**/*",
     "electron/**/*",
+    "index.js",
     "src/assets/**/*",
     "public/models/**/*"
   ],
   "extraMetadata": {
-    "description": "Facial Privacy Editor Application"
+    "description": "Facial Privacy Editor Application",
+    "main": "index.js"
   },
   "extraResources": [
     {
