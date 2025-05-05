@@ -7,7 +7,7 @@ const Index = () => {
       {/* Background image with fade effect */}
       <div 
         className="absolute inset-0 z-0 opacity-10 bg-cover bg-center" 
-        style={{ backgroundImage: "url('/lovable-uploads/7eb2b3f3-5d5b-4df3-adfe-99fd0adafacb.png')" }}
+        style={{ backgroundImage: "url('/src/components/ui/Background.png')" }}
       />
       
       {/* Content container with relative positioning to appear above the background */}
