@@ -25,5 +25,13 @@ window.addEventListener('DOMContentLoaded', () => {
   info.textContent = `Electron v${process.versions.electron} | Node ${process.versions.node}`;
   document.body.appendChild(info);
   
+  // Check if React root exists and its content
+  const rootElement = document.getElementById('root');
+  console.log('Root element exists:', rootElement !== null);
+  if (rootElement) {
+    console.log('Root element content:', rootElement.innerHTML);
+  }
+  
   console.log('Preload script executed successfully');
 });
+

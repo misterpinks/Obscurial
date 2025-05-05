@@ -36,7 +36,7 @@ function createWindow() {
     const startUrl = 'http://localhost:8080';
     console.log('Loading URL:', startUrl);
     mainWindow.loadURL(startUrl);
-    // Open the DevTools
+    // Open the DevTools automatically
     mainWindow.webContents.openDevTools();
   } else {
     // In production, load the built files
@@ -63,6 +63,18 @@ function createWindow() {
   
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('Page loaded successfully');
+    // Check for content after a short delay
+    setTimeout(() => {
+      mainWindow.webContents.executeJavaScript(`
+        console.log('Document ready state:', document.readyState);
+        console.log('Root element:', document.getElementById('root'));
+        document.body.innerHTML
+      `).then((result) => {
+        console.log('Body content available:', result.length > 0);
+      }).catch(err => {
+        console.error('Error checking content:', err);
+      });
+    }, 1000);
   });
 }
 
@@ -88,3 +100,4 @@ app.on('activate', () => {
 });
 
 // IPC handlers for any application-specific functionality can go here
+
