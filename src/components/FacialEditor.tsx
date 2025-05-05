@@ -38,6 +38,7 @@ const FacialEditor = () => {
   const [faceDetection, setFaceDetection] = useState<FaceDetection | null>(null);
   const [initialProcessingDone, setInitialProcessingDone] = useState(false);
   const [modelsLoadingStatus, setModelsLoadingStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -104,16 +105,24 @@ const FacialEditor = () => {
     loadModels();
   }, []);
 
-  // Ensure image is processed immediately after loading, not just on slider change
+  // Immediately display the original image when it's loaded
   useEffect(() => {
-    if (originalImage) {
+    if (originalImage && originalCanvasRef.current) {
+      const origCtx = originalCanvasRef.current.getContext("2d");
+      if (origCtx) {
+        originalCanvasRef.current.width = originalImage.width;
+        originalCanvasRef.current.height = originalImage.height;
+        origCtx.drawImage(originalImage, 0, 0);
+      }
+      
+      // After displaying original image, proceed with initial processing
       processImage();
     }
   }, [originalImage]);
   
-  // Process the image whenever slider values change or when a new image is loaded
+  // Process the image whenever slider values change
   useEffect(() => {
-    if (originalImage) {
+    if (originalImage && initialProcessingDone) {
       processImage();
     }
   }, [sliderValues]);
@@ -138,10 +147,14 @@ const FacialEditor = () => {
     if (!originalImage || !isFaceApiLoaded) return;
     
     try {
+      setIsAnalyzing(true);
+      
       const detections = await faceapi
         .detectSingleFace(originalImage, new faceapi.TinyFaceDetectorOptions())
         .withFaceLandmarks()
         .withFaceDescriptor();
+      
+      setIsAnalyzing(false);
       
       if (detections) {
         setFaceDetection({
@@ -153,6 +166,11 @@ const FacialEditor = () => {
         
         // After face detection is complete, draw landmarks on analysis canvas
         drawFaceLandmarks();
+        
+        // Ensure the image is processed after detection completes
+        if (!initialProcessingDone) {
+          setInitialProcessingDone(true);
+        }
       } else {
         toast({
           variant: "destructive",
@@ -161,6 +179,7 @@ const FacialEditor = () => {
         });
       }
     } catch (error) {
+      setIsAnalyzing(false);
       console.error("Error detecting face:", error);
       toast({
         variant: "destructive",
@@ -318,12 +337,16 @@ const FacialEditor = () => {
       return;
     }
     
+    // Reset states when loading a new image
+    setFaceDetection(null);
+    setInitialProcessingDone(false);
+    setIsAnalyzing(false);
+    
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
         setOriginalImage(img);
-        setInitialProcessingDone(false);
         setActiveTab("edit");
       };
       img.src = event.target?.result as string;
@@ -350,21 +373,6 @@ const FacialEditor = () => {
     // Update processed image URL
     setProcessedImageURL(canvas.toDataURL("image/png"));
     setIsProcessing(false);
-    
-    // Initial processing completed
-    if (!initialProcessingDone) {
-      setInitialProcessingDone(true);
-    }
-    
-    // Also draw the original image on the reference canvas
-    if (originalCanvasRef.current) {
-      const origCtx = originalCanvasRef.current.getContext("2d");
-      if (origCtx) {
-        originalCanvasRef.current.width = originalImage.width;
-        originalCanvasRef.current.height = originalImage.height;
-        origCtx.drawImage(originalImage, 0, 0);
-      }
-    }
     
     // If we have face data, analyze the modified image
     if (faceDetection && isFaceApiLoaded) {
@@ -699,12 +707,17 @@ const FacialEditor = () => {
                         ref={analysisCanvasRef}
                         className="max-w-full max-h-full"
                       />
-                      {!faceDetection && originalImage && (
+                      {isAnalyzing && (
                         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                           <div className="flex flex-col items-center">
                             <Circle className="h-6 w-6 animate-spin mb-2" />
                             <span>Analyzing face...</span>
                           </div>
+                        </div>
+                      )}
+                      {!faceDetection && !isAnalyzing && originalImage && (
+                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                          No face detected
                         </div>
                       )}
                     </div>
