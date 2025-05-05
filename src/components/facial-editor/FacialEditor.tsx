@@ -27,6 +27,7 @@ const FacialEditor = () => {
   const [processedImageURL, setProcessedImageURL] = useState<string>("");
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
   
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -65,9 +66,11 @@ const FacialEditor = () => {
       }
       
       // After displaying original image, proceed with initial processing
-      detectFaces();
+      if (isFaceApiLoaded) {
+        detectFaces();
+      }
     }
-  }, [originalImage, detectFaces]);
+  }, [originalImage, detectFaces, isFaceApiLoaded]);
   
   // Process the image whenever slider values change
   useEffect(() => {
@@ -79,9 +82,11 @@ const FacialEditor = () => {
   // When face-api loads and we have an original image, detect features
   useEffect(() => {
     if (isFaceApiLoaded && originalImage && !initialProcessingDone) {
+      // Reset detection state before attempting a new detection
+      setFaceDetection(null);
       detectFaces();
     }
-  }, [isFaceApiLoaded, originalImage, initialProcessingDone, detectFaces]);
+  }, [isFaceApiLoaded, originalImage, initialProcessingDone, detectFaces, setFaceDetection]);
 
   // Clean up webcam stream on unmount
   useEffect(() => {
@@ -117,6 +122,11 @@ const FacialEditor = () => {
       img.onload = () => {
         setOriginalImage(img);
         setActiveTab("edit");
+        
+        // Reset detection states when capturing a new image
+        setFaceDetection(null);
+        setInitialProcessingDone(false);
+        setHasShownNoFaceToast(false);
       };
       img.src = canvas.toDataURL("image/png");
     }
@@ -139,6 +149,7 @@ const FacialEditor = () => {
     // Reset states when loading a new image
     setFaceDetection(null);
     setInitialProcessingDone(false);
+    setHasShownNoFaceToast(false);
     
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -286,7 +297,7 @@ const FacialEditor = () => {
                   canvasRef={processedCanvasRef}
                   isProcessing={isProcessing}
                   isAnalyzing={isAnalyzing}
-                  noFaceDetected={!faceDetection && !isAnalyzing}
+                  noFaceDetected={!faceDetection && !isAnalyzing && initialProcessingDone}
                   originalImage={originalImage}
                 />
                 
@@ -298,13 +309,11 @@ const FacialEditor = () => {
 
               </div>
               
-              {/* Analysis information below images */}
-              {faceDetection && (
-                <FaceAnalysis 
-                  confidence={faceDetection.confidence} 
-                  facialDifference={facialDifference}
-                />
-              )}
+              {/* Analysis information below images - always show if we have an image */}
+              <FaceAnalysis 
+                confidence={faceDetection?.confidence} 
+                facialDifference={facialDifference}
+              />
               
               <div className="flex justify-center space-x-4">
                 <Button 

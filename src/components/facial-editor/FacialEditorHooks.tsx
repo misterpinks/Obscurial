@@ -127,14 +127,16 @@ export const useFaceAnalysis = (
     try {
       setIsAnalyzing(true);
       
+      // Set higher confidence threshold (0.5) to reduce false positives
       const detections = await faceapi
-        .detectSingleFace(originalImage, new faceapi.TinyFaceDetectorOptions())
+        .detectSingleFace(originalImage, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
       
       setIsAnalyzing(false);
       
       if (detections) {
+        console.log("Face detected with confidence:", detections.detection.score);
         setFaceDetection({
           landmarks: detections.landmarks,
           detection: detections.detection,
@@ -146,6 +148,9 @@ export const useFaceAnalysis = (
         // Ensure the image is processed after detection completes
         setInitialProcessingDone(true);
       } else {
+        console.log("No face detected in the image");
+        setFaceDetection(null);
+        
         if (!hasShownNoFaceToast) {
           toast({
             variant: "destructive",
@@ -159,8 +164,9 @@ export const useFaceAnalysis = (
         setInitialProcessingDone(true);
       }
     } catch (error) {
-      setIsAnalyzing(false);
       console.error("Error detecting face:", error);
+      setIsAnalyzing(false);
+      setFaceDetection(null);
       
       if (!hasShownNoFaceToast) {
         toast({
