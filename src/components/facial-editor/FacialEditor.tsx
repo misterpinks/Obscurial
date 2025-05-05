@@ -166,6 +166,26 @@ const FacialEditor = () => {
     reader.readAsDataURL(file);
   };
 
+  // Handle direct landmark manipulation
+  const handleLandmarkMove = (pointIndex: number, x: number, y: number) => {
+    if (!faceDetection?.landmarks) return;
+    
+    // Create a deep copy of the face detection object to avoid mutation issues
+    const updatedFaceDetection = JSON.parse(JSON.stringify(faceDetection));
+    
+    // Update the landmark position
+    updatedFaceDetection.landmarks.positions[pointIndex] = { x, y };
+    
+    // Update state with modified face detection
+    setFaceDetection(updatedFaceDetection);
+    
+    // Reprocess the image
+    processImage();
+    
+    // Analyze the modified face after a delay to ensure the image has been reprocessed
+    setTimeout(analyzeModifiedImage, 300);
+  };
+
   const processImage = () => {
     if (!originalImage || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) return;
     
@@ -296,6 +316,9 @@ const FacialEditor = () => {
                   isAnalyzing={isAnalyzing}
                   noFaceDetected={!faceDetection && !isAnalyzing && initialProcessingDone}
                   originalImage={originalImage}
+                  enableZoom={true}
+                  onLandmarkMove={handleLandmarkMove}
+                  faceDetection={faceDetection}
                 />
                 
                 <ImagePreview

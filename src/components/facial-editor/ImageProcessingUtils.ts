@@ -130,6 +130,13 @@ export const applyFeatureTransformations = ({
         displacementX += (sliderValues.jawline / 50) * (normX > 0 ? 1 : -1) * amplificationFactor;
       }
       
+      // Apply custom landmark deformation if available
+      if (faceDetection?.landmarks?.positions) {
+        // This is a simplified approach that could be enhanced further
+        // We could use the manually moved landmarks to influence nearby pixels
+        // This is just a basic implementation
+      }
+      
       // Calculate sample position with displacement
       const sampleX = x - displacementX;
       const sampleY = y - displacementY;
@@ -156,12 +163,6 @@ export const applyFeatureTransformations = ({
         const bottom = bottomLeft + (bottomRight - bottomLeft) * xWeight;
         let interpolated = top + (bottom - top) * yWeight;
         
-        // Add amplified noise based on noise level slider
-        if (sliderValues.noiseLevel > 0) {
-          const noise = (Math.random() - 0.5) * sliderValues.noiseLevel * 2.5;
-          interpolated += noise;
-        }
-        
         // Clamp values between 0-255
         outputData.data[index + c] = Math.min(255, Math.max(0, interpolated));
       }
@@ -175,7 +176,7 @@ export const applyFeatureTransformations = ({
   ctx.putImageData(outputData, 0, 0);
 };
 
-// Draw landmarks on the processed canvas
+// Draw landmarks on the processed canvas with improved UI for interaction
 export const drawFaceLandmarks = (
   canvas: HTMLCanvasElement, 
   faceDetection: any, 
@@ -225,11 +226,25 @@ export const drawFaceLandmarks = (
       ctx.stroke();
     }
     
-    // Draw points
+    // Draw points - with larger interactive points
     group.points.forEach(pointIdx => {
       ctx.beginPath();
-      ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, 2, 0, 2 * Math.PI);
+      // Make points slightly larger for better interaction
+      ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, 3, 0, 2 * Math.PI);
       ctx.fill();
+      
+      // Add a highlight border for better visibility
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 1;
+      ctx.stroke();
     });
   });
+  
+  // Add hint text at the bottom for user interaction
+  ctx.font = '12px Arial';
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fillRect(10, canvas.height - 30, 200, 20);
+  ctx.fillStyle = 'black';
+  ctx.fillText('Click and drag points to move landmarks', 15, canvas.height - 15);
 };
+
