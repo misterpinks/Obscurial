@@ -165,6 +165,8 @@ export const useFaceAnalysis = (
     setInitialProcessingDone,
     setFaceDetection,
     imageDimensions,
+    // Export these state values for use in parent component
+    hasShownNoFaceToast,
     setHasShownNoFaceToast
   };
 };

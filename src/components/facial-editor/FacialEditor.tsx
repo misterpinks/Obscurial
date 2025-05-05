@@ -18,7 +18,8 @@ import {
 const FacialEditor = () => {
   const { toast } = useToast();
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
-  const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
+  
+  // Removed the duplicate declaration here
   
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -39,6 +40,7 @@ const FacialEditor = () => {
     setInitialProcessingDone,
     setFaceDetection,
     imageDimensions,
+    hasShownNoFaceToast,
     setHasShownNoFaceToast
   } = useFaceAnalysis(isFaceApiLoaded, originalImage, cleanProcessedCanvasRef);
 
