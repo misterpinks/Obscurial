@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
@@ -18,6 +19,7 @@ interface FeatureSlider {
   step: number;
   defaultValue: number;
   category: string;
+  color?: string; // Added color for landmarks
 }
 
 interface FaceDetection {
@@ -39,26 +41,26 @@ const FacialEditor = () => {
   const [initialProcessingDone, setInitialProcessingDone] = useState(false);
   const [modelsLoadingStatus, setModelsLoadingStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [facialDifference, setFacialDifference] = useState<number | null>(null);
   
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement>(null);
-  const analysisCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Feature adjustment sliders configuration - range -50/50
+  // Feature adjustment sliders configuration with color coding
   const featureSliders: FeatureSlider[] = [
-    { id: 'eyeSize', name: 'Eye Size', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes' },
-    { id: 'eyeSpacing', name: 'Eye Spacing', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes' },
-    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes' },
-    { id: 'noseWidth', name: 'Nose Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose' },
-    { id: 'noseLength', name: 'Nose Length', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose' },
-    { id: 'mouthWidth', name: 'Mouth Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth' },
-    { id: 'mouthHeight', name: 'Mouth Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth' },
-    { id: 'faceWidth', name: 'Face Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face' },
-    { id: 'chinShape', name: 'Chin Shape', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face' },
-    { id: 'jawline', name: 'Jawline', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face' },
+    { id: 'eyeSize', name: 'Eye Size', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#ea384c' },
+    { id: 'eyeSpacing', name: 'Eye Spacing', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#ea384c' },
+    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#ea384c' },
+    { id: 'noseWidth', name: 'Nose Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#1EAEDB' },
+    { id: 'noseLength', name: 'Nose Length', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#1EAEDB' },
+    { id: 'mouthWidth', name: 'Mouth Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#8E9196' },
+    { id: 'mouthHeight', name: 'Mouth Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#8E9196' },
+    { id: 'faceWidth', name: 'Face Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#1A1F2C' },
+    { id: 'chinShape', name: 'Chin Shape', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#1A1F2C' },
+    { id: 'jawline', name: 'Jawline', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#1A1F2C' },
     { id: 'noiseLevel', name: 'Noise Level', min: 0, max: 30, step: 1, defaultValue: 10, category: 'Privacy' },
   ];
 
@@ -164,9 +166,6 @@ const FacialEditor = () => {
           original: detections.descriptor
         });
         
-        // After face detection is complete, draw landmarks on analysis canvas
-        drawFaceLandmarks();
-        
         // Ensure the image is processed after detection completes
         setInitialProcessingDone(true);
         // Immediately process the image to show it in the processed canvas
@@ -195,43 +194,60 @@ const FacialEditor = () => {
     }
   };
   
+  // Draw landmarks on the processed canvas instead of a separate analysis canvas
   const drawFaceLandmarks = () => {
-    if (!faceDetection?.landmarks || !analysisCanvasRef.current || !originalImage) return;
+    if (!faceDetection?.landmarks || !processedCanvasRef.current || !originalImage) return;
     
-    const canvas = analysisCanvasRef.current;
+    const canvas = processedCanvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    canvas.width = originalImage.width;
-    canvas.height = originalImage.height;
-    
-    // Draw original image as background
-    ctx.drawImage(originalImage, 0, 0);
-    
-    // Draw landmarks
-    ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
-    ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
-    ctx.lineWidth = 1;
+    // Color coding by feature groups
+    const featureGroups = {
+      eyes: { points: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47], color: '#ea384c' },
+      nose: { points: [27, 28, 29, 30, 31, 32, 33, 34, 35], color: '#1EAEDB' },
+      mouth: { points: [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67], color: '#8E9196' },
+      face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#1A1F2C' }
+    };
     
     // Draw face bounding box
+    ctx.strokeStyle = '#1A1F2C';
+    ctx.lineWidth = 2;
     const box = faceDetection.detection.box;
     ctx.strokeRect(box.x, box.y, box.width, box.height);
     
-    // Draw all landmarks points
+    // Draw all landmarks by feature group
     const landmarks = faceDetection.landmarks.positions;
-    landmarks.forEach((point: { x: number, y: number }) => {
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
-      ctx.fill();
+    
+    // Draw points for each feature group
+    Object.entries(featureGroups).forEach(([groupName, group]) => {
+      ctx.fillStyle = group.color;
+      ctx.strokeStyle = group.color;
+      
+      // Connect points for better visualization
+      if (group.points.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(landmarks[group.points[0]].x, landmarks[group.points[0]].y);
+        
+        for (let i = 1; i < group.points.length; i++) {
+          ctx.lineTo(landmarks[group.points[i]].x, landmarks[group.points[i]].y);
+        }
+        
+        // Close the path for face
+        if (groupName === 'face') {
+          ctx.closePath();
+        }
+        
+        ctx.stroke();
+      }
+      
+      // Draw points
+      group.points.forEach(pointIdx => {
+        ctx.beginPath();
+        ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, 2, 0, 2 * Math.PI);
+        ctx.fill();
+      });
     });
-    
-    // Draw confidence score
-    ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
-    ctx.font = '14px Arial';
-    ctx.fillText(`Recognition confidence: ${Math.round(faceDetection.confidence * 100)}%`, 10, 20);
-    
-    // After modification, try to detect on modified image
-    setTimeout(analyzeModifiedImage, 500);
   };
   
   const analyzeModifiedImage = async () => {
@@ -258,12 +274,7 @@ const FacialEditor = () => {
             detections.descriptor
           );
           
-          // Update analysis canvas with distance info
-          const ctx = analysisCanvasRef.current?.getContext('2d');
-          if (ctx) {
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
-            ctx.fillText(`Facial difference: ${distance.toFixed(2)} (>0.6 likely defeats recognition)`, 10, 40);
-          }
+          setFacialDifference(distance);
         }
       }
     } catch (error) {
@@ -375,6 +386,11 @@ const FacialEditor = () => {
     
     // Apply feature transformations based on slider values
     applyFeatureTransformations(ctx, canvas.width, canvas.height);
+    
+    // Draw landmarks on top of the processed image
+    if (faceDetection) {
+      drawFaceLandmarks();
+    }
     
     // Update processed image URL
     setProcessedImageURL(canvas.toDataURL("image/png"));
@@ -670,7 +686,7 @@ const FacialEditor = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left side - original and processed images */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
                   <CardContent className="p-4">
                     <div className="text-center font-medium mb-2">Original</div>
@@ -690,7 +706,7 @@ const FacialEditor = () => {
                 
                 <Card>
                   <CardContent className="p-4">
-                    <div className="text-center font-medium mb-2">Modified</div>
+                    <div className="text-center font-medium mb-2">Modified with Landmarks</div>
                     <div className="relative border rounded-lg overflow-hidden flex items-center justify-center bg-gray-50 h-[300px]">
                       <canvas 
                         ref={processedCanvasRef}
@@ -701,18 +717,6 @@ const FacialEditor = () => {
                           <div className="text-white">Processing...</div>
                         </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-center font-medium mb-2">Analysis</div>
-                    <div className="relative border rounded-lg overflow-hidden flex items-center justify-center bg-gray-50 h-[300px]">
-                      <canvas 
-                        ref={analysisCanvasRef}
-                        className="max-w-full max-h-full"
-                      />
                       {isAnalyzing && (
                         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                           <div className="flex flex-col items-center">
@@ -730,6 +734,52 @@ const FacialEditor = () => {
                   </CardContent>
                 </Card>
               </div>
+              
+              {/* Analysis information below images */}
+              {faceDetection && (
+                <Card className="mt-3">
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">Face Analysis</h3>
+                        <ul className="space-y-1 text-sm">
+                          <li className="flex justify-between">
+                            <span>Recognition confidence:</span>
+                            <span className="font-medium">{faceDetection.confidence ? `${Math.round(faceDetection.confidence * 100)}%` : 'N/A'}</span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span>Facial difference:</span>
+                            <span className="font-medium">{facialDifference ? 
+                              `${facialDifference.toFixed(2)} ${facialDifference > 0.6 ? '(likely defeats recognition)' : '(may not defeat recognition)'}` 
+                              : 'Analyzing...'}</span>
+                          </li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">Feature Legend</h3>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#ea384c'}}></div>
+                            <span>Eyes/Eyebrows</span>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#1EAEDB'}}></div>
+                            <span>Nose</span>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#8E9196'}}></div>
+                            <span>Mouth</span>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#1A1F2C'}}></div>
+                            <span>Face/Jawline</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
               
               <div className="flex justify-center space-x-4">
                 <Button 
@@ -773,7 +823,7 @@ const FacialEditor = () => {
                       {sliders.map((slider) => (
                         <div key={slider.id} className="space-y-2">
                           <div className="flex justify-between text-sm">
-                            <span>{slider.name}</span>
+                            <span style={{color: slider.color}}>{slider.name}</span>
                             <span className="text-muted-foreground">{sliderValues[slider.id]}</span>
                           </div>
                           <Slider
