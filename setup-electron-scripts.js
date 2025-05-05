@@ -11,6 +11,29 @@ const __dirname = path.dirname(__filename);
 const packageJsonPath = path.join(__dirname, 'package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
 
+// Fix: Move electron and electron-builder to devDependencies if they exist in dependencies
+if (packageJson.dependencies && packageJson.dependencies.electron) {
+  // Create devDependencies if it doesn't exist
+  if (!packageJson.devDependencies) {
+    packageJson.devDependencies = {};
+  }
+  
+  // Move electron to devDependencies
+  packageJson.devDependencies.electron = packageJson.dependencies.electron;
+  delete packageJson.dependencies.electron;
+}
+
+if (packageJson.dependencies && packageJson.dependencies['electron-builder']) {
+  // Create devDependencies if it doesn't exist
+  if (!packageJson.devDependencies) {
+    packageJson.devDependencies = {};
+  }
+  
+  // Move electron-builder to devDependencies
+  packageJson.devDependencies['electron-builder'] = packageJson.dependencies['electron-builder'];
+  delete packageJson.dependencies['electron-builder'];
+}
+
 // Define environment flag for electron builds
 if (!packageJson.scripts.build) {
   console.error('Error: package.json is missing the "build" script which is required.');
@@ -33,9 +56,21 @@ packageJson.scripts = {
   "electron:build:linux": `${electronBuildScript} && electron-builder build --linux -c electron-builder.json`
 };
 
+// Add basic package information if missing
+if (!packageJson.description) {
+  packageJson.description = "Obscurial - Facial Privacy Editor";
+}
+
+if (!packageJson.author) {
+  packageJson.author = {
+    "name": "Obscurial Team",
+    "email": "info@obscurial.app"
+  };
+}
+
 // Write the updated package.json
 fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
-console.log('Successfully added Electron scripts to package.json');
+console.log('Successfully updated package.json for Electron build');
 console.log('Run "npm run electron:dev" to start the development environment');
 console.log('Run "npm run electron:build" to build for your current platform');
