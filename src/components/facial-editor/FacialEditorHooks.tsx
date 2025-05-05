@@ -72,8 +72,8 @@ export const useFeatureSliders = () => {
     { id: 'eyeSize', name: 'Eye Size', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
     { id: 'eyeSpacing', name: 'Eye Spacing', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
     { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
-    { id: 'noseWidth', name: 'Nose Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#FEF7CD' },
-    { id: 'noseLength', name: 'Nose Length', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#FEF7CD' },
+    { id: 'noseWidth', name: 'Nose Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
+    { id: 'noseLength', name: 'Nose Length', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
     { id: 'mouthWidth', name: 'Mouth Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
     { id: 'mouthHeight', name: 'Mouth Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
     { id: 'faceWidth', name: 'Face Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
@@ -119,6 +119,7 @@ export const useFaceAnalysis = (
   const [faceDetection, setFaceDetection] = useState<FaceDetection | null>(null);
   const [facialDifference, setFacialDifference] = useState<number | null>(null);
   const [initialProcessingDone, setInitialProcessingDone] = useState(false);
+  const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
 
   const detectFaces = async () => {
     if (!originalImage || !isFaceApiLoaded) return;
@@ -141,14 +142,18 @@ export const useFaceAnalysis = (
           original: detections.descriptor
         });
         
+        setHasShownNoFaceToast(false);
         // Ensure the image is processed after detection completes
         setInitialProcessingDone(true);
       } else {
-        toast({
-          variant: "destructive",
-          title: "No Face Detected",
-          description: "Try uploading a clearer image with a face."
-        });
+        if (!hasShownNoFaceToast) {
+          toast({
+            variant: "destructive",
+            title: "No Face Detected",
+            description: "Try uploading a clearer image with a face."
+          });
+          setHasShownNoFaceToast(true);
+        }
         
         // Even if no face is detected, we should still process the image to show it
         setInitialProcessingDone(true);
@@ -156,11 +161,15 @@ export const useFaceAnalysis = (
     } catch (error) {
       setIsAnalyzing(false);
       console.error("Error detecting face:", error);
-      toast({
-        variant: "destructive",
-        title: "Face Detection Error",
-        description: "Could not analyze facial features."
-      });
+      
+      if (!hasShownNoFaceToast) {
+        toast({
+          variant: "destructive",
+          title: "Face Detection Error",
+          description: "Could not analyze facial features."
+        });
+        setHasShownNoFaceToast(true);
+      }
       
       // Even if face detection fails, we should still process the image to show it
       setInitialProcessingDone(true);

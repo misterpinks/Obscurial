@@ -1,14 +1,16 @@
 
 import * as faceapi from 'face-api.js';
 
-interface FaceDetection {
-  landmarks?: any;
-  detection?: any;
-  confidence?: number;
-  original?: any;
-  modified?: any;
+interface FeatureTransformationProps {
+  ctx: CanvasRenderingContext2D;
+  originalImage: HTMLImageElement;
+  width: number;
+  height: number;
+  faceDetection: any | null;
+  sliderValues: Record<string, number>;
 }
 
+// Export the createImageFromCanvas function for use in other files
 export const createImageFromCanvas = (canvas: HTMLCanvasElement): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -18,73 +20,15 @@ export const createImageFromCanvas = (canvas: HTMLCanvasElement): Promise<HTMLIm
   });
 };
 
-export const drawFaceLandmarks = (
-  canvas: HTMLCanvasElement, 
-  faceDetection: FaceDetection, 
-  originalImage: HTMLImageElement
-): void => {
-  if (!faceDetection?.landmarks || !canvas || !originalImage) return;
-  
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  
-  // Color coding by feature groups with updated colors
-  const featureGroups = {
-    eyes: { points: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47], color: '#1EAEDB' },
-    nose: { points: [27, 28, 29, 30, 31, 32, 33, 34, 35], color: '#FEF7CD' },
-    mouth: { points: [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67], color: '#ea384c' },
-    face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#F97316' }
-  };
-  
-  // Draw face bounding box - light green
-  ctx.strokeStyle = '#F2FCE2';
-  ctx.lineWidth = 2;
-  const box = faceDetection.detection.box;
-  ctx.strokeRect(box.x, box.y, box.width, box.height);
-  
-  // Draw all landmarks by feature group
-  const landmarks = faceDetection.landmarks.positions;
-  
-  // Draw points for each feature group
-  Object.entries(featureGroups).forEach(([groupName, group]) => {
-    ctx.fillStyle = group.color;
-    ctx.strokeStyle = group.color;
-    ctx.lineWidth = 1.5;  // Make lines a bit thicker for visibility
-    
-    // Connect points for better visualization
-    if (group.points.length > 1) {
-      ctx.beginPath();
-      ctx.moveTo(landmarks[group.points[0]].x, landmarks[group.points[0]].y);
-      
-      for (let i = 1; i < group.points.length; i++) {
-        ctx.lineTo(landmarks[group.points[i]].x, landmarks[group.points[i]].y);
-      }
-      
-      // Close the path for face
-      if (groupName === 'face') {
-        ctx.closePath();
-      }
-      
-      ctx.stroke();
-    }
-    
-    // Draw points
-    group.points.forEach(pointIdx => {
-      ctx.beginPath();
-      ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, 2, 0, 2 * Math.PI);
-      ctx.fill();
-    });
-  });
-};
-
-export const applyFeatureTransformations = (
-  ctx: CanvasRenderingContext2D,
-  originalImage: HTMLImageElement,
-  width: number,
-  height: number,
-  faceDetection: FaceDetection | null,
-  sliderValues: Record<string, number>
-): void => {
+// Apply facial feature transformations to the image
+export const applyFeatureTransformations = ({
+  ctx,
+  originalImage,
+  width,
+  height,
+  faceDetection,
+  sliderValues
+}: FeatureTransformationProps) => {
   // This is a more robust transformation algorithm with expanded boundaries
   
   // Create an off-screen canvas for processing
@@ -92,7 +36,7 @@ export const applyFeatureTransformations = (
   offCanvas.width = width;
   offCanvas.height = height;
   const offCtx = offCanvas.getContext("2d");
-  if (!offCtx || !originalImage) return;
+  if (!offCtx) return;
   
   // Draw original to off-screen canvas
   offCtx.drawImage(originalImage, 0, 0);
@@ -228,4 +172,64 @@ export const applyFeatureTransformations = (
   
   // Put the processed image data onto the canvas
   ctx.putImageData(outputData, 0, 0);
+};
+
+// Draw face landmarks on the canvas
+export const drawFaceLandmarks = (
+  canvas: HTMLCanvasElement, 
+  faceDetection: any, 
+  originalImage: HTMLImageElement
+) => {
+  if (!faceDetection?.landmarks) return;
+  
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  
+  // Color coding by feature groups with updated colors
+  const featureGroups = {
+    eyes: { points: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47], color: '#1EAEDB' },
+    nose: { points: [27, 28, 29, 30, 31, 32, 33, 34, 35], color: '#222222' },
+    mouth: { points: [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67], color: '#ea384c' },
+    face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#F97316' }
+  };
+  
+  // Draw face bounding box - light green
+  ctx.strokeStyle = '#F2FCE2';
+  ctx.lineWidth = 2;
+  const box = faceDetection.detection.box;
+  ctx.strokeRect(box.x, box.y, box.width, box.height);
+  
+  // Draw all landmarks by feature group
+  const landmarks = faceDetection.landmarks.positions;
+  
+  // Draw points for each feature group
+  Object.entries(featureGroups).forEach(([groupName, group]) => {
+    ctx.fillStyle = group.color;
+    ctx.strokeStyle = group.color;
+    ctx.lineWidth = 1.5;  // Make lines a bit thicker for visibility
+    
+    // Connect points for better visualization
+    if (group.points.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(landmarks[group.points[0]].x, landmarks[group.points[0]].y);
+      
+      for (let i = 1; i < group.points.length; i++) {
+        ctx.lineTo(landmarks[group.points[i]].x, landmarks[group.points[i]].y);
+      }
+      
+      // Close the path for face
+      if (groupName === 'face') {
+        ctx.closePath();
+      }
+      
+      ctx.stroke();
+    }
+    
+    // Draw points
+    group.points.forEach(pointIdx => {
+      ctx.beginPath();
+      ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, 2, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+  });
 };
