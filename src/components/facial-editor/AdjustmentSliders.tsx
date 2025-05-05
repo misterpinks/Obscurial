@@ -1,0 +1,86 @@
+
+import React from 'react';
+import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+
+interface FeatureSlider {
+  id: string;
+  name: string;
+  min: number;
+  max: number;
+  step: number;
+  defaultValue: number;
+  category: string;
+  color?: string;
+}
+
+interface AdjustmentSlidersProps {
+  featureSliders: FeatureSlider[];
+  sliderValues: Record<string, number>;
+  onSliderChange: (id: string, value: number) => void;
+  onReset: () => void;
+}
+
+const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
+  featureSliders,
+  sliderValues,
+  onSliderChange,
+  onReset
+}) => {
+  // Group sliders by category
+  const slidersByCategory = featureSliders.reduce((acc, slider) => {
+    if (!acc[slider.category]) {
+      acc[slider.category] = [];
+    }
+    acc[slider.category].push(slider);
+    return acc;
+  }, {} as Record<string, FeatureSlider[]>);
+
+  return (
+    <Card className="h-[600px] overflow-y-auto">
+      <CardContent className="p-4">
+        <div className="flex justify-between mb-4">
+          <h3 className="text-lg font-medium">Adjustments</h3>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={onReset}
+          >
+            Reset All
+          </Button>
+        </div>
+
+        {/* Render sliders by category */}
+        {Object.entries(slidersByCategory).map(([category, sliders]) => (
+          <div key={category} className="mb-6">
+            <h4 className="font-medium text-sm text-muted-foreground mb-2">{category}</h4>
+            <Separator className="mb-4" />
+            <div className="space-y-6">
+              {sliders.map((slider) => (
+                <div key={slider.id} className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span style={{color: slider.color}}>{slider.name}</span>
+                    <span className="text-muted-foreground">{sliderValues[slider.id]}</span>
+                  </div>
+                  <Slider
+                    id={slider.id}
+                    min={slider.min}
+                    max={slider.max}
+                    step={slider.step}
+                    value={[sliderValues[slider.id]]}
+                    onValueChange={(values) => onSliderChange(slider.id, values[0])}
+                    className="mt-1"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default AdjustmentSliders;

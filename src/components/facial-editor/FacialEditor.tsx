@@ -1,0 +1,344 @@
+
+import React, { useState, useRef, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { Camera, Upload, Download, ImageIcon } from "lucide-react";
+import ModelSetup from '../ModelSetup';
+import ImageUploader from './ImageUploader';
+import WebcamCapture from './WebcamCapture';
+import ImagePreview from './ImagePreview';
+import FaceAnalysis from './FaceAnalysis';
+import AdjustmentSliders from './AdjustmentSliders';
+import {
+  useFaceApiModels,
+  useFeatureSliders,
+  useFaceAnalysis
+} from './FacialEditorHooks';
+import {
+  drawFaceLandmarks,
+  applyFeatureTransformations
+} from './ImageProcessingUtils';
+
+const FacialEditor = () => {
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("upload");
+  const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
+  const [processedImageURL, setProcessedImageURL] = useState<string>("");
+  const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const originalCanvasRef = useRef<HTMLCanvasElement>(null);
+  const processedCanvasRef = useRef<HTMLCanvasElement>(null);
+  const cleanProcessedCanvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Custom hooks for models loading, facial processing, and sliders
+  const { isFaceApiLoaded, modelsLoadingStatus } = useFaceApiModels();
+  const { featureSliders, sliderValues, handleSliderChange, resetSliders } = useFeatureSliders();
+  const {
+    isAnalyzing,
+    faceDetection,
+    facialDifference,
+    initialProcessingDone,
+    detectFaces,
+    analyzeModifiedImage,
+    setInitialProcessingDone,
+    setFaceDetection
+  } = useFaceAnalysis(isFaceApiLoaded, originalImage, cleanProcessedCanvasRef);
+
+  // Display the original image immediately after loading
+  useEffect(() => {
+    if (originalImage && originalCanvasRef.current) {
+      const origCtx = originalCanvasRef.current.getContext("2d");
+      if (origCtx) {
+        // Set canvas dimensions to match image
+        originalCanvasRef.current.width = originalImage.width;
+        originalCanvasRef.current.height = originalImage.height;
+        
+        // Draw the image to canvas
+        origCtx.drawImage(originalImage, 0, 0);
+      }
+      
+      // After displaying original image, proceed with initial processing
+      detectFaces();
+    }
+  }, [originalImage]);
+  
+  // Process the image whenever slider values change
+  useEffect(() => {
+    if (originalImage && initialProcessingDone) {
+      processImage();
+    }
+  }, [sliderValues]);
+
+  // When face-api loads and we have an original image, detect features
+  useEffect(() => {
+    if (isFaceApiLoaded && originalImage && !initialProcessingDone) {
+      detectFaces();
+    }
+  }, [isFaceApiLoaded, originalImage, initialProcessingDone]);
+
+  // Clean up webcam stream on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    
+    // Stop webcam if switching away from webcam tab
+    if (value !== "webcam" && streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      if (videoRef.current) videoRef.current.srcObject = null;
+      streamRef.current = null;
+    }
+  };
+
+  const captureFromWebcam = () => {
+    if (!videoRef.current || !streamRef.current) return;
+    
+    const canvas = document.createElement("canvas");
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      
+      const img = new Image();
+      img.onload = () => {
+        setOriginalImage(img);
+        setActiveTab("edit");
+      };
+      img.src = canvas.toDataURL("image/png");
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        variant: "destructive",
+        title: "Invalid File",
+        description: "Please select an image file."
+      });
+      return;
+    }
+    
+    // Reset states when loading a new image
+    setFaceDetection(null);
+    setInitialProcessingDone(false);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        setOriginalImage(img);
+        setActiveTab("edit");
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const processImage = () => {
+    if (!originalImage || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) return;
+    
+    setIsProcessing(true);
+    
+    // First process the clean canvas (without landmarks)
+    const cleanCanvas = cleanProcessedCanvasRef.current;
+    const cleanCtx = cleanCanvas.getContext("2d");
+    if (!cleanCtx) return;
+    
+    // Set canvas dimensions to match image
+    cleanCanvas.width = originalImage.width;
+    cleanCanvas.height = originalImage.height;
+    
+    // Apply feature transformations to the clean canvas
+    applyFeatureTransformations(
+      cleanCtx, 
+      originalImage, 
+      cleanCanvas.width, 
+      cleanCanvas.height, 
+      faceDetection, 
+      sliderValues
+    );
+    
+    // Update clean processed image URL for download
+    setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
+    
+    // Now process the canvas with landmarks
+    const canvas = processedCanvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    
+    // Set canvas dimensions to match image
+    canvas.width = originalImage.width;
+    canvas.height = originalImage.height;
+    
+    // Copy the clean processed image to the display canvas
+    ctx.drawImage(cleanCanvas, 0, 0);
+    
+    // Draw landmarks on top of the processed image
+    if (faceDetection) {
+      drawFaceLandmarks(canvas, faceDetection, originalImage);
+    }
+    
+    // Update processed image URL (with landmarks)
+    setProcessedImageURL(canvas.toDataURL("image/png"));
+    setIsProcessing(false);
+    
+    // If we have face data, analyze the modified image
+    if (faceDetection && isFaceApiLoaded) {
+      setTimeout(analyzeModifiedImage, 300);
+    }
+  };
+
+  const downloadImage = () => {
+    if (!cleanProcessedImageURL) return;
+    
+    const link = document.createElement("a");
+    link.href = cleanProcessedImageURL;
+    link.download = "privacy-protected-image.png";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Image Downloaded",
+      description: "Your privacy-protected image has been saved."
+    });
+  };
+
+  const triggerFileInput = () => {
+    // Reset the input value first to allow selecting the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  return (
+    <div className="container mx-auto py-6 px-4 max-w-7xl">
+      <div className="mb-8 text-center">
+        <h1 className="text-4xl font-bold mb-2 text-editor-dark">Facial Privacy Editor</h1>
+        <p className="text-muted-foreground">
+          Subtly modify facial features to help defeat facial recognition while maintaining visual similarity
+        </p>
+      </div>
+
+      {/* Add the model setup component that will handle model downloads */}
+      {modelsLoadingStatus === 'error' && <ModelSetup />}
+
+      <Tabs defaultValue="upload" value={activeTab} onValueChange={handleTabChange}>
+        <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto mb-8">
+          <TabsTrigger value="upload">
+            <Upload className="h-4 w-4 mr-2" />
+            Upload
+          </TabsTrigger>
+          <TabsTrigger value="webcam">
+            <Camera className="h-4 w-4 mr-2" />
+            Webcam
+          </TabsTrigger>
+          <TabsTrigger value="edit" disabled={!originalImage}>
+            <ImageIcon className="h-4 w-4 mr-2" />
+            Edit
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="upload" className="flex flex-col items-center justify-center">
+          <ImageUploader onImageUpload={handleImageUpload} />
+        </TabsContent>
+
+        <TabsContent value="webcam" className="flex flex-col items-center justify-center">
+          <WebcamCapture 
+            onCapture={captureFromWebcam}
+            videoRef={videoRef}
+            streamRef={streamRef}
+          />
+        </TabsContent>
+
+        <TabsContent value="edit">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left side - original, processed with landmarks, and clean images */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ImagePreview 
+                  title="Original"
+                  canvasRef={originalCanvasRef}
+                  originalImage={originalImage}
+                />
+                
+                <ImagePreview
+                  title="Modified with Landmarks"
+                  canvasRef={processedCanvasRef}
+                  isProcessing={isProcessing}
+                  isAnalyzing={isAnalyzing}
+                  noFaceDetected={!faceDetection && !isAnalyzing}
+                  originalImage={originalImage}
+                />
+
+                {/* Hidden clean processed canvas (for download without landmarks) */}
+                <div className="hidden">
+                  <canvas ref={cleanProcessedCanvasRef} />
+                </div>
+              </div>
+              
+              {/* Analysis information below images */}
+              {faceDetection && (
+                <FaceAnalysis 
+                  confidence={faceDetection.confidence} 
+                  facialDifference={facialDifference}
+                />
+              )}
+              
+              <div className="flex justify-center space-x-4">
+                <Button 
+                  className="bg-editor-dark hover:bg-editor-accent"
+                  onClick={triggerFileInput}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Change Image
+                </Button>
+                <Button 
+                  className="bg-editor-purple hover:bg-editor-accent"
+                  onClick={downloadImage}
+                  disabled={!cleanProcessedImageURL}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </div>
+            </div>
+            
+            {/* Right side - adjustment sliders */}
+            <AdjustmentSliders 
+              featureSliders={featureSliders}
+              sliderValues={sliderValues}
+              onSliderChange={handleSliderChange}
+              onReset={() => {
+                resetSliders();
+                toast({
+                  title: "Settings Reset",
+                  description: "All adjustments have been reset to default values."
+                });
+              }}
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default FacialEditor;
