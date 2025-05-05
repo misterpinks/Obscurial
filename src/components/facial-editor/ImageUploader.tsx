@@ -6,10 +6,12 @@ import { Card, CardContent } from "@/components/ui/card";
 
 interface ImageUploaderProps {
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  inputRef?: React.RefObject<HTMLInputElement>;
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, inputRef }) => {
+  const internalFileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = inputRef || internalFileInputRef;
 
   const triggerFileInput = () => {
     // Reset the input value first to allow selecting the same file again
