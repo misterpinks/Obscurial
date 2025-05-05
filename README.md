@@ -1,73 +1,89 @@
-# Welcome to your Lovable project
+# Face Veil Disguise
 
-## Project info
+A JavaScript-based face veiling tool that helps protect privacy in images by applying various disguise filters to detected faces to break facial recognition tools such as Pimeyes or Clearview.
 
-**URL**: https://lovable.dev/projects/ffee17f6-f3e9-47dd-a952-70e402c02e64
+![Face Veil Disguise Demo](https://raw.githubusercontent.com/misterpinks/face-veil-disguise/main/examples/demo.png)
 
-## How can I edit this code?
+## Overview
 
-There are several ways of editing your application.
+Face Veil Disguise is an open-source tool designed to anonymize images by applying various effects to detected faces. This can be useful for privacy protection when sharing photos online, for educational purposes, or in applications where facial privacy is a concern.
 
-**Use Lovable**
+## Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ffee17f6-f3e9-47dd-a952-70e402c02e64) and start prompting.
+- **Multiple Disguise Options**
+- **Face Detection**: Powered by face-api.js for accurate face detection
+- **Browser-based**: Works entirely in the browser with no server uploads
+- **Customizable**: Adjust disguise intensity and parameters
+- **Save & Export**: Download modified image
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Modern web browser (Chrome, Firefox, Safari, Edge)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. Clone the repository:
+```
+git clone https://github.com/misterpinks/face-veil-disguise.git
+cd face-veil-disguise
 ```
 
-**Edit a file directly in GitHub**
+2. Open `index.html` in your browser or set up a local server:
+```
+# Using Python's built-in server
+python -m http.server
+# Then open http://localhost:8000 in your browser
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Usage
 
-**Use GitHub Codespaces**
+1. Open the application in your browser
+2. Upload an image using the "Choose File" button or drag and drop
+3. Adjust settings as needed
+4. Click "Process Image" to apply the disguise
+5. Download the processed image using the "Save" button
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Examples
 
-## What technologies are used for this project?
 
-This project is built with:
+## Browser Compatibility
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Chrome (v80+)
+- Firefox (v75+)
+- Safari (v13+)
+- Edge (v80+)
 
-## How can I deploy this project?
+## Privacy
 
-Simply open [Lovable](https://lovable.dev/projects/ffee17f6-f3e9-47dd-a952-70e402c02e64) and click on Share -> Publish.
+- All processing happens locally in your browser
+- No images are uploaded to any server
+- No analytics or tracking included
 
-## Can I connect a custom domain to my Lovable project?
+## Contributing
 
-Yes, you can!
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [face-api.js](https://github.com/justadudewhohacks/face-api.js) for face detection capabilities
+- All contributors and open source projects that made this possible
+
+## Contact
+
+Project Link: [https://github.com/misterpinks/face-veil-disguise](https://github.com/misterpinks/face-veil-disguise)
+
+---
+
+Made with ❤️ for privacy
