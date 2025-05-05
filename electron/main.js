@@ -1,4 +1,3 @@
-
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import fs from 'fs';
@@ -19,9 +18,11 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: "Obscurial - Facial Privacy Editor",
+    icon: path.join(__dirname, '../src/assets/icon.ico'),
     webPreferences: {
-      nodeIntegration: false, // Changed for security
-      contextIsolation: true, // Enable context isolation
+      nodeIntegration: false,
+      contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     }
   });
@@ -47,7 +48,7 @@ function createWindow() {
     });
     
     mainWindow.loadURL(startUrl);
-    // Open the DevTools automatically
+    // Open the DevTools automatically in development
     mainWindow.webContents.openDevTools();
   } else {
     // In production, load the built files

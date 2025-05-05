@@ -8,24 +8,43 @@
   "files": [
     "dist/**/*",
     "electron/**/*",
-    "src/assets/**/*"
+    "src/assets/**/*",
+    "public/models/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "public/models",
+      "to": "models",
+      "filter": ["**/*"]
+    }
   ],
   "win": {
     "target": [
-      "portable"
+      "portable",
+      "nsis"
     ],
     "icon": "src/assets/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true
   },
   "mac": {
     "target": [
-      "dmg"
+      "dmg",
+      "zip"
     ],
-    "icon": "src/assets/icon.ico"
+    "icon": "src/assets/icon.ico",
+    "category": "public.app-category.graphics-design"
   },
   "linux": {
     "target": [
-      "AppImage"
+      "AppImage",
+      "deb"
     ],
-    "icon": "src/assets/icon.ico"
-  }
+    "icon": "src/assets/icon.ico",
+    "category": "Graphics"
+  },
+  "publish": null
 }

@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
   base: process.env.ELECTRON_RUN ? './' : '/',
   build: {
     outDir: 'dist',
-    sourcemap: process.env.ELECTRON_RUN ? false : true, // Disable sourcemaps in Electron for performance
+    sourcemap: process.env.ELECTRON_RUN ? false : true,
     // Make sure Electron can access the built files
     emptyOutDir: true,
     rollupOptions: {
@@ -61,6 +61,5 @@ export default defineConfig(({ mode }) => ({
   // Electron-specific performance optimizations
   esbuild: {
     logOverride: { 'this-is-undefined-in-esm': 'silent' }
-    // Removed jsxInject to prevent React import conflicts
   }
 }));
