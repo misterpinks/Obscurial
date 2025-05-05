@@ -3,7 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Camera, Upload, Download, ImageIcon } from "lucide-react";
+import { Camera, Upload, Download, ImageIcon, Eye, EyeOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import ModelSetup from '../ModelSetup';
 import ImageUploader from './ImageUploader';
 import WebcamCapture from './WebcamCapture';
@@ -31,6 +32,7 @@ const FacialEditor = () => {
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
+  const [showLandmarks, setShowLandmarks] = useState(true);
   
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -50,7 +52,8 @@ const FacialEditor = () => {
     detectFaces,
     analyzeModifiedImage,
     setInitialProcessingDone,
-    setFaceDetection
+    setFaceDetection,
+    imageDimensions
   } = useFaceAnalysis(isFaceApiLoaded, originalImage, cleanProcessedCanvasRef);
 
   // Display the original image immediately after loading
@@ -80,7 +83,7 @@ const FacialEditor = () => {
     if (originalImage && initialProcessingDone) {
       processImage();
     }
-  }, [sliderValues, originalImage, initialProcessingDone]);
+  }, [sliderValues, originalImage, initialProcessingDone, showLandmarks]);
 
   // When face-api loads and we have an original image, detect features
   useEffect(() => {
@@ -181,9 +184,6 @@ const FacialEditor = () => {
     
     // Reprocess the image
     processImage();
-    
-    // Do NOT automatically analyze after moving landmarks
-    // Let the user trigger analysis manually when ready
   };
 
   const processImage = () => {
@@ -225,17 +225,14 @@ const FacialEditor = () => {
     // Copy the clean processed image to the display canvas
     ctx.drawImage(cleanCanvas, 0, 0);
     
-    // Draw landmarks on top of the processed image
-    if (faceDetection) {
+    // Draw landmarks on top of the processed image if showLandmarks is true
+    if (faceDetection && showLandmarks) {
       drawFaceLandmarks(canvas, faceDetection, originalImage);
     }
     
-    // Update processed image URL (with landmarks)
+    // Update processed image URL (with or without landmarks)
     setProcessedImageURL(canvas.toDataURL("image/png"));
     setIsProcessing(false);
-    
-    // We no longer automatically analyze the image after processing
-    // The user will need to click the "Run Analysis" button
   };
 
   const handleRunAnalysis = () => {
@@ -269,6 +266,10 @@ const FacialEditor = () => {
       title: "Image Downloaded",
       description: "Your privacy-protected image has been saved."
     });
+  };
+
+  const toggleLandmarks = () => {
+    setShowLandmarks(!showLandmarks);
   };
 
   // Fixed function to properly trigger file input
@@ -324,17 +325,30 @@ const FacialEditor = () => {
                   originalImage={originalImage}
                 />
                 
-                <ImagePreview
-                  title="Modified with Landmarks"
-                  canvasRef={processedCanvasRef}
-                  isProcessing={isProcessing}
-                  isAnalyzing={isAnalyzing}
-                  noFaceDetected={!faceDetection && !isAnalyzing && initialProcessingDone}
-                  originalImage={originalImage}
-                  enableZoom={true}
-                  onLandmarkMove={handleLandmarkMove}
-                  faceDetection={faceDetection}
-                />
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-medium">Modified {showLandmarks ? 'with Landmarks' : ''}</h3>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs">{showLandmarks ? <Eye size={14} /> : <EyeOff size={14} />}</span>
+                      <Switch 
+                        checked={showLandmarks} 
+                        onCheckedChange={toggleLandmarks}
+                        size="sm"
+                      />
+                    </div>
+                  </div>
+                  <ImagePreview
+                    title=""
+                    canvasRef={processedCanvasRef}
+                    isProcessing={isProcessing}
+                    isAnalyzing={isAnalyzing}
+                    noFaceDetected={!faceDetection && !isAnalyzing && initialProcessingDone}
+                    originalImage={originalImage}
+                    enableZoom={true}
+                    onLandmarkMove={handleLandmarkMove}
+                    faceDetection={faceDetection}
+                  />
+                </div>
                 
                 <ImagePreview
                   title="Clean Result"
@@ -349,6 +363,7 @@ const FacialEditor = () => {
                 facialDifference={facialDifference}
                 isAnalyzing={isAnalyzing}
                 onRunAnalysis={handleRunAnalysis}
+                imageDimensions={imageDimensions}
               />
               
               <EditorImageControls

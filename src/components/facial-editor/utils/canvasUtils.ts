@@ -12,3 +12,11 @@ export const createImageFromCanvas = (canvas: HTMLCanvasElement): Promise<HTMLIm
     image.src = canvas.toDataURL('image/png');
   });
 };
+
+// Helper to get canvas dimensions
+export const getCanvasDimensions = (canvas: HTMLCanvasElement) => {
+  return {
+    width: canvas.width,
+    height: canvas.height
+  };
+};

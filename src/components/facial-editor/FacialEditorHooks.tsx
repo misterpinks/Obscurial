@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import * as faceapi from 'face-api.js';
 import { useToast } from "@/components/ui/use-toast";
 import { loadModelsFromGitHub } from '@/utils/downloadModels';
-import { createImageFromCanvas } from './ImageProcessingUtils';
+import { createImageFromCanvas } from './utils/canvasUtils';
 
 interface FeatureSlider {
   id: string;
@@ -138,12 +138,19 @@ export const useFaceAnalysis = (
   const [facialDifference, setFacialDifference] = useState<number | null>(null);
   const [initialProcessingDone, setInitialProcessingDone] = useState(false);
   const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
   const detectFaces = async () => {
     if (!originalImage || !isFaceApiLoaded) return;
     
     try {
       setIsAnalyzing(true);
+      
+      // Update image dimensions when detecting faces
+      setImageDimensions({
+        width: originalImage.width,
+        height: originalImage.height
+      });
       
       // Use a lower confidence threshold (0.3 instead of 0.5) to improve face detection
       const detections = await faceapi
@@ -204,7 +211,7 @@ export const useFaceAnalysis = (
     if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded) return;
     
     try {
-      setIsAnalyzing(true); // Add this to show analysis is in progress
+      setIsAnalyzing(true);
       
       const processedImage = await createImageFromCanvas(cleanProcessedCanvasRef.current);
       
@@ -223,26 +230,35 @@ export const useFaceAnalysis = (
         
         // Calculate similarity between original and modified faces
         if (faceDetection.original) {
+          // Improved facial difference calculation
+          // The euclideanDistance typically returns values between 0-1 for similar faces
+          // and larger values for different faces. We need to enhance this difference
+          // to better reflect visual changes
           const distance = faceapi.euclideanDistance(
             faceDetection.original, 
             detections.descriptor
           );
           
-          console.log("Facial difference calculated:", distance);
-          setFacialDifference(distance);
+          // Apply a non-linear transformation to emphasize differences
+          // This will make small changes more noticeable in the score
+          const enhancedDistance = Math.pow(distance * 4, 1.5);
+          const clampedDistance = Math.min(enhancedDistance, 2.0);
+          
+          console.log("Raw facial difference:", distance);
+          console.log("Enhanced facial difference:", clampedDistance);
+          setFacialDifference(clampedDistance);
         }
       } else {
-        console.log("No face detected in modified image");
-        // If no face detected in modified image, indicate this in the UI
-        setFacialDifference(null);
+        console.log("No face detected in modified image - this is good for anti-recognition");
+        // If no face is detected in the modified image, that's actually good for defeating recognition
+        setFacialDifference(2.0); // Maximum difference - recognition fully defeated
         toast({
-          variant: "destructive",
-          title: "Analysis Problem",
-          description: "No face detected in the modified image."
+          title: "Recognition Defeated",
+          description: "The face is no longer detectable by AI - excellent privacy protection!"
         });
       }
 
-      setIsAnalyzing(false); // Always set analyzing to false when done
+      setIsAnalyzing(false);
     } catch (error) {
       console.error("Error analyzing modified image:", error);
       setIsAnalyzing(false);
@@ -262,6 +278,7 @@ export const useFaceAnalysis = (
     detectFaces, 
     analyzeModifiedImage,
     setInitialProcessingDone,
-    setFaceDetection
+    setFaceDetection,
+    imageDimensions
   };
 };

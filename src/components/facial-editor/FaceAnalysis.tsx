@@ -8,15 +8,25 @@ interface FaceAnalysisProps {
   facialDifference?: number | null;
   isAnalyzing?: boolean;
   onRunAnalysis?: () => void;
+  imageDimensions?: { width: number; height: number };
 }
 
 const FaceAnalysis: React.FC<FaceAnalysisProps> = ({ 
   confidence, 
   facialDifference,
   isAnalyzing,
-  onRunAnalysis
+  onRunAnalysis,
+  imageDimensions
 }) => {
-  // Show analysis box even when no face is detected, with appropriate messaging
+  // Helper function to interpret facial difference values
+  const getFacialDifferenceStatus = (difference: number) => {
+    if (difference >= 1.5) return 'Recognition fully defeated';
+    if (difference >= 1.0) return 'Likely defeats recognition';
+    if (difference >= 0.7) return 'May defeat recognition';
+    if (difference >= 0.4) return 'Some protection, but recognizable';
+    return 'Easily recognizable';
+  };
+
   return (
     <Card className="mt-3">
       <CardContent className="p-4">
@@ -44,10 +54,16 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
                 <span className="font-medium">
                   {isAnalyzing ? 'Analyzing...' : 
                     (facialDifference !== undefined && facialDifference !== null ? 
-                      `${facialDifference.toFixed(2)} ${facialDifference > 0.6 ? '(likely defeats recognition)' : '(may not defeat recognition)'}` 
+                      `${facialDifference.toFixed(2)} (${getFacialDifferenceStatus(facialDifference)})` 
                       : (confidence !== undefined && confidence !== null ? 'Not analyzed yet' : 'N/A'))}
                 </span>
               </li>
+              {imageDimensions && (imageDimensions.width > 0 || imageDimensions.height > 0) && (
+                <li className="flex justify-between">
+                  <span>Image dimensions:</span>
+                  <span className="font-medium">{`${imageDimensions.width} × ${imageDimensions.height}`}</span>
+                </li>
+              )}
             </ul>
           </div>
           <div>

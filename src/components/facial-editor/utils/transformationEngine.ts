@@ -47,7 +47,32 @@ export const applyFeatureTransformations = ({
   
   // Get facial regions and amplification factor
   const facialRegions = getFacialRegions();
-  const amplificationFactor = getAmplificationFactor();
+  
+  // Calculate dynamic amplification factor based on image dimensions
+  // This ensures that larger images get stronger effects
+  const baseAmplificationFactor = getAmplificationFactor();
+  
+  // Additional multiplier based on image dimensions
+  // Normalize based on a standard size of 500x500
+  const sizeFactor = Math.sqrt((width * height) / (500 * 500));
+  
+  // Combine base amplification with size factor and a stronger overall effect
+  const amplificationFactor = baseAmplificationFactor * sizeFactor * 2.0;
+  
+  console.log("Image size:", width, "x", height);
+  console.log("Size factor:", sizeFactor);
+  console.log("Total amplification factor:", amplificationFactor);
+  
+  // Apply super-strong distortion effect for extreme values
+  const extremeThreshold = 75; // When slider exceeds this value, apply extreme effect
+  let hasExtremeValues = false;
+  
+  // Check if any sliders are at extreme values
+  Object.values(sliderValues).forEach(value => {
+    if (Math.abs(value) >= extremeThreshold) {
+      hasExtremeValues = true;
+    }
+  });
   
   // Apply distortions based on slider values
   for (let y = 0; y < height; y++) {
@@ -57,8 +82,9 @@ export const applyFeatureTransformations = ({
       const normY = (y - centerY) / (faceHeight / 2);
       const distFromCenter = Math.sqrt(normX * normX + normY * normY);
       
-      // Skip if outside approximate face area
-      if (distFromCenter > 1.3) {
+      // Skip if outside approximate face area (with some expansion for extreme values)
+      const faceAreaLimit = hasExtremeValues ? 1.5 : 1.3;
+      if (distFromCenter > faceAreaLimit) {
         // Just copy original pixel for areas outside the face
         const i = (y * width + x) * 4;
         outputData.data[i] = originalData.data[i];
@@ -81,9 +107,14 @@ export const applyFeatureTransformations = ({
         }
       }
       
-      // Apply custom landmark deformation if available (placeholder for future enhancement)
-      if (faceDetection?.landmarks?.positions) {
-        // This is a simplified approach that could be enhanced further
+      // Apply additional chaotic displacement for extreme values
+      if (hasExtremeValues) {
+        // Add some chaotic, but deterministic displacement based on position
+        const chaosX = Math.sin(y * 0.1) * Math.cos(x * 0.1) * 5.0;
+        const chaosY = Math.cos(y * 0.1) * Math.sin(x * 0.1) * 5.0;
+        
+        displacementX += chaosX;
+        displacementY += chaosY;
       }
       
       // Calculate sample position with displacement
@@ -101,6 +132,16 @@ export const applyFeatureTransformations = ({
       
       const index = (y * width + x) * 4;
       
+      // If out of bounds, use a boundary color or skip
+      if (x1 < 0 || y1 < 0 || x2 >= width || y2 >= height) {
+        // Use a solid color for out-of-bounds
+        outputData.data[index] = 0; // R
+        outputData.data[index + 1] = 0; // G
+        outputData.data[index + 2] = 0; // B
+        outputData.data[index + 3] = 255; // A
+        continue;
+      }
+      
       // Bilinear interpolation for each color channel
       for (let c = 0; c < 3; c++) {
         const topLeft = originalData.data[(y1 * width + x1) * 4 + c];
@@ -111,6 +152,13 @@ export const applyFeatureTransformations = ({
         const top = topLeft + (topRight - topLeft) * xWeight;
         const bottom = bottomLeft + (bottomRight - bottomLeft) * xWeight;
         let interpolated = top + (bottom - top) * yWeight;
+        
+        // For extreme values, add subtle color shifting
+        if (hasExtremeValues) {
+          // Apply subtle color shifts based on position
+          const colorShift = Math.sin(x * 0.05 + y * 0.05) * 30;
+          interpolated += colorShift;
+        }
         
         // Clamp values between 0-255
         outputData.data[index + c] = Math.min(255, Math.max(0, interpolated));
