@@ -60,7 +60,7 @@ export default defineConfig(({ mode }) => ({
   },
   // Electron-specific performance optimizations
   esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' },
-    jsxInject: `import React from 'react'`
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+    // Removed jsxInject to prevent React import conflicts
   }
 }));
