@@ -105,7 +105,7 @@ const FacialEditor = () => {
     loadModels();
   }, []);
 
-  // Immediately display the original image when it's loaded
+  // Display the original image immediately after loading
   useEffect(() => {
     if (originalImage && originalCanvasRef.current) {
       const origCtx = originalCanvasRef.current.getContext("2d");
@@ -116,7 +116,7 @@ const FacialEditor = () => {
       }
       
       // After displaying original image, proceed with initial processing
-      processImage();
+      detectFaces();
     }
   }, [originalImage]);
   
@@ -168,15 +168,18 @@ const FacialEditor = () => {
         drawFaceLandmarks();
         
         // Ensure the image is processed after detection completes
-        if (!initialProcessingDone) {
-          setInitialProcessingDone(true);
-        }
+        setInitialProcessingDone(true);
+        // Immediately process the image to show it in the processed canvas
+        processImage();
       } else {
         toast({
           variant: "destructive",
           title: "No Face Detected",
           description: "Try uploading a clearer image with a face."
         });
+        
+        // Even if no face is detected, we should still process the image to show it
+        processImage();
       }
     } catch (error) {
       setIsAnalyzing(false);
@@ -186,6 +189,9 @@ const FacialEditor = () => {
         title: "Face Detection Error",
         description: "Could not analyze facial features."
       });
+      
+      // Even if face detection fails, we should still process the image to show it
+      processImage();
     }
   };
   
