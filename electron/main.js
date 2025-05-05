@@ -1,3 +1,4 @@
+
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import fs from 'fs';
@@ -12,6 +13,8 @@ const __dirname = path.dirname(__filename);
 let mainWindow;
 
 function createWindow() {
+  console.log('Creating Electron window');
+  
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -25,17 +28,24 @@ function createWindow() {
 
   // Check if we're in development or production
   const isDev = process.env.IS_DEV === 'true';
+  console.log('Running in', isDev ? 'development' : 'production', 'mode');
 
   // Load the app
   if (isDev) {
     // In development, use the Vite dev server
-    mainWindow.loadURL('http://localhost:8080');
+    const startUrl = 'http://localhost:8080';
+    console.log('Loading URL:', startUrl);
+    mainWindow.loadURL(startUrl);
     // Open the DevTools
     mainWindow.webContents.openDevTools();
   } else {
     // In production, load the built files
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    console.log('Loading file:', indexPath);
+    console.log('File exists:', fs.existsSync(indexPath));
+    
     mainWindow.loadURL(url.format({
-      pathname: path.join(__dirname, '../dist/index.html'),
+      pathname: indexPath,
       protocol: 'file:',
       slashes: true
     }));
@@ -45,10 +55,22 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+  
+  // Log loading events
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Failed to load:', errorCode, errorDescription);
+  });
+  
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('Page loaded successfully');
+  });
 }
 
 // Create window when Electron has finished initialization
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  console.log('Electron app is ready');
+  createWindow();
+});
 
 // Quit when all windows are closed
 app.on('window-all-closed', () => {

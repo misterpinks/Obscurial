@@ -22,4 +22,8 @@ export default defineConfig(({ mode }) => ({
   },
   // Configure base path differently for electron build
   base: process.env.ELECTRON_RUN ? './' : '/',
+  build: {
+    outDir: 'dist',
+    sourcemap: true
+  }
 }));
