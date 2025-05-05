@@ -46,7 +46,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           )}
           {noFaceDetected && !isAnalyzing && originalImage && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-              <div className="text-white font-medium px-3 py-1 rounded">
+              <div className="text-white bg-black/70 font-medium px-3 py-1 rounded">
                 No face detected
               </div>
             </div>

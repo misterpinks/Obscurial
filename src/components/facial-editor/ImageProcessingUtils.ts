@@ -49,6 +49,7 @@ export const drawFaceLandmarks = (
   Object.entries(featureGroups).forEach(([groupName, group]) => {
     ctx.fillStyle = group.color;
     ctx.strokeStyle = group.color;
+    ctx.lineWidth = 1.5;  // Make lines a bit thicker for visibility
     
     // Connect points for better visualization
     if (group.points.length > 1) {

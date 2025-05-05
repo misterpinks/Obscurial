@@ -1,5 +1,5 @@
 
-import FacialEditor from "@/components/FacialEditor";
+import FacialEditor from "@/components/facial-editor/FacialEditor";
 import { Toaster } from "@/components/ui/toaster";
 
 const Index = () => {
