@@ -34,17 +34,9 @@ export default defineConfig(({ mode }) => ({
     },
     // Optimize for Electron
     target: process.env.ELECTRON_RUN ? 'chrome108' : 'modules',
-    minify: process.env.ELECTRON_RUN ? 'terser' : 'esbuild',
-    // Correctly specify terserOptions only when using terser
-    ...(process.env.ELECTRON_RUN ? {
-      terserOptions: {
-        compress: {
-          // Electron-specific optimizations
-          drop_console: false,
-          drop_debugger: true
-        }
-      }
-    } : {})
+    // Always use esbuild for minification - resolves terser dependency issues
+    minify: 'esbuild',
+    // Remove terser-specific options since we're now using esbuild
   },
   // Ensure proper handling of static assets for Electron
   publicDir: 'public',
