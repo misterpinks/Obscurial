@@ -2,7 +2,7 @@
 export default {
   packagerConfig: {
     asar: true,
-    icon: './src/assets/icon' // no file extension required
+    icon: './public/app-icon' // no file extension required
   },
   rebuildConfig: {},
   makers: [
@@ -10,7 +10,7 @@ export default {
       name: '@electron-forge/maker-squirrel',
       config: {
         // The ICO file to use as the icon for the generated Setup.exe
-        setupIcon: './src/assets/icon.ico',
+        setupIcon: './public/app-icon.png',
         // An array of strings which are .exe files to sign
         certificateFile: undefined,
         certificatePassword: undefined

@@ -1,3 +1,4 @@
+
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -14,7 +15,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     title: "Obscurial - Facial Privacy Editor",
-    icon: path.join(__dirname, '../src/assets/icon.ico'),
+    icon: path.join(__dirname, '../public/app-icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
