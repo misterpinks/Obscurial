@@ -59,27 +59,29 @@ const FacialEditor = () => {
         originalCanvasRef.current.height = originalImage.height;
         
         // Draw the image to canvas
+        origCtx.clearRect(0, 0, originalCanvasRef.current.width, originalCanvasRef.current.height);
         origCtx.drawImage(originalImage, 0, 0);
+        console.log("Drawing original image to canvas", originalImage.width, originalImage.height);
       }
       
       // After displaying original image, proceed with initial processing
       detectFaces();
     }
-  }, [originalImage]);
+  }, [originalImage, detectFaces]);
   
   // Process the image whenever slider values change
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       processImage();
     }
-  }, [sliderValues]);
+  }, [sliderValues, originalImage, initialProcessingDone]);
 
   // When face-api loads and we have an original image, detect features
   useEffect(() => {
     if (isFaceApiLoaded && originalImage && !initialProcessingDone) {
       detectFaces();
     }
-  }, [isFaceApiLoaded, originalImage, initialProcessingDone]);
+  }, [isFaceApiLoaded, originalImage, initialProcessingDone, detectFaces]);
 
   // Clean up webcam stream on unmount
   useEffect(() => {
@@ -272,7 +274,7 @@ const FacialEditor = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left side - original, processed with landmarks, and clean images */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <ImagePreview 
                   title="Original"
                   canvasRef={originalCanvasRef}
@@ -287,11 +289,13 @@ const FacialEditor = () => {
                   noFaceDetected={!faceDetection && !isAnalyzing}
                   originalImage={originalImage}
                 />
+                
+                <ImagePreview
+                  title="Clean Result"
+                  canvasRef={cleanProcessedCanvasRef}
+                  originalImage={originalImage}
+                />
 
-                {/* Hidden clean processed canvas (for download without landmarks) */}
-                <div className="hidden">
-                  <canvas ref={cleanProcessedCanvasRef} />
-                </div>
               </div>
               
               {/* Analysis information below images */}

@@ -29,7 +29,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
         <div className="relative border rounded-lg overflow-hidden flex items-center justify-center bg-gray-50 h-[300px]">
           <canvas 
             ref={canvasRef} 
-            className="max-w-full max-h-full"
+            className="max-w-full max-h-full object-contain"
           />
           {isProcessing && (
             <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
@@ -45,8 +45,10 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
             </div>
           )}
           {noFaceDetected && !isAnalyzing && originalImage && (
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-              No face detected
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <div className="text-white font-medium px-3 py-1 rounded">
+                No face detected
+              </div>
             </div>
           )}
           {!originalImage && title === "Original" && (
