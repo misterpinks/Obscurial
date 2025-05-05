@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 // Helper to create image from canvas
@@ -21,7 +20,7 @@ interface TransformationParams {
   sliderValues: Record<string, number>;
 }
 
-// Updated function signature to accept a single object parameter
+// Updated function to apply more dramatic transformations with the -100/+100 slider range
 export const applyFeatureTransformations = ({
   ctx,
   originalImage,
@@ -30,8 +29,6 @@ export const applyFeatureTransformations = ({
   faceDetection,
   sliderValues
 }: TransformationParams) => {
-  // This is a more robust transformation algorithm with expanded boundaries
-  
   // Create an off-screen canvas for processing
   const offCanvas = document.createElement("canvas");
   offCanvas.width = width;
@@ -49,8 +46,8 @@ export const applyFeatureTransformations = ({
   // Approximate face center - use face detection if available, otherwise estimate
   let centerX = width / 2;
   let centerY = height / 2;
-  let faceWidth = width * 0.6; // Expanded face width coverage (was 0.5)
-  let faceHeight = height * 0.7; // Expanded face height coverage (was 0.6)
+  let faceWidth = width * 0.6;
+  let faceHeight = height * 0.7;
   
   // Use detected face box if available
   if (faceDetection && faceDetection.detection) {
@@ -62,8 +59,9 @@ export const applyFeatureTransformations = ({
     faceHeight = box.height * 1.25;
   }
   
-  // Amplification factor for transformations
-  const amplificationFactor = 3.5;
+  // Amplification factor for transformations - adjusted for -100/+100 range
+  // Less amplification needed since the slider range is already doubled
+  const amplificationFactor = 2.0;
   
   // Apply distortions based on slider values
   for (let y = 0; y < height; y++) {
@@ -90,51 +88,51 @@ export const applyFeatureTransformations = ({
       
       // Eye region - expanded region
       if (normY < -0.15 && normY > -0.65 && Math.abs(normX) > 0.1 && Math.abs(normX) < 0.45) {
-        // Apply eye size transformation - amplified
-        displacementX += (sliderValues.eyeSize / 50) * normX * amplificationFactor;
-        displacementY += (sliderValues.eyeSize / 50) * normY * amplificationFactor;
+        // Apply eye size transformation
+        // Scale by 100 instead of 50 for the new slider range
+        displacementX += (sliderValues.eyeSize / 100) * normX * amplificationFactor;
+        displacementY += (sliderValues.eyeSize / 100) * normY * amplificationFactor;
         
-        // Apply eye spacing transformation - amplified
-        displacementX += (sliderValues.eyeSpacing / 50) * (normX > 0 ? 1 : -1) * amplificationFactor;
+        // Apply eye spacing transformation
+        displacementX += (sliderValues.eyeSpacing / 100) * (normX > 0 ? 1 : -1) * amplificationFactor;
       }
       
       // Eyebrow region - just above eyes - expanded
       if (normY < -0.25 && normY > -0.75 && Math.abs(normX) > 0.05 && Math.abs(normX) < 0.5) {
-        displacementY -= (sliderValues.eyebrowHeight / 50) * amplificationFactor;
+        displacementY -= (sliderValues.eyebrowHeight / 100) * amplificationFactor;
       }
       
       // Nose region - expanded
       if (Math.abs(normX) < 0.25 && normY > -0.4 && normY < 0.25) {
-        displacementX += (sliderValues.noseWidth / 50) * normX * amplificationFactor;
-        displacementY += (sliderValues.noseLength / 50) * (normY > 0 ? 1 : -1) * amplificationFactor;
+        displacementX += (sliderValues.noseWidth / 100) * normX * amplificationFactor;
+        displacementY += (sliderValues.noseLength / 100) * (normY > 0 ? 1 : -1) * amplificationFactor;
       }
       
       // Mouth region - expanded
       if (Math.abs(normX) < 0.35 && normY > 0.05 && normY < 0.45) {
-        displacementX += (sliderValues.mouthWidth / 50) * normX * amplificationFactor;
-        displacementY += (sliderValues.mouthHeight / 50) * (normY - 0.25) * amplificationFactor;
+        displacementX += (sliderValues.mouthWidth / 100) * normX * amplificationFactor;
+        displacementY += (sliderValues.mouthHeight / 100) * (normY - 0.25) * amplificationFactor;
       }
       
       // Overall face width - expanded
       if (distFromCenter > 0.4 && distFromCenter < 1.1) {
-        displacementX += (sliderValues.faceWidth / 50) * normX * amplificationFactor;
+        displacementX += (sliderValues.faceWidth / 100) * normX * amplificationFactor;
       }
       
       // Chin shape - expanded
       if (normY > 0.35 && Math.abs(normX) < 0.35) {
-        displacementY += (sliderValues.chinShape / 50) * (normY - 0.4) * amplificationFactor;
+        displacementY += (sliderValues.chinShape / 100) * (normY - 0.4) * amplificationFactor;
       }
       
       // Jawline - expanded
       if (normY > 0.15 && Math.abs(normX) > 0.25 && Math.abs(normX) < 0.65) {
-        displacementX += (sliderValues.jawline / 50) * (normX > 0 ? 1 : -1) * amplificationFactor;
+        displacementX += (sliderValues.jawline / 100) * (normX > 0 ? 1 : -1) * amplificationFactor;
       }
       
       // Apply custom landmark deformation if available
       if (faceDetection?.landmarks?.positions) {
         // This is a simplified approach that could be enhanced further
         // We could use the manually moved landmarks to influence nearby pixels
-        // This is just a basic implementation
       }
       
       // Calculate sample position with displacement
@@ -247,4 +245,3 @@ export const drawFaceLandmarks = (
   ctx.fillStyle = 'black';
   ctx.fillText('Click and drag points to move landmarks', 15, canvas.height - 15);
 };
-

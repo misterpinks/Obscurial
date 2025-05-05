@@ -1,15 +1,20 @@
 
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface FaceAnalysisProps {
   confidence?: number | null;
   facialDifference?: number | null;
+  isAnalyzing?: boolean;
+  onRunAnalysis?: () => void;
 }
 
 const FaceAnalysis: React.FC<FaceAnalysisProps> = ({ 
   confidence, 
-  facialDifference 
+  facialDifference,
+  isAnalyzing,
+  onRunAnalysis
 }) => {
   // Show analysis box even when no face is detected, with appropriate messaging
   return (
@@ -17,7 +22,17 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
       <CardContent className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <h3 className="text-lg font-medium mb-2">Face Analysis</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-medium">Face Analysis</h3>
+              <Button 
+                onClick={onRunAnalysis} 
+                size="sm"
+                disabled={isAnalyzing}
+                className="bg-editor-purple hover:bg-editor-accent"
+              >
+                {isAnalyzing ? 'Analyzing...' : 'Run Analysis'}
+              </Button>
+            </div>
             <ul className="space-y-1 text-sm">
               <li className="flex justify-between">
                 <span>Recognition confidence:</span>
@@ -27,9 +42,10 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
               <li className="flex justify-between">
                 <span>Facial difference:</span>
                 <span className="font-medium">
-                  {facialDifference !== undefined && facialDifference !== null ? 
-                    `${facialDifference.toFixed(2)} ${facialDifference > 0.6 ? '(likely defeats recognition)' : '(may not defeat recognition)'}` 
-                    : (confidence !== undefined && confidence !== null ? 'Analyzing...' : 'N/A')}
+                  {isAnalyzing ? 'Analyzing...' : 
+                    (facialDifference !== undefined && facialDifference !== null ? 
+                      `${facialDifference.toFixed(2)} ${facialDifference > 0.6 ? '(likely defeats recognition)' : '(may not defeat recognition)'}` 
+                      : (confidence !== undefined && confidence !== null ? 'Not analyzed yet' : 'N/A'))}
                 </span>
               </li>
             </ul>

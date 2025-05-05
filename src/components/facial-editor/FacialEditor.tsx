@@ -75,7 +75,7 @@ const FacialEditor = () => {
     }
   }, [originalImage, detectFaces, isFaceApiLoaded]);
   
-  // Process the image whenever slider values change
+  // Process the image whenever slider values change - but don't run analysis automatically
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       processImage();
@@ -182,8 +182,8 @@ const FacialEditor = () => {
     // Reprocess the image
     processImage();
     
-    // Analyze the modified face after a delay to ensure the image has been reprocessed
-    setTimeout(analyzeModifiedImage, 300);
+    // Do NOT automatically analyze after moving landmarks
+    // Let the user trigger analysis manually when ready
   };
 
   const processImage = () => {
@@ -200,7 +200,7 @@ const FacialEditor = () => {
     cleanCanvas.width = originalImage.width;
     cleanCanvas.height = originalImage.height;
     
-    // Apply feature transformations to the clean canvas - FIX: Pass the correct arguments
+    // Apply feature transformations to the clean canvas
     applyFeatureTransformations({
       ctx: cleanCtx,
       originalImage, 
@@ -234,12 +234,27 @@ const FacialEditor = () => {
     setProcessedImageURL(canvas.toDataURL("image/png"));
     setIsProcessing(false);
     
-    // If we have face data, analyze the modified image
-    if (faceDetection && isFaceApiLoaded) {
-      setTimeout(analyzeModifiedImage, 300);
-    }
+    // We no longer automatically analyze the image after processing
+    // The user will need to click the "Run Analysis" button
   };
 
+  const handleRunAnalysis = () => {
+    if (faceDetection && isFaceApiLoaded) {
+      analyzeModifiedImage();
+      
+      toast({
+        title: "Analysis Started",
+        description: "Analyzing facial changes..."
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Cannot Analyze",
+        description: "No face was detected in the original image."
+      });
+    }
+  };
+  
   const downloadImage = () => {
     if (!cleanProcessedImageURL) return;
     
@@ -332,6 +347,8 @@ const FacialEditor = () => {
               <FaceAnalysis 
                 confidence={faceDetection?.confidence} 
                 facialDifference={facialDifference}
+                isAnalyzing={isAnalyzing}
+                onRunAnalysis={handleRunAnalysis}
               />
               
               <EditorImageControls

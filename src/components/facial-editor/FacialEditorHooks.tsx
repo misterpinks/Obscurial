@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import * as faceapi from 'face-api.js';
 import { useToast } from "@/components/ui/use-toast";
@@ -66,18 +67,18 @@ export const useFaceApiModels = () => {
 };
 
 export const useFeatureSliders = () => {
-  // Feature adjustment sliders configuration with updated colors
+  // Updated slider ranges from -100 to 100 for more dramatic effects
   const featureSliders: FeatureSlider[] = [
-    { id: 'eyeSize', name: 'Eye Size', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
-    { id: 'eyeSpacing', name: 'Eye Spacing', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
-    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
-    { id: 'noseWidth', name: 'Nose Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
-    { id: 'noseLength', name: 'Nose Length', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
-    { id: 'mouthWidth', name: 'Mouth Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
-    { id: 'mouthHeight', name: 'Mouth Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
-    { id: 'faceWidth', name: 'Face Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
-    { id: 'chinShape', name: 'Chin Shape', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
-    { id: 'jawline', name: 'Jawline', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'eyeSize', name: 'Eye Size', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'eyeSpacing', name: 'Eye Spacing', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'noseWidth', name: 'Nose Width', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
+    { id: 'noseLength', name: 'Nose Length', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
+    { id: 'mouthWidth', name: 'Mouth Width', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
+    { id: 'mouthHeight', name: 'Mouth Height', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
+    { id: 'faceWidth', name: 'Face Width', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'chinShape', name: 'Chin Shape', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'jawline', name: 'Jawline', min: -100, max: 100, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
   ];
 
   const [sliderValues, setSliderValues] = useState<Record<string, number>>(() => {
@@ -203,6 +204,8 @@ export const useFaceAnalysis = (
     if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded) return;
     
     try {
+      setIsAnalyzing(true); // Add this to show analysis is in progress
+      
       const processedImage = await createImageFromCanvas(cleanProcessedCanvasRef.current);
       
       // Use the same lower confidence threshold for consistency
@@ -230,9 +233,24 @@ export const useFaceAnalysis = (
         }
       } else {
         console.log("No face detected in modified image");
+        // If no face detected in modified image, indicate this in the UI
+        setFacialDifference(null);
+        toast({
+          variant: "destructive",
+          title: "Analysis Problem",
+          description: "No face detected in the modified image."
+        });
       }
+
+      setIsAnalyzing(false); // Always set analyzing to false when done
     } catch (error) {
       console.error("Error analyzing modified image:", error);
+      setIsAnalyzing(false);
+      toast({
+        variant: "destructive",
+        title: "Analysis Error",
+        description: "Could not analyze facial differences."
+      });
     }
   };
 
