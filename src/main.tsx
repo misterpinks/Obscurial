@@ -36,8 +36,35 @@ console.log('Root element found:', rootElement !== null);
 
 if (rootElement) {
   try {
+    // Create a fallback UI in case React fails to render
+    const fallbackContent = document.createElement('div');
+    fallbackContent.id = 'fallback-content';
+    fallbackContent.style.display = 'none';
+    fallbackContent.innerHTML = `
+      <div style="padding: 20px; text-align: center;">
+        <h2>Loading Application...</h2>
+        <p>If this message persists, there may be an issue with the application.</p>
+      </div>
+    `;
+    rootElement.appendChild(fallbackContent);
+    
+    // Show fallback after a timeout if React doesn't render
+    const fallbackTimeout = setTimeout(() => {
+      if (document.getElementById('fallback-content')) {
+        document.getElementById('fallback-content').style.display = 'block';
+        console.warn('Showing fallback UI - React may have failed to render');
+      }
+    }, 3000);
+    
     createRoot(rootElement).render(<App />);
     console.log('React render completed');
+    
+    // Clear fallback timeout since React rendered successfully
+    clearTimeout(fallbackTimeout);
+    const fallbackElement = document.getElementById('fallback-content');
+    if (fallbackElement && fallbackElement.parentNode) {
+      fallbackElement.parentNode.removeChild(fallbackElement);
+    }
     
     // Update debug element if in Electron
     if (isElectron) {

@@ -24,6 +24,13 @@ export default defineConfig(({ mode }) => ({
   base: process.env.ELECTRON_RUN ? './' : '/',
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    // Make sure Electron can access the built files
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
   }
 }));

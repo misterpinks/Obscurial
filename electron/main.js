@@ -20,8 +20,8 @@ function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false,
+      contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     }
   });
@@ -68,6 +68,7 @@ function createWindow() {
       mainWindow.webContents.executeJavaScript(`
         console.log('Document ready state:', document.readyState);
         console.log('Root element:', document.getElementById('root'));
+        console.log('Root innerHTML:', document.getElementById('root').innerHTML);
         document.body.innerHTML
       `).then((result) => {
         console.log('Body content available:', result.length > 0);
@@ -100,4 +101,3 @@ app.on('activate', () => {
 });
 
 // IPC handlers for any application-specific functionality can go here
-
