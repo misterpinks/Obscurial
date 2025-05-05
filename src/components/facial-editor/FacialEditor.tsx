@@ -8,12 +8,12 @@ import EditorTabs from './EditorTabs';
 import {
   useFaceApiModels,
   useFeatureSliders,
-  useFaceAnalysis
-} from './FacialEditorHooks';
-import { useImageProcessing } from './hooks/useImageProcessing';
-import { useTabs } from './hooks/useTabs';
-import { useFileUpload } from './hooks/useFileUpload';
-import { useLandmarks } from './hooks/useLandmarks';
+  useFaceAnalysis,
+  useImageProcessing,
+  useTabs,
+  useFileUpload,
+  useLandmarks
+} from './hooks';
 
 const FacialEditor = () => {
   const { toast } = useToast();
@@ -38,7 +38,8 @@ const FacialEditor = () => {
     analyzeModifiedImage,
     setInitialProcessingDone,
     setFaceDetection,
-    imageDimensions
+    imageDimensions,
+    setHasShownNoFaceToast
   } = useFaceAnalysis(isFaceApiLoaded, originalImage, cleanProcessedCanvasRef);
 
   // Custom hook for landmarks handling

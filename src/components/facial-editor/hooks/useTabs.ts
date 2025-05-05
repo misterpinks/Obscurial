@@ -26,8 +26,11 @@ export const useTabs = ({
     // Stop webcam if switching away from webcam tab
     if (value !== "webcam" && streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
-      if (videoRef.current) videoRef.current.srcObject = null;
-      streamRef.current = null;
+      if (videoRef.current) {
+        // We need to use a mutable variable to avoid trying to modify read-only property
+        const videoElement = videoRef.current;
+        videoElement.srcObject = null;
+      }
     }
   };
 
