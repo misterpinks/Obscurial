@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import * as faceapi from 'face-api.js';
 import { useToast } from "@/components/ui/use-toast";
 import { createImageFromCanvas } from '../utils/canvasUtils';
@@ -25,6 +25,11 @@ export const useFaceAnalysis = (
   const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
+  // Use memoized detection options to prevent recreating objects
+  const detectionOptions = useCallback(() => {
+    return new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.3 });
+  }, []);
+
   const detectFaces = async () => {
     if (!originalImage || !isFaceApiLoaded) return;
     
@@ -37,9 +42,30 @@ export const useFaceAnalysis = (
         height: originalImage.height
       });
       
-      // Use a lower confidence threshold (0.3 instead of 0.5) to improve face detection
+      // Downsample very large images for faster processing
+      // Only apply downsampling if the image is significantly large
+      let processImage = originalImage;
+      let scaleFactor = 1;
+      
+      if (originalImage.width > 1200 || originalImage.height > 1200) {
+        const maxDimension = Math.max(originalImage.width, originalImage.height);
+        scaleFactor = 1200 / maxDimension;
+        
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = originalImage.width * scaleFactor;
+        tempCanvas.height = originalImage.height * scaleFactor;
+        
+        const tempCtx = tempCanvas.getContext('2d');
+        if (tempCtx) {
+          tempCtx.drawImage(originalImage, 0, 0, tempCanvas.width, tempCanvas.height);
+          processImage = await createImageFromCanvas(tempCanvas);
+          console.log('Image downsampled for faster processing');
+        }
+      }
+      
+      // Use the detection options callback
       const detections = await faceapi
-        .detectSingleFace(originalImage, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.3 }))
+        .detectSingleFace(processImage, detectionOptions())
         .withFaceLandmarks()
         .withFaceDescriptor();
       
@@ -47,12 +73,40 @@ export const useFaceAnalysis = (
       
       if (detections) {
         console.log("Face detected with confidence:", detections.detection.score);
-        setFaceDetection({
-          landmarks: detections.landmarks,
-          detection: detections.detection,
-          confidence: detections.detection.score,
-          original: detections.descriptor
-        });
+        
+        // Scale landmarks back if image was downsampled
+        if (scaleFactor !== 1) {
+          // Scale up detection box
+          const scaledBox = {
+            ...detections.detection.box,
+            x: detections.detection.box.x / scaleFactor,
+            y: detections.detection.box.y / scaleFactor,
+            width: detections.detection.box.width / scaleFactor,
+            height: detections.detection.box.height / scaleFactor
+          };
+          
+          // Scale up landmarks
+          const scaledLandmarks = new faceapi.FaceLandmarks68(
+            detections.landmarks.positions.map((pt: any) => {
+              return { x: pt.x / scaleFactor, y: pt.y / scaleFactor };
+            }),
+            { width: originalImage.width, height: originalImage.height }
+          );
+          
+          setFaceDetection({
+            landmarks: scaledLandmarks,
+            detection: { ...detections.detection, box: scaledBox },
+            confidence: detections.detection.score,
+            original: detections.descriptor
+          });
+        } else {
+          setFaceDetection({
+            landmarks: detections.landmarks,
+            detection: detections.detection,
+            confidence: detections.detection.score,
+            original: detections.descriptor
+          });
+        }
         
         setHasShownNoFaceToast(false);
         // Ensure the image is processed after detection completes

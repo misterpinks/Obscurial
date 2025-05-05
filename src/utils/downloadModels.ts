@@ -1,4 +1,3 @@
-
 import * as faceapi from 'face-api.js';
 
 // Polyfill TextEncoder if it doesn't exist (needed for face-api.js in Electron)
@@ -24,22 +23,38 @@ if (typeof window !== 'undefined' && !window.TextEncoder) {
   });
 }
 
+// Cache for models to prevent repeated loading
+let modelsLoaded = false;
+
 /**
  * Load models directly from GitHub instead of relying on local files
+ * Optimized to prevent repeated loading and improve performance
  */
 export const loadModelsFromGitHub = async () => {
   try {
+    // Return immediately if models are already loaded
+    if (modelsLoaded) {
+      console.log('Models already loaded, skipping download');
+      return true;
+    }
+
     const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
     
     console.log('Loading face-api.js models directly from GitHub...');
     
-    await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-    ]);
+    // Load models in sequence rather than parallel for better memory management
+    // This can be slower initially but prevents memory spikes
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    console.log('Loaded tinyFaceDetector model');
     
-    console.log('Models loaded successfully!');
+    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    console.log('Loaded faceLandmark68Net model');
+    
+    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    console.log('Loaded faceRecognitionNet model');
+    
+    modelsLoaded = true;
+    console.log('All models loaded successfully!');
     return true;
   } catch (error) {
     console.error('Failed to load face-api.js models:', error);
