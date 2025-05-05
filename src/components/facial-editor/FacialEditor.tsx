@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -232,8 +233,8 @@ const FacialEditor = () => {
     });
   };
 
+  // Fixed function to properly trigger file input
   const triggerFileInput = () => {
-    // Reset the input value first to allow selecting the same file again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
@@ -322,6 +323,13 @@ const FacialEditor = () => {
                   <Upload className="h-4 w-4 mr-2" />
                   Change Image
                 </Button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  accept="image/*" 
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
                 <Button 
                   className="bg-editor-purple hover:bg-editor-accent"
                   onClick={downloadImage}
