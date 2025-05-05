@@ -2,20 +2,19 @@
 import React, { RefObject } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Upload, ImageIcon } from "lucide-react";
-import ImageUploader from './ImageUploader';
 import WebcamCapture from './WebcamCapture';
+import ImageUploader from './ImageUploader';
 import EditorContent from './EditorContent';
 
 interface EditorTabsProps {
   activeTab: string;
   onTabChange: (value: string) => void;
   originalImage: HTMLImageElement | null;
-  handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   fileInputRef: RefObject<HTMLInputElement>;
+  handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   videoRef: RefObject<HTMLVideoElement>;
   streamRef: RefObject<MediaStream | null>;
   onCapture: () => void;
-  // Editor content props
   originalCanvasRef: RefObject<HTMLCanvasElement>;
   processedCanvasRef: RefObject<HTMLCanvasElement>;
   cleanProcessedCanvasRef: RefObject<HTMLCanvasElement>;
@@ -23,7 +22,7 @@ interface EditorTabsProps {
   isAnalyzing: boolean;
   faceDetection: any;
   facialDifference: number | null;
-  imageDimensions: { width: number; height: number; };
+  imageDimensions: { width: number; height: number };
   triggerFileInput: () => void;
   downloadImage: () => void;
   hasProcessedImage: boolean;
@@ -36,14 +35,16 @@ interface EditorTabsProps {
   onResetSliders: () => void;
   onRandomizeSliders: () => void;
   handleLandmarkMove: (pointIndex: number, x: number, y: number) => void;
+  autoAnalyze?: boolean;
+  onToggleAutoAnalyze?: () => void;
 }
 
 const EditorTabs: React.FC<EditorTabsProps> = ({
   activeTab,
   onTabChange,
   originalImage,
-  handleImageUpload,
   fileInputRef,
+  handleImageUpload,
   videoRef,
   streamRef,
   onCapture,
@@ -66,7 +67,9 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
   onSliderChange,
   onResetSliders,
   onRandomizeSliders,
-  handleLandmarkMove
+  handleLandmarkMove,
+  autoAnalyze,
+  onToggleAutoAnalyze
 }) => {
   return (
     <Tabs defaultValue="upload" value={activeTab} onValueChange={onTabChange}>
@@ -85,15 +88,18 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="upload" className="flex flex-col items-center justify-center">
-        <ImageUploader onImageUpload={handleImageUpload} />
+      <TabsContent value="upload">
+        <ImageUploader 
+          fileInputRef={fileInputRef}
+          handleImageUpload={handleImageUpload}
+        />
       </TabsContent>
 
-      <TabsContent value="webcam" className="flex flex-col items-center justify-center">
+      <TabsContent value="webcam">
         <WebcamCapture 
-          onCapture={onCapture}
           videoRef={videoRef}
           streamRef={streamRef}
+          onCapture={onCapture}
         />
       </TabsContent>
 
@@ -122,6 +128,8 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
           onResetSliders={onResetSliders}
           onRandomizeSliders={onRandomizeSliders}
           handleLandmarkMove={handleLandmarkMove}
+          autoAnalyze={autoAnalyze}
+          onToggleAutoAnalyze={onToggleAutoAnalyze}
         />
       </TabsContent>
     </Tabs>

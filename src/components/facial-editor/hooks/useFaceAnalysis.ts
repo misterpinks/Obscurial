@@ -24,6 +24,7 @@ export const useFaceAnalysis = (
   const [initialProcessingDone, setInitialProcessingDone] = useState(false);
   const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  const [autoAnalyze, setAutoAnalyze] = useState(false); // Control automatic analysis
 
   // Use memoized detection options to prevent recreating objects
   const detectionOptions = useCallback(() => {
@@ -85,11 +86,13 @@ export const useFaceAnalysis = (
             height: detections.detection.box.height / scaleFactor
           };
           
-          // Scale up landmarks
+          // Scale up landmarks - fix the type issue by using faceapi.Point
+          const scaledPositions = detections.landmarks.positions.map((pt: faceapi.Point) => {
+            return new faceapi.Point(pt.x / scaleFactor, pt.y / scaleFactor);
+          });
+          
           const scaledLandmarks = new faceapi.FaceLandmarks68(
-            detections.landmarks.positions.map((pt: any) => {
-              return { x: pt.x / scaleFactor, y: pt.y / scaleFactor };
-            }),
+            scaledPositions,
             { width: originalImage.width, height: originalImage.height }
           );
           
@@ -209,6 +212,11 @@ export const useFaceAnalysis = (
     }
   };
 
+  // Toggle auto-analyze feature
+  const toggleAutoAnalyze = () => {
+    setAutoAnalyze(prev => !prev);
+  };
+
   return { 
     isAnalyzing, 
     faceDetection, 
@@ -221,6 +229,8 @@ export const useFaceAnalysis = (
     imageDimensions,
     // Export these state values for use in parent component
     hasShownNoFaceToast,
-    setHasShownNoFaceToast
+    setHasShownNoFaceToast,
+    autoAnalyze,
+    toggleAutoAnalyze
   };
 };

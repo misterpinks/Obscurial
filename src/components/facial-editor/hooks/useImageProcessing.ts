@@ -16,6 +16,8 @@ interface UseImageProcessingProps {
   showLandmarks: boolean;
   isFaceApiLoaded: boolean;
   detectFaces: () => Promise<void>;
+  analyzeModifiedImage: () => Promise<void>;
+  autoAnalyze: boolean;
 }
 
 export const useImageProcessing = ({
@@ -28,13 +30,16 @@ export const useImageProcessing = ({
   initialProcessingDone,
   showLandmarks,
   isFaceApiLoaded,
-  detectFaces
+  detectFaces,
+  analyzeModifiedImage,
+  autoAnalyze
 }: UseImageProcessingProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedImageURL, setProcessedImageURL] = useState<string>("");
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
   const [processingTimeout, setProcessingTimeout] = useState<number | null>(null);
+  const [lastProcessedValues, setLastProcessedValues] = useState<string>("");
 
   // Display the original image immediately after loading
   useEffect(() => {
@@ -57,6 +62,26 @@ export const useImageProcessing = ({
       }
     }
   }, [originalImage, detectFaces, isFaceApiLoaded]);
+  
+  // Effect to run analysis when needed based on autoAnalyze setting
+  useEffect(() => {
+    // Skip if auto-analyze is off or we're already analyzing
+    if (!autoAnalyze || !faceDetection || !initialProcessingDone) return;
+    
+    // Create a hash of the current slider values
+    const currentValuesHash = JSON.stringify(sliderValues);
+    
+    // Only run analysis if values have changed significantly
+    if (currentValuesHash !== lastProcessedValues) {
+      // Use a debounce to avoid analyzing on every tiny change
+      const timeoutId = window.setTimeout(() => {
+        analyzeModifiedImage();
+        setLastProcessedValues(currentValuesHash);
+      }, 500);
+      
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [sliderValues, autoAnalyze, faceDetection, initialProcessingDone, analyzeModifiedImage]);
   
   // Process the image with debouncing to prevent excessive re-renders
   useEffect(() => {

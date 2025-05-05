@@ -32,6 +32,8 @@ interface EditorContentProps {
   onResetSliders: () => void;
   onRandomizeSliders: () => void;
   handleLandmarkMove: (pointIndex: number, x: number, y: number) => void;
+  autoAnalyze?: boolean;
+  onToggleAutoAnalyze?: () => void;
 }
 
 const EditorContent: React.FC<EditorContentProps> = ({
@@ -57,7 +59,9 @@ const EditorContent: React.FC<EditorContentProps> = ({
   onSliderChange,
   onResetSliders,
   onRandomizeSliders,
-  handleLandmarkMove
+  handleLandmarkMove,
+  autoAnalyze = false,
+  onToggleAutoAnalyze
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -109,6 +113,8 @@ const EditorContent: React.FC<EditorContentProps> = ({
           isAnalyzing={isAnalyzing}
           onRunAnalysis={handleRunAnalysis}
           imageDimensions={imageDimensions}
+          autoAnalyze={autoAnalyze}
+          onToggleAutoAnalyze={onToggleAutoAnalyze}
         />
         
         <EditorImageControls

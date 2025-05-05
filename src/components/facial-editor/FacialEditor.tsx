@@ -19,8 +19,6 @@ const FacialEditor = () => {
   const { toast } = useToast();
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   
-  // Removed the duplicate declaration here
-  
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement>(null);
   const cleanProcessedCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -41,7 +39,9 @@ const FacialEditor = () => {
     setFaceDetection,
     imageDimensions,
     hasShownNoFaceToast,
-    setHasShownNoFaceToast
+    setHasShownNoFaceToast,
+    autoAnalyze,
+    toggleAutoAnalyze
   } = useFaceAnalysis(isFaceApiLoaded, originalImage, cleanProcessedCanvasRef);
 
   // Custom hook for landmarks handling
@@ -82,7 +82,9 @@ const FacialEditor = () => {
     initialProcessingDone,
     showLandmarks,
     isFaceApiLoaded,
-    detectFaces
+    detectFaces,
+    analyzeModifiedImage,
+    autoAnalyze
   });
 
   const handleCaptureFromWebcam = () => {
@@ -114,6 +116,16 @@ const FacialEditor = () => {
     toast({
       title: "Settings Reset",
       description: "All adjustments have been reset to default values."
+    });
+  };
+
+  const handleToggleAutoAnalyze = () => {
+    toggleAutoAnalyze();
+    toast({
+      title: autoAnalyze ? "Auto-Analysis Disabled" : "Auto-Analysis Enabled",
+      description: autoAnalyze 
+        ? "You'll need to manually run analysis now."
+        : "Analysis will run automatically when making adjustments."
     });
   };
 
@@ -152,6 +164,8 @@ const FacialEditor = () => {
         onResetSliders={handleResetSliders}
         onRandomizeSliders={randomizeSliders}
         handleLandmarkMove={handleLandmarkMove}
+        autoAnalyze={autoAnalyze}
+        onToggleAutoAnalyze={handleToggleAutoAnalyze}
       />
     </div>
   );
