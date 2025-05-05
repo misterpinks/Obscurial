@@ -45,8 +45,8 @@ python -m http.server
 4. Click "Process Image" to apply the disguise
 5. Download the processed image using the "Save" button
 
-## Examples
-
+## Example
+![App screenshot](screenshot.png)
 
 ## Browser Compatibility
 
