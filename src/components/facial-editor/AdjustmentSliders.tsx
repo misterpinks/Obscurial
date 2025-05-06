@@ -1,12 +1,12 @@
 
 import React, { useCallback } from 'react';
-import { Slider } from "@/components/ui/slider";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { type FeatureSlider } from './hooks';
 import RandomizeButton from './RandomizeButton';
 import { useToast } from "@/components/ui/use-toast";
+import SimpleSlider from './SimpleSlider';
 
 interface AdjustmentSlidersProps {
   featureSliders: FeatureSlider[];
@@ -39,20 +39,15 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
   }, {} as Record<string, FeatureSlider[]>);
 
   // Handle slider value change with proper logging
-  const handleSliderValueChange = useCallback((id: string, values: number[]) => {
-    if (values && values.length > 0) {
-      console.log(`Slider ${id} changed to:`, values[0]);
-      onSliderChange(id, values[0]);
-    }
-  }, [onSliderChange]);
-
-  // Handle slider value commit when user finishes dragging
-  const handleSliderValueCommit = useCallback(() => {
-    console.log("Slider value committed, processing image");
+  const handleSliderValueChange = useCallback((id: string, value: number) => {
+    console.log(`Slider ${id} changed to:`, value);
+    onSliderChange(id, value);
+    
+    // If we need to notify when a change is complete
     if (onSliderChangeComplete) {
       onSliderChangeComplete();
     }
-  }, [onSliderChangeComplete]);
+  }, [onSliderChange, onSliderChangeComplete]);
 
   // Handle reset with feedback
   const handleReset = useCallback(() => {
@@ -97,26 +92,18 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
           <div key={category} className="mb-6">
             <h4 className="font-medium text-sm text-muted-foreground mb-2">{category}</h4>
             <Separator className="mb-4" />
-            <div className="space-y-6">
+            <div className="space-y-2">
               {sliders.map((slider) => (
-                <div key={slider.id} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span style={{color: slider.color}}>{slider.name}</span>
-                    <span className="text-muted-foreground">{sliderValues[slider.id]}</span>
-                  </div>
-                  <div className="pt-2 pb-2" data-testid={`slider-container-${slider.id}`}>
-                    <Slider
-                      id={slider.id}
-                      min={slider.min}
-                      max={slider.max}
-                      step={slider.step}
-                      value={[sliderValues[slider.id]]}
-                      onValueChange={(values) => handleSliderValueChange(slider.id, values)}
-                      onValueCommit={handleSliderValueCommit}
-                      aria-label={slider.name}
-                    />
-                  </div>
-                </div>
+                <SimpleSlider
+                  key={slider.id}
+                  label={slider.name}
+                  initialValue={sliderValues[slider.id]}
+                  onChange={(value) => handleSliderValueChange(slider.id, value)}
+                  min={slider.min}
+                  max={slider.max}
+                  step={slider.step}
+                  color={slider.color}
+                />
               ))}
             </div>
           </div>

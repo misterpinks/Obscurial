@@ -76,7 +76,7 @@ const Slider = React.forwardRef<
     setIsDragging(true);
     
     // Add document-level event listeners
-    document.addEventListener('touchmove', handleDocumentTouchMove, { passive: false });
+    document.addEventListener('touchmove', handleDocumentTouchMove, { passive: false } as EventListenerOptions);
     document.addEventListener('touchend', handleDocumentTouchEnd);
   }, [handleDocumentTouchMove, handleDocumentTouchEnd]);
   
