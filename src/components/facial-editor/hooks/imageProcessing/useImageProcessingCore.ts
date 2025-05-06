@@ -26,13 +26,17 @@ export const useImageProcessingCore = ({
 }: UseImageProcessingCoreProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
+  const [processingQueued, setProcessingQueued] = useState(false);
   
   // Wrapper for process image that handles state updates
   const processImage = useCallback(() => {
     if (!originalImage) return;
     
     // Don't allow overlapping processing operations
-    if (isProcessing) return;
+    if (isProcessing) {
+      setProcessingQueued(true);
+      return;
+    }
     
     // Set processing state
     setIsProcessing(true);
@@ -59,6 +63,11 @@ export const useImageProcessingCore = ({
       console.error("Error processing image:", error);
     } finally {
       setIsProcessing(false);
+      // If there was another process requested while this one was running, run it now
+      if (processingQueued) {
+        setProcessingQueued(false);
+        setTimeout(processImage, 0);
+      }
     }
   }, [
     originalImage,
@@ -67,7 +76,8 @@ export const useImageProcessingCore = ({
     isFaceApiLoaded,
     autoAnalyze,
     analyzeModifiedImage,
-    isProcessing
+    isProcessing,
+    processingQueued
   ]);
 
   // Reference the same function for consistency
@@ -77,6 +87,8 @@ export const useImageProcessingCore = ({
     isProcessing,
     cleanProcessedImageURL,
     processImage,
-    debouncedProcess
+    debouncedProcess,
+    processingQueued,
+    setProcessingQueued
   };
 };

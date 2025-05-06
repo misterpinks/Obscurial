@@ -9,7 +9,7 @@ interface RandomizeButtonProps {
 
 const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
   const handleClick = () => {
-    // Simply call the randomize function without any setTimeout or debounce
+    // Call the randomize function directly, without any other processing
     onRandomize();
   };
 
