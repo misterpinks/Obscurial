@@ -30,10 +30,14 @@ export const useImageProcessingCore = ({
   
   // Wrapper for process image that handles state updates
   const processImage = useCallback(() => {
-    if (!originalImage) return;
+    if (!originalImage) {
+      console.log("No original image to process");
+      return;
+    }
     
     // Don't allow overlapping processing operations
     if (isProcessing) {
+      console.log("Already processing, queuing request");
       setProcessingQueued(true);
       return;
     }
@@ -42,33 +46,36 @@ export const useImageProcessingCore = ({
     setIsProcessing(true);
     console.log("Starting image processing");
     
-    try {
-      // Process the image using our implementation
-      const cleanCanvas = processImageImpl();
-      
-      // Update clean processed image URL for download
-      if (cleanCanvas) {
-        try {
-          setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
-        } catch (e) {
-          console.error("Failed to generate data URL:", e);
+    // Use requestAnimationFrame to prevent UI blocking
+    requestAnimationFrame(() => {
+      try {
+        // Process the image using our implementation
+        const cleanCanvas = processImageImpl();
+        
+        // Update clean processed image URL for download
+        if (cleanCanvas) {
+          try {
+            setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
+          } catch (e) {
+            console.error("Failed to generate data URL:", e);
+          }
+        }
+        
+        // If we have face data, analyze the modified image
+        if (faceDetection && isFaceApiLoaded && autoAnalyze) {
+          setTimeout(analyzeModifiedImage, 0);
+        }
+      } catch (error) {
+        console.error("Error processing image:", error);
+      } finally {
+        setIsProcessing(false);
+        // If there was another process requested while this one was running, run it now
+        if (processingQueued) {
+          setProcessingQueued(false);
+          setTimeout(processImage, 0);
         }
       }
-      
-      // If we have face data, analyze the modified image
-      if (faceDetection && isFaceApiLoaded && autoAnalyze) {
-        setTimeout(analyzeModifiedImage, 0);
-      }
-    } catch (error) {
-      console.error("Error processing image:", error);
-    } finally {
-      setIsProcessing(false);
-      // If there was another process requested while this one was running, run it now
-      if (processingQueued) {
-        setProcessingQueued(false);
-        setTimeout(processImage, 0);
-      }
-    }
+    });
   }, [
     originalImage,
     processImageImpl,

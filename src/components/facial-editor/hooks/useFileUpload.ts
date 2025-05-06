@@ -60,9 +60,17 @@ export const useFileUpload = ({
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
+        // First clear canvases one more time
+        clearCanvases();
+        
         // After the image is loaded, set the states
         setOriginalImage(img);
         setActiveTab("edit");
+        
+        // Force a redraw by triggering initialProcessingDone after a small delay
+        setTimeout(() => {
+          setInitialProcessingDone(true);
+        }, 100);
       };
       img.src = event.target?.result as string;
     };
@@ -80,6 +88,7 @@ export const useFileUpload = ({
   return {
     fileInputRef,
     handleImageUpload,
-    triggerFileInput
+    triggerFileInput,
+    clearCanvases
   };
 };

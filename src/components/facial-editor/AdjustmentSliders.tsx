@@ -35,14 +35,8 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
     return acc;
   }, {} as Record<string, FeatureSlider[]>);
 
-  const handleSliderChange = (id: string, values: number[]) => {
-    if (values.length > 0) {
-      onSliderChange(id, values[0]);
-    }
-  };
-
   return (
-    <Card className="h-[600px] overflow-y-auto relative z-10">
+    <Card className="h-[600px] overflow-y-auto relative">
       <CardContent className="p-4">
         <div className="flex justify-between mb-4">
           <h3 className="text-lg font-medium">Adjustments</h3>
@@ -81,18 +75,24 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                     <span style={{color: slider.color}}>{slider.name}</span>
                     <span className="text-muted-foreground">{sliderValues[slider.id]}</span>
                   </div>
-                  <div className="relative z-50">
-                    <Slider
-                      id={slider.id}
-                      min={slider.min}
-                      max={slider.max}
-                      step={slider.step}
-                      value={[sliderValues[slider.id]]}
-                      onValueChange={(values) => handleSliderChange(slider.id, values)}
-                      onValueCommit={onSliderChangeComplete}
-                      aria-label={`${slider.name} slider`}
-                    />
-                  </div>
+                  <Slider
+                    id={slider.id}
+                    min={slider.min}
+                    max={slider.max}
+                    step={slider.step}
+                    value={[sliderValues[slider.id]]}
+                    onValueChange={(values) => {
+                      if (values && values.length > 0) {
+                        onSliderChange(slider.id, values[0]);
+                      }
+                    }}
+                    onValueCommit={() => {
+                      if (onSliderChangeComplete) {
+                        onSliderChangeComplete();
+                      }
+                    }}
+                    aria-label={`${slider.name} slider`}
+                  />
                 </div>
               ))}
             </div>

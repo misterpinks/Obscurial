@@ -41,7 +41,6 @@ export const useImageProcessingEffects = ({
   faceDetection
 }: UseImageProcessingEffectsProps) => {
   // Process the image whenever slider values change or when face effects change
-  // Added deep comparison to prevent unnecessary reprocessing
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       // Check if values actually changed or if face effects changed
@@ -83,27 +82,34 @@ export const useImageProcessingEffects = ({
     }
   }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
-  // Process image once after face detection completes and also immediately after loading
+  // Process image once after face detection completes
   useEffect(() => {
     if (originalImage && faceDetection && initialProcessingDone) {
+      console.log("Processing image after face detection");
+      processImage();
+      
+      // Save current state to prevent reprocessing
       const currentValuesString = JSON.stringify({
         sliders: sliderValues,
         effects: faceEffectOptions
       });
-      
-      // Always process at least once when face detection is complete
-      console.log("Processing image after face detection");
-      processImage();
       setLastProcessedValues(currentValuesString);
     }
   }, [faceDetection, initialProcessingDone, originalImage]);
   
-  // Force process image when initially loaded
+  // Force process image when initially loaded - ALWAYS process at least once
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
-      // Only run once when initialProcessingDone changes from false to true
       console.log("Initial processing - forcing image display");
       processImage();
     }
   }, [initialProcessingDone, originalImage]);
+  
+  // Force a reprocessing any time the slider values change
+  useEffect(() => {
+    if (originalImage && initialProcessingDone && Object.keys(sliderValues).length > 0) {
+      console.log("Slider values changed, processing image");
+      processImage();
+    }
+  }, [sliderValues, originalImage, initialProcessingDone]);
 };

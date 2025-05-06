@@ -8,10 +8,15 @@ interface RandomizeButtonProps {
 }
 
 const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRandomize();
+  };
+  
   return (
     <Button 
       className="w-full bg-editor-purple hover:bg-editor-accent"
-      onClick={onRandomize}
+      onClick={handleClick}
       type="button"
     >
       <Shuffle className="h-4 w-4 mr-2" />
