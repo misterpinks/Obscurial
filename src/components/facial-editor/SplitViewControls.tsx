@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SplitViewMode } from './hooks/useSplitView';
-import { SplitVertical, SplitHorizontal, Copy } from 'lucide-react';
+import { FlipVertical, FlipHorizontal, Copy } from 'lucide-react';
 
 interface SplitViewControlsProps {
   mode: SplitViewMode;
@@ -24,7 +24,7 @@ const SplitViewControls: React.FC<SplitViewControlsProps> = ({ mode, onChange })
               )}
               className="h-9 w-9"
             >
-              <SplitHorizontal className="h-4 w-4" />
+              <FlipHorizontal className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -44,7 +44,7 @@ const SplitViewControls: React.FC<SplitViewControlsProps> = ({ mode, onChange })
               )}
               className="h-9 w-9"
             >
-              <SplitVertical className="h-4 w-4" />
+              <FlipVertical className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

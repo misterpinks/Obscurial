@@ -12,39 +12,51 @@ export const useSplitView = () => {
   const [splitViewMode, setSplitViewMode] = useState<SplitViewMode>(SplitViewMode.NONE);
   const [splitPosition, setSplitPosition] = useState(0.5); // 0-1 position of divider
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [requestedMode, setRequestedMode] = useState<SplitViewMode | null>(null);
+
+  // Effect to handle mode changes with better debouncing
+  useEffect(() => {
+    if (requestedMode === null) return;
+    
+    setIsTransitioning(true);
+    
+    // Longer delay for mode transitions to prevent flashing
+    const transitionTimeout = setTimeout(() => {
+      setSplitViewMode(requestedMode);
+      
+      // End transition after allowing time for render
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 150);
+    }, 100);
+    
+    return () => clearTimeout(transitionTimeout);
+  }, [requestedMode]);
 
   // Add debounce for mode changes to prevent flash
   const toggleSplitViewMode = useCallback((mode?: SplitViewMode) => {
-    setIsTransitioning(true);
+    if (isTransitioning) return;
     
-    // Small delay to prevent screen flashing
-    setTimeout(() => {
-      if (mode) {
-        setSplitViewMode(mode);
-      } else {
-        setSplitViewMode(prev => {
-          // Cycle through modes: NONE -> HORIZONTAL -> VERTICAL -> DIAGONAL -> NONE
-          switch (prev) {
-            case SplitViewMode.NONE:
-              return SplitViewMode.HORIZONTAL;
-            case SplitViewMode.HORIZONTAL:
-              return SplitViewMode.VERTICAL;
-            case SplitViewMode.VERTICAL:
-              return SplitViewMode.DIAGONAL;
-            case SplitViewMode.DIAGONAL:
-              return SplitViewMode.NONE;
-            default:
-              return SplitViewMode.NONE;
-          }
-        });
-      }
-      
-      // End transition after a small delay to allow render
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 50);
-    }, 50);
-  }, []);
+    if (mode) {
+      setRequestedMode(mode);
+    } else {
+      // Cycle through modes: NONE -> HORIZONTAL -> VERTICAL -> DIAGONAL -> NONE
+      setRequestedMode(prev => {
+        switch (prev || splitViewMode) {
+          case SplitViewMode.NONE:
+            return SplitViewMode.HORIZONTAL;
+          case SplitViewMode.HORIZONTAL:
+            return SplitViewMode.VERTICAL;
+          case SplitViewMode.VERTICAL:
+            return SplitViewMode.DIAGONAL;
+          case SplitViewMode.DIAGONAL:
+            return SplitViewMode.NONE;
+          default:
+            return SplitViewMode.NONE;
+        }
+      });
+    }
+  }, [splitViewMode, isTransitioning]);
 
   const updateSplitPosition = useCallback((position: number) => {
     // Keep position between 0.05 and 0.95 to ensure both sides are visible
