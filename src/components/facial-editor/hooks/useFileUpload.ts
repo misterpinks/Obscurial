@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 
 interface UseFileUploadProps {
@@ -20,7 +20,7 @@ export const useFileUpload = ({
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const clearCanvases = () => {
+  const clearCanvases = useCallback(() => {
     // Find all canvas elements and clear them
     // This ensures we don't have stale image data persisting
     const canvases = document.querySelectorAll('canvas');
@@ -31,9 +31,9 @@ export const useFileUpload = ({
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
     });
-  };
+  }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -73,6 +73,7 @@ export const useFileUpload = ({
         
         // After a short delay, force initialize processing - this ensures the image is shown
         setTimeout(() => {
+          console.log("Setting initialProcessingDone to true to trigger processing");
           setInitialProcessingDone(true);
         }, 300);
         
@@ -81,15 +82,15 @@ export const useFileUpload = ({
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
-  };
+  }, [toast, setOriginalImage, setFaceDetection, setInitialProcessingDone, setHasShownNoFaceToast, clearCanvases, setActiveTab]);
 
-  const triggerFileInput = () => {
+  const triggerFileInput = useCallback(() => {
     // Reset the input value first to allow selecting the same file again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
     }
-  };
+  }, []);
 
   return {
     fileInputRef,

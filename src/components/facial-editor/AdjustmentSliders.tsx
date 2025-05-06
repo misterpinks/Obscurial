@@ -104,7 +104,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                     <span style={{color: slider.color}}>{slider.name}</span>
                     <span className="text-muted-foreground">{sliderValues[slider.id]}</span>
                   </div>
-                  <div className="pt-2 pb-2">
+                  <div className="pt-2 pb-2" data-testid={`slider-container-${slider.id}`}>
                     <Slider
                       id={slider.id}
                       min={slider.min}
@@ -113,6 +113,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                       value={[sliderValues[slider.id]]}
                       onValueChange={(values) => handleSliderValueChange(slider.id, values)}
                       onValueCommit={handleSliderValueCommit}
+                      aria-label={slider.name}
                     />
                   </div>
                 </div>

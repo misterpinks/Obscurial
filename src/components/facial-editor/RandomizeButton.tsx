@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Shuffle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -11,9 +11,11 @@ interface RandomizeButtonProps {
 const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
   const { toast } = useToast();
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    console.log("Randomize button clicked, calling onRandomize function");
     
     // Provide feedback to user
     toast({
@@ -21,9 +23,9 @@ const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
       description: "Applying random adjustments to facial features"
     });
     
+    // Call the randomize function
     onRandomize();
-    console.log("Randomize button clicked, onRandomize function called");
-  };
+  }, [onRandomize, toast]);
   
   return (
     <Button 

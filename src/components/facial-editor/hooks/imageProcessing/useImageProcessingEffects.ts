@@ -1,5 +1,5 @@
 
-import { useEffect, RefObject } from 'react';
+import { useEffect, RefObject, useCallback } from 'react';
 
 interface UseImageProcessingEffectsProps {
   originalImage: HTMLImageElement | null;
@@ -40,6 +40,7 @@ export const useImageProcessingEffects = ({
   isFaceApiLoaded,
   faceDetection
 }: UseImageProcessingEffectsProps) => {
+
   // Process the image immediately whenever slider values change
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
@@ -50,10 +51,11 @@ export const useImageProcessingEffects = ({
       });
       
       if (currentValuesString !== lastProcessedValues) {
-        console.log("Values changed, processing immediately");
+        console.log("Slider values changed, processing image immediately");
         
         // Use requestAnimationFrame to prevent UI freezing
         requestAnimationFrame(() => {
+          console.log("Processing image due to value change");
           processImage();
           setLastProcessedValues(currentValuesString);
         });
@@ -88,13 +90,14 @@ export const useImageProcessingEffects = ({
     }
   }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
-  // Process image once after face detection completes
+  // Process image once after face detection completes or initialProcessingDone changes
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       console.log("Processing image after face detection or initialProcessingDone changed");
       
       // Use requestAnimationFrame to prevent UI freezing
       requestAnimationFrame(() => {
+        console.log("Processing image after detection completed");
         processImage();
         
         // Save current state to prevent reprocessing
@@ -114,8 +117,21 @@ export const useImageProcessingEffects = ({
       
       // Use requestAnimationFrame to prevent UI freezing
       requestAnimationFrame(() => {
+        console.log("Force processing image on initial load");
         processImage();
       });
     }
   }, [initialProcessingDone, originalImage, processImage]);
+
+  // Always ensure the image is processed even if no face is detected
+  useEffect(() => {
+    if (originalImage && initialProcessingDone && !faceDetection) {
+      console.log("No face detected but still processing image");
+      
+      requestAnimationFrame(() => {
+        console.log("Processing image without face detection");
+        processImage();
+      });
+    }
+  }, [originalImage, initialProcessingDone, faceDetection, processImage]);
 };
