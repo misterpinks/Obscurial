@@ -25,7 +25,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: "Obscurial - Facial Privacy Editor",
+    title: "Obscurial",
     icon: resolveAppPath('public/app-icon.png'),
     webPreferences: {
       nodeIntegration: false,
@@ -90,6 +90,9 @@ function createWindow() {
   
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('Page loaded successfully');
+    // Update window title again after load to make sure it sticks
+    mainWindow.setTitle("Obscurial");
+    
     // Do a health check a little later to ensure everything rendered
     setTimeout(() => {
       mainWindow.webContents.executeJavaScript(`

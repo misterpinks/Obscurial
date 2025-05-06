@@ -24,7 +24,8 @@ export const useFaceAnalysis = (
   const [initialProcessingDone, setInitialProcessingDone] = useState(false);
   const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
-  const [autoAnalyze, setAutoAnalyze] = useState(false); // Control automatic analysis
+  const [autoAnalyze, setAutoAnalyze] = useState(false); // Default to false to prevent auto-running
+  const [lastProcessedValues, setLastProcessedValues] = useState<string>("");
 
   // Use memoized detection options to prevent recreating objects
   const detectionOptions = useCallback(() => {
@@ -231,6 +232,8 @@ export const useFaceAnalysis = (
     hasShownNoFaceToast,
     setHasShownNoFaceToast,
     autoAnalyze,
-    toggleAutoAnalyze
+    toggleAutoAnalyze,
+    lastProcessedValues,
+    setLastProcessedValues
   };
 };
