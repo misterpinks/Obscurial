@@ -293,6 +293,23 @@ const FacialEditor = () => {
     applyPreset(presetId);
   };
 
+  // Create the mask selector element
+  const faceMaskSelector = (
+    <FaceMaskSelector
+      effectType={effectType}
+      setEffectType={setEffectType}
+      effectIntensity={effectIntensity}
+      setEffectIntensity={setEffectIntensity}
+      selectedMaskId={selectedMaskId}
+      setSelectedMaskId={setSelectedMaskId}
+      onLoadMaskImage={handleLoadMaskImage}
+      maskPosition={maskPosition}
+      setMaskPosition={setMaskPosition}
+      maskScale={maskScale}
+      setMaskScale={setMaskScale}
+    />
+  );
+
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
       <EditorHeader />
@@ -345,26 +362,11 @@ const FacialEditor = () => {
         handleLandmarkMove={handleLandmarkMove}
         autoAnalyze={autoAnalyze}
         onToggleAutoAnalyze={handleToggleAutoAnalyze}
-        // Add mask position and scale controls
         maskPosition={maskPosition}
         maskScale={maskScale}
         onMaskPositionChange={setMaskPosition}
         onMaskScaleChange={setMaskScale}
-        faceMaskSelector={
-          <FaceMaskSelector
-            effectType={effectType}
-            setEffectType={setEffectType}
-            effectIntensity={effectIntensity}
-            setEffectIntensity={setEffectIntensity}
-            selectedMaskId={selectedMaskId}
-            setSelectedMaskId={setSelectedMaskId}
-            onLoadMaskImage={handleLoadMaskImage}
-            maskPosition={maskPosition}
-            setMaskPosition={setMaskPosition}
-            maskScale={maskScale}
-            setMaskScale={setMaskScale}
-          />
-        }
+        faceMaskSelector={faceMaskSelector}
         presetsComponent={
           <PresetSelector 
             presets={presets}

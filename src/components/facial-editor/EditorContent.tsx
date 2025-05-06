@@ -39,6 +39,7 @@ interface EditorContentProps {
   maskScale?: number;
   onMaskPositionChange?: (newPosition: { x: number, y: number }) => void;
   onMaskScaleChange?: (newScale: number) => void;
+  faceMaskSelector?: React.ReactNode;
 }
 
 const EditorContent: React.FC<EditorContentProps> = ({
@@ -71,7 +72,8 @@ const EditorContent: React.FC<EditorContentProps> = ({
   maskPosition,
   maskScale,
   onMaskPositionChange,
-  onMaskScaleChange
+  onMaskScaleChange,
+  faceMaskSelector
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -152,6 +154,7 @@ const EditorContent: React.FC<EditorContentProps> = ({
           onSliderChange={onSliderChange}
           onSliderChangeComplete={onSliderChangeComplete}
           onReset={onResetSliders}
+          faceMaskSelector={faceMaskSelector}
         />
       </div>
     </div>

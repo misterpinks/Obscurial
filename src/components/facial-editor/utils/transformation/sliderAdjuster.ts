@@ -5,6 +5,8 @@
 
 // Safely adjust slider values to prevent extreme transformations
 export const adjustSliderValues = (sliderValues: Record<string, number>): Record<string, number> => {
+  if (!sliderValues) return {};
+  
   const clampedSliderValues = { ...sliderValues };
   
   // Apply gradual dampening to extreme values
@@ -22,7 +24,9 @@ export const adjustSliderValues = (sliderValues: Record<string, number>): Record
 };
 
 // Check if any transformations are needed
-export const hasTransformations = (sliderValues: Record<string, number>): boolean => {
+export const hasTransformations = (sliderValues: Record<string, number> | undefined): boolean => {
+  if (!sliderValues) return false;
+  
   return Object.values(sliderValues).some(value => Math.abs(value) > 0.1);
 };
 
@@ -30,8 +34,16 @@ export const hasTransformations = (sliderValues: Record<string, number>): boolea
 export const hasEffects = (faceEffectOptions?: {
   effectType: 'blur' | 'pixelate' | 'mask' | 'none';
   effectIntensity: number;
+  maskImage?: HTMLImageElement | null;
 }): boolean => {
-  return faceEffectOptions && 
-         faceEffectOptions.effectType !== 'none' && 
-         faceEffectOptions.effectIntensity > 0;
+  if (!faceEffectOptions) return false;
+  
+  const { effectType, effectIntensity, maskImage } = faceEffectOptions;
+  
+  // For mask type, we also need a valid mask image
+  if (effectType === 'mask') {
+    return maskImage !== null && maskImage !== undefined && effectIntensity > 0;
+  }
+  
+  return effectType !== 'none' && effectIntensity > 0;
 };

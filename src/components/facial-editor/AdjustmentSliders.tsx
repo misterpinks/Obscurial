@@ -53,7 +53,11 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
         </div>
 
         {/* Face Mask Selector Component if provided */}
-        {faceMaskSelector}
+        {faceMaskSelector && (
+          <div className="mb-6">
+            {faceMaskSelector}
+          </div>
+        )}
 
         {/* Render sliders by category */}
         {Object.entries(slidersByCategory).map(([category, sliders]) => (

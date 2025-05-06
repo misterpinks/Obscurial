@@ -20,6 +20,8 @@ export const applyFeatureTransformations = ({
   sliderValues,
   faceEffectOptions
 }: TransformationParams) => {
+  if (!ctx || !originalImage) return;
+  
   // Check if any transformations are actually needed
   const needsTransformations = hasTransformations(sliderValues);
   const needsEffects = hasEffects(faceEffectOptions);
@@ -35,7 +37,7 @@ export const applyFeatureTransformations = ({
   offCanvas.width = width;
   offCanvas.height = height;
   const offCtx = offCanvas.getContext("2d", { alpha: false, willReadFrequently: true });
-  if (!offCtx || !originalImage) return;
+  if (!offCtx) return;
   
   // Draw original to off-screen canvas
   offCtx.drawImage(originalImage, 0, 0);
@@ -46,12 +48,12 @@ export const applyFeatureTransformations = ({
     ctx.drawImage(offCanvas, 0, 0);
     
     // Apply face effects if needed
-    if (needsEffects) {
+    if (needsEffects && faceEffectOptions) {
       applyFaceEffect({
         ctx,
         originalImage,
         faceDetection,
-        ...faceEffectOptions!
+        ...faceEffectOptions
       });
     }
     return;
