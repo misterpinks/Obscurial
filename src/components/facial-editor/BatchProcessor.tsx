@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FilesIcon, PlayIcon, StopIcon, Trash2, X, Download, Plus, Loader2 } from "lucide-react";
+import { FilesIcon, Play, Square, Trash2, X, Download, Plus, Loader2 } from "lucide-react";
 import { BatchJob } from './hooks/useBatchProcessing';
 
 interface BatchProcessorProps {
@@ -88,12 +88,12 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({
                   >
                     {isProcessing ? (
                       <>
-                        <StopIcon className="h-4 w-4 mr-1" />
+                        <Square className="h-4 w-4 mr-1" />
                         Stop
                       </>
                     ) : (
                       <>
-                        <PlayIcon className="h-4 w-4 mr-1" />
+                        <Play className="h-4 w-4 mr-1" />
                         Process All
                       </>
                     )}

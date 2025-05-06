@@ -1,15 +1,27 @@
 
-export { useFaceApiModels } from './useFaceApiModels';
-export { useFeatureSliders, type FeatureSlider } from './useFeatureSliders';
-export { useFaceAnalysis, type FaceDetection } from './useFaceAnalysis';
-export { useFileUpload } from './useFileUpload';
-export { useTabs } from './useTabs';
-export { useLandmarks } from './useLandmarks';
-export { useImageProcessing } from './useImageProcessing';
+import { useFaceApiModels } from './useFaceApiModels';
+import { useFeatureSliders } from './useFeatureSliders';
+import { useFaceAnalysis } from './useFaceAnalysis';
+import { useImageProcessing } from './useImageProcessing';
+import { useTabs } from './useTabs';
+import { useFileUpload } from './useFileUpload';
+import { useLandmarks } from './useLandmarks';
+import { useHistory } from './useHistory';
+import { usePresets } from './usePresets';
+import { useSplitView, SplitViewMode } from './useSplitView';
+import { useBatchProcessing } from './useBatchProcessing';
 
-// Re-export types
-export type { 
-  FaceDetectionResult,
-  ModifiedFaceAnalysisResult,
-  FaceAnalysisResult
-} from './types';
+export {
+  useFaceApiModels,
+  useFeatureSliders,
+  useFaceAnalysis,
+  useImageProcessing,
+  useTabs,
+  useFileUpload,
+  useLandmarks,
+  useHistory,
+  usePresets,
+  useSplitView,
+  useBatchProcessing,
+  SplitViewMode
+};

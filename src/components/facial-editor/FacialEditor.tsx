@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -17,17 +16,16 @@ import {
   useImageProcessing,
   useTabs,
   useFileUpload,
-  useLandmarks
-} from './hooks';
-
-import {
+  useLandmarks,
   usePresets,
   useHistory,
   useSplitView,
-  useBatchProcessing
+  useBatchProcessing,
+  SplitViewMode
 } from './hooks';
 
-import { SplitViewMode } from './hooks/useSplitView';
+// Import the transformation engine
+import { applyFeatureTransformations } from './utils/transformationEngine';
 
 const FacialEditor = () => {
   const { toast } = useToast();
