@@ -1,9 +1,10 @@
 
-import { useState, useEffect, RefObject, useCallback } from 'react';
-import debounce from 'lodash/debounce';
+import { RefObject } from 'react';
 import { useLandmarksDrawing } from './imageProcessing/useLandmarks';
 import { useCanvasProcessing } from './imageProcessing/useCanvasProcessing';
 import { useImageDownload } from './imageProcessing/useImageDownload';
+import { useImageProcessingCore } from './imageProcessing/useImageProcessingCore';
+import { useImageProcessingEffects } from './imageProcessing/useImageProcessingEffects';
 
 interface UseImageProcessingProps {
   originalImage: HTMLImageElement | null;
@@ -46,10 +47,6 @@ export const useImageProcessing = ({
   setLastProcessedValues,
   faceEffectOptions
 }: UseImageProcessingProps) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
-  const [processingQueued, setProcessingQueued] = useState(false);
-
   // Use extracted landmark drawing functionality
   const { drawFaceLandmarks } = useLandmarksDrawing({
     faceDetection,
@@ -69,106 +66,48 @@ export const useImageProcessing = ({
     faceEffectOptions
   });
 
+  // Use core image processing functionality
+  const {
+    isProcessing,
+    cleanProcessedImageURL,
+    processImage,
+    processingQueued,
+    setProcessingQueued,
+    debouncedProcess
+  } = useImageProcessingCore({
+    originalImage,
+    initialProcessingDone,
+    autoAnalyze,
+    lastProcessedValues,
+    setLastProcessedValues,
+    processImageImpl,
+    analyzeModifiedImage,
+    isFaceApiLoaded,
+    faceDetection
+  });
+
   // Use extracted image download functionality
   const { downloadImage } = useImageDownload({
     cleanProcessedImageURL
   });
 
-  // Wrapper for process image that handles state updates
-  const processImage = useCallback(() => {
-    if (!originalImage || !cleanProcessedCanvasRef.current) return;
-    
-    setIsProcessing(true);
-    
-    // Process the image using our implementation
-    const cleanCanvas = processImageImpl();
-    
-    // Update clean processed image URL for download
-    // Use a timeout to allow the UI to update before generating the data URL
-    if (cleanCanvas) {
-      setTimeout(() => {
-        setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
-      }, 0);
-    }
-    
-    setIsProcessing(false);
-    
-    // If we have face data, analyze the modified image
-    if (faceDetection && isFaceApiLoaded && autoAnalyze) {
-      setTimeout(analyzeModifiedImage, 300);
-    }
-  }, [
+  // Set up effects for image processing
+  useImageProcessingEffects({
     originalImage,
-    cleanProcessedCanvasRef, 
-    processImageImpl,
-    faceDetection,
+    originalCanvasRef,
+    initialProcessingDone,
+    sliderValues,
+    faceEffectOptions,
+    lastProcessedValues,
+    setProcessingQueued,
+    setLastProcessedValues,
+    detectFaces,
+    processImage,
+    debouncedProcess,
+    processingQueued,
     isFaceApiLoaded,
-    autoAnalyze,
-    analyzeModifiedImage
-  ]);
-
-  // Debounced process function to prevent too many renders
-  const debouncedProcess = useCallback(
-    debounce(() => {
-      if (processingQueued) {
-        processImage();
-        setProcessingQueued(false);
-      }
-    }, 150),
-    [processingQueued, processImage]
-  );
-
-  // Process the image whenever slider values change or when face detection completes
-  useEffect(() => {
-    if (originalImage && initialProcessingDone) {
-      // Check if values actually changed or if face effects changed
-      const currentValuesString = JSON.stringify({
-        sliders: sliderValues,
-        effects: faceEffectOptions
-      });
-      
-      if (currentValuesString !== lastProcessedValues) {
-        // Queue processing instead of doing it immediately
-        setProcessingQueued(true);
-        setLastProcessedValues(currentValuesString);
-      }
-    }
-  }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues, faceEffectOptions, setLastProcessedValues]);
-
-  // Run the debounced processing when needed
-  useEffect(() => {
-    if (processingQueued) {
-      debouncedProcess();
-    }
-  }, [processingQueued, debouncedProcess]);
-
-  // Display the original image immediately after loading
-  useEffect(() => {
-    if (originalImage && originalCanvasRef.current) {
-      const origCtx = originalCanvasRef.current.getContext("2d");
-      if (origCtx) {
-        // Set canvas dimensions to match image
-        originalCanvasRef.current.width = originalImage.width;
-        originalCanvasRef.current.height = originalImage.height;
-        
-        // Draw the image to canvas
-        origCtx.drawImage(originalImage, 0, 0);
-      }
-      
-      // After displaying original image, proceed with initial processing
-      if (isFaceApiLoaded) {
-        detectFaces();
-      }
-    }
-  }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces]);
-
-  // Add a new effect to process the image after face detection completes
-  useEffect(() => {
-    if (originalImage && faceDetection && initialProcessingDone) {
-      // Process image immediately after face detection is done
-      processImage();
-    }
-  }, [faceDetection, initialProcessingDone, originalImage, processImage]);
+    faceDetection
+  });
 
   return {
     isProcessing,
