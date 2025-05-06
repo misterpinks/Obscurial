@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -62,6 +61,10 @@ const FacialEditor = () => {
     maskImage,
     handleLoadMaskImage,
     resetEffects,
+    maskPosition,
+    setMaskPosition,
+    maskScale,
+    setMaskScale,
     faceEffectOptions
   } = useFaceEffects();
   
@@ -350,6 +353,10 @@ const FacialEditor = () => {
             selectedMaskId={selectedMaskId}
             setSelectedMaskId={setSelectedMaskId}
             onLoadMaskImage={handleLoadMaskImage}
+            maskPosition={maskPosition}
+            setMaskPosition={setMaskPosition}
+            maskScale={maskScale}
+            setMaskScale={setMaskScale}
           />
         }
         presetsComponent={

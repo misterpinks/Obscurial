@@ -14,3 +14,12 @@ export interface TransformationParams {
     maskScale?: number;
   };
 }
+
+// Define the FacialRegion interface for facial transformation regions
+export interface FacialRegion {
+  condition: (normX: number, normY: number, distFromCenter?: number) => boolean;
+  transform: (normX: number, normY: number, sliderValues: Record<string, number>, amplificationFactor: number) => {
+    displacementX: number;
+    displacementY: number;
+  };
+}
