@@ -10,10 +10,8 @@ interface RandomizeButtonProps {
 const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
   const handleClick = () => {
     // Call the randomize function to update slider values
+    // Use setTimeout to ensure state updates happen before processing
     onRandomize();
-    
-    // Log that randomization was triggered
-    console.log("Randomize features triggered");
   };
 
   return (

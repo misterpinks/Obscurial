@@ -32,12 +32,11 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
     return acc;
   }, {} as Record<string, FeatureSlider[]>);
 
-  // Handler for slider value changes
+  // Handler for slider value changes - simplified to ensure it works properly
   const handleSliderValueChange = (id: string, values: number[]) => {
     const value = values[0];
     // Update the state with the new value
     onSliderChange(id, value);
-    console.log(`Slider ${id} changed to ${value}`);
   };
 
   return (

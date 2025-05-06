@@ -45,7 +45,7 @@ export const useFeatureSliders = () => {
       }));
     } else if (id === 'batch' && typeof value === 'object') {
       // Handle batch update of all slider values
-      setSliderValues({...value});
+      setSliderValues(value);
     }
   };
 
@@ -62,15 +62,13 @@ export const useFeatureSliders = () => {
     console.log("Randomizing slider values");
     const randomValues = featureSliders.reduce((acc, slider) => {
       // Generate random values within each slider's range
-      // Use a more controlled range to avoid extreme values (-50 to 50 instead of full -75 to 75)
-      const safeMin = Math.max(slider.min, -50);
-      const safeMax = Math.min(slider.max, 50);
-      const range = safeMax - safeMin;
+      // Use a more controlled range to avoid extreme values (-40 to 40 instead of full -75 to 75)
+      const safeMin = Math.max(slider.min, -40);
+      const safeMax = Math.min(slider.max, 40);
       
       // Apply a bias toward reasonable values (closer to center than extremes)
-      const randomFactor = Math.random();
-      // This creates a bell curve effect for more natural results
       const biasedRandom = ((Math.random() * 2 - 1) * 0.8);
+      const range = safeMax - safeMin;
       
       acc[slider.id] = Math.round(biasedRandom * range);
       return acc;

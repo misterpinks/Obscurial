@@ -26,6 +26,8 @@ export const adjustSliderValues = (sliderValues: Record<string, number>) => {
 
 // Check if any transformations are needed - optimized for performance
 export const hasTransformations = (sliderValues: Record<string, number>) => {
+  if (!sliderValues) return false;
+  
   // Check if any slider has a non-zero value
   for (const key in sliderValues) {
     // Use a tiny threshold to account for floating point precision

@@ -33,6 +33,12 @@ export const useImageProcessingCore = ({
   const processImage = useCallback(() => {
     if (!originalImage) return;
     
+    // If already processing, queue the next processing
+    if (isProcessing) {
+      setProcessingQueued(true);
+      return;
+    }
+    
     // Set processing state
     setIsProcessing(true);
     console.log("Starting image processing");
@@ -58,6 +64,13 @@ export const useImageProcessingCore = ({
       console.error("Error processing image:", error);
     } finally {
       setIsProcessing(false);
+      
+      // Process the next item if queued
+      if (processingQueued) {
+        setProcessingQueued(false);
+        // Small delay to prevent UI blocking
+        setTimeout(() => processImage(), 10);
+      }
     }
   }, [
     originalImage,
@@ -65,14 +78,14 @@ export const useImageProcessingCore = ({
     faceDetection,
     isFaceApiLoaded,
     autoAnalyze,
-    analyzeModifiedImage
+    analyzeModifiedImage,
+    isProcessing,
+    processingQueued
   ]);
 
-  // Super-short debounce time for responsiveness - unused but kept for API compatibility
+  // No debounce for real-time processing
   const debouncedProcess = useCallback(
-    debounce(() => {
-      processImage();
-    }, 10), 
+    processImage, 
     [processImage]
   );
 
