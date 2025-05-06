@@ -56,7 +56,7 @@ export const useImageProcessingEffects = ({
         setLastProcessedValues(currentValuesString);
       }
     }
-  }, [sliderValues, faceEffectOptions, originalImage, initialProcessingDone]);
+  }, [sliderValues, faceEffectOptions, originalImage, initialProcessingDone, lastProcessedValues, processImage, setLastProcessedValues]);
 
   // Display the original image immediately after loading
   useEffect(() => {
@@ -77,6 +77,7 @@ export const useImageProcessingEffects = ({
       
       // After displaying original image, proceed with initial processing
       if (isFaceApiLoaded && !initialProcessingDone) {
+        console.log("Detecting faces after image loaded");
         detectFaces();
       }
     }
@@ -95,7 +96,7 @@ export const useImageProcessingEffects = ({
       });
       setLastProcessedValues(currentValuesString);
     }
-  }, [faceDetection, initialProcessingDone, originalImage]);
+  }, [faceDetection, initialProcessingDone, originalImage, processImage, setLastProcessedValues, sliderValues, faceEffectOptions]);
   
   // Force process image when initially loaded - ALWAYS process at least once
   useEffect(() => {
@@ -103,13 +104,13 @@ export const useImageProcessingEffects = ({
       console.log("Initial processing - forcing image display");
       processImage();
     }
-  }, [initialProcessingDone, originalImage]);
+  }, [initialProcessingDone, originalImage, processImage]);
   
-  // Force a reprocessing any time the slider values change
+  // Immediately process image after loading, even if there's no face detected
   useEffect(() => {
-    if (originalImage && initialProcessingDone && Object.keys(sliderValues).length > 0) {
-      console.log("Slider values changed, processing image");
+    if (originalImage && initialProcessingDone && !faceDetection) {
+      console.log("Initial processing - no face detected but still showing image");
       processImage();
     }
-  }, [sliderValues, originalImage, initialProcessingDone]);
+  }, [initialProcessingDone, originalImage, faceDetection, processImage]);
 };

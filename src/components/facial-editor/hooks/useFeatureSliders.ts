@@ -38,17 +38,20 @@ export const useFeatureSliders = () => {
   const handleSliderChange = (id: string, value: number | Record<string, number>) => {
     if (typeof value === 'number') {
       // Handle single slider change
+      console.log(`Slider ${id} changed to ${value}`);
       setSliderValues((prev) => ({
         ...prev,
         [id]: value
       }));
     } else if (id === 'batch' && typeof value === 'object') {
       // Handle batch update of all slider values - ensure we create a new object
+      console.log("Batch updating sliders", value);
       setSliderValues({...value});
     }
   };
 
   const resetSliders = () => {
+    console.log("Resetting all sliders to default values");
     const resetValues = featureSliders.reduce((acc, slider) => {
       acc[slider.id] = slider.defaultValue;
       return acc;

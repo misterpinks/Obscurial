@@ -35,6 +35,18 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
     return acc;
   }, {} as Record<string, FeatureSlider[]>);
 
+  const handleSliderValueChange = (id: string, values: number[]) => {
+    if (values && values.length > 0) {
+      onSliderChange(id, values[0]);
+    }
+  };
+
+  const handleSliderValueCommit = () => {
+    if (onSliderChangeComplete) {
+      onSliderChangeComplete();
+    }
+  };
+
   return (
     <Card className="h-[600px] overflow-y-auto relative">
       <CardContent className="p-4">
@@ -75,24 +87,17 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                     <span style={{color: slider.color}}>{slider.name}</span>
                     <span className="text-muted-foreground">{sliderValues[slider.id]}</span>
                   </div>
-                  <Slider
-                    id={slider.id}
-                    min={slider.min}
-                    max={slider.max}
-                    step={slider.step}
-                    value={[sliderValues[slider.id]]}
-                    onValueChange={(values) => {
-                      if (values && values.length > 0) {
-                        onSliderChange(slider.id, values[0]);
-                      }
-                    }}
-                    onValueCommit={() => {
-                      if (onSliderChangeComplete) {
-                        onSliderChangeComplete();
-                      }
-                    }}
-                    aria-label={`${slider.name} slider`}
-                  />
+                  <div className="pt-2 pb-2">
+                    <Slider
+                      id={slider.id}
+                      min={slider.min}
+                      max={slider.max}
+                      step={slider.step}
+                      value={[sliderValues[slider.id]]}
+                      onValueChange={(values) => handleSliderValueChange(slider.id, values)}
+                      onValueCommit={handleSliderValueCommit}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

@@ -9,6 +9,7 @@ interface RandomizeButtonProps {
 
 const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
   const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     onRandomize();
   };

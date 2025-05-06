@@ -17,9 +17,9 @@ export const useFaceDetection = (
   const [faceDetection, setFaceDetection] = useState<FaceDetection | null>(null);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
-  // Use a more reliable detection option with better threshold
+  // Use a more reliable detection option with better threshold - LOWERED to detect more faces
   const detectionOptions = () => {
-    return new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.3 });
+    return new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.2 });
   };
 
   const detectFaces = async () => {

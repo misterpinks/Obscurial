@@ -47,6 +47,8 @@ export const useFileUpload = ({
       return;
     }
     
+    console.log("Loading new image file:", file.name);
+    
     // First set all states to null/false to ensure clean slate
     setOriginalImage(null);
     setFaceDetection(null);
@@ -58,19 +60,17 @@ export const useFileUpload = ({
     
     const reader = new FileReader();
     reader.onload = (event) => {
+      console.log("File loaded into memory, creating image object");
       const img = new Image();
       img.onload = () => {
-        // First clear canvases one more time
+        console.log("Image loaded, dimensions:", img.width, "x", img.height);
+        
+        // Clear canvases once more before setting the image
         clearCanvases();
         
         // After the image is loaded, set the states
         setOriginalImage(img);
         setActiveTab("edit");
-        
-        // Force a redraw by triggering initialProcessingDone after a small delay
-        setTimeout(() => {
-          setInitialProcessingDone(true);
-        }, 100);
       };
       img.src = event.target?.result as string;
     };
