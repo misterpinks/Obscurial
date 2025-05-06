@@ -135,4 +135,9 @@ app.on('activate', () => {
   }
 });
 
+// Handle unhandled errors
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
 // IPC handlers for any application-specific functionality can go here

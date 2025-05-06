@@ -24,6 +24,9 @@
     }
   ],
   "asar": true,
+  "nodeGypRebuild": false,
+  "npmRebuild": false,
+  "buildDependenciesFromSource": true,
   "win": {
     "target": [
       "portable",
