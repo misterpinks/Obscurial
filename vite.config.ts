@@ -29,7 +29,8 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        manualChunks: undefined
+        manualChunks: undefined,
+        format: process.env.ELECTRON_RUN ? 'cjs' : 'esm',
       }
     },
     // Optimize for Electron

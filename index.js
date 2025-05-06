@@ -1,4 +1,7 @@
 
+'use strict';
+
+// Use CommonJS require syntax
 const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -34,5 +37,5 @@ try {
   console.error('Error checking files:', err);
 }
 
-// Import the main process file
+// Import the main process file using CommonJS syntax
 require('./electron/main.js');

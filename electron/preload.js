@@ -1,4 +1,6 @@
 
+'use strict';
+
 // Preload script for Electron
 
 // Create a secure bridge between renderer and main process

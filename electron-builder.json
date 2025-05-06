@@ -13,7 +13,8 @@
   ],
   "extraMetadata": {
     "main": "index.js",
-    "description": "Facial Privacy Editor Application"
+    "description": "Facial Privacy Editor Application",
+    "type": "commonjs"
   },
   "extraResources": [
     {
