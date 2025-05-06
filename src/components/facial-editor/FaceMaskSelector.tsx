@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Blur, CircleSlash, Mask } from 'lucide-react';
+import { EyeOff, CircleSlash, Smile } from 'lucide-react';
 import { Label } from "@/components/ui/label";
 
 // Mask options with their source images
@@ -95,7 +95,7 @@ const FaceMaskSelector: React.FC<FaceMaskSelectorProps> = ({
             className="justify-start"
           >
             <ToggleGroupItem value="blur" aria-label="Blur face">
-              <Blur className="h-4 w-4 mr-1" />
+              <EyeOff className="h-4 w-4 mr-1" />
               Blur
             </ToggleGroupItem>
             <ToggleGroupItem value="pixelate" aria-label="Pixelate face">
@@ -103,7 +103,7 @@ const FaceMaskSelector: React.FC<FaceMaskSelectorProps> = ({
               Pixelate
             </ToggleGroupItem>
             <ToggleGroupItem value="mask" aria-label="Apply mask">
-              <Mask className="h-4 w-4 mr-1" />
+              <Smile className="h-4 w-4 mr-1" />
               Mask
             </ToggleGroupItem>
           </ToggleGroup>

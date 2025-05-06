@@ -39,6 +39,7 @@ interface EditorTabsProps {
   autoAnalyze?: boolean;
   onToggleAutoAnalyze?: () => void;
   presetsComponent?: React.ReactNode;
+  faceMaskSelector?: React.ReactNode;
 }
 
 const EditorTabs: React.FC<EditorTabsProps> = ({
@@ -73,7 +74,8 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
   handleLandmarkMove,
   autoAnalyze,
   onToggleAutoAnalyze,
-  presetsComponent
+  presetsComponent,
+  faceMaskSelector
 }) => {
   return (
     <Tabs defaultValue="upload" value={activeTab} onValueChange={onTabChange}>
@@ -110,6 +112,13 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
 
       <TabsContent value="edit">
         <div className="space-y-6">
+          {/* Face Mask Selector section */}
+          {faceMaskSelector && (
+            <div className="mb-4">
+              {faceMaskSelector}
+            </div>
+          )}
+          
           <EditorContent
             originalCanvasRef={originalCanvasRef}
             processedCanvasRef={processedCanvasRef}
