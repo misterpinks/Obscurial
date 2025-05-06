@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { type FeatureSlider } from './hooks';
+import RandomizeButton from './RandomizeButton';
 
 interface AdjustmentSlidersProps {
   featureSliders: FeatureSlider[];
@@ -12,6 +13,7 @@ interface AdjustmentSlidersProps {
   onSliderChange: (id: string, value: number) => void;
   onSliderChangeComplete?: () => void;
   onReset: () => void;
+  onRandomize?: () => void;
   faceMaskSelector?: React.ReactNode;
 }
 
@@ -21,6 +23,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
   onSliderChange,
   onSliderChangeComplete,
   onReset,
+  onRandomize,
   faceMaskSelector
 }) => {
   // Group sliders by category
@@ -53,6 +56,13 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
           </div>
         )}
 
+        {/* Randomize Button */}
+        {onRandomize && (
+          <div className="mb-4">
+            <RandomizeButton onRandomize={onRandomize} />
+          </div>
+        )}
+
         {/* Render sliders by category */}
         {Object.entries(slidersByCategory).map(([category, sliders]) => (
           <div key={category} className="mb-6">
@@ -74,7 +84,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                     onValueChange={(values) => onSliderChange(slider.id, values[0])}
                     onValueCommit={onSliderChangeComplete}
                     aria-label={`${slider.name} slider`}
-                    className="mt-1"
+                    className="mt-1 relative z-10"
                   />
                 </div>
               ))}

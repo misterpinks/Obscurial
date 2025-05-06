@@ -73,18 +73,26 @@ export const useImageProcessingEffects = ({
       }
       
       // After displaying original image, proceed with initial processing
-      if (isFaceApiLoaded) {
+      if (isFaceApiLoaded && !initialProcessingDone) {
         detectFaces();
       }
     }
-  }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces]);
+  }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
-  // Process image immediately after face detection completes
+  // Process image once after face detection completes
   useEffect(() => {
     if (originalImage && faceDetection && initialProcessingDone) {
-      console.log("Processing image after face detection");
-      // Process image immediately after face detection is done
-      processImage();
+      // Only run this once when face detection completes
+      const currentValuesString = JSON.stringify({
+        sliders: sliderValues,
+        effects: faceEffectOptions
+      });
+      
+      if (lastProcessedValues !== currentValuesString) {
+        console.log("Processing image after face detection");
+        processImage();
+        setLastProcessedValues(currentValuesString);
+      }
     }
-  }, [faceDetection, initialProcessingDone, originalImage, processImage]);
+  }, [faceDetection, initialProcessingDone, originalImage, processImage, sliderValues, faceEffectOptions, lastProcessedValues, setLastProcessedValues]);
 };

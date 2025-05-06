@@ -28,9 +28,18 @@ export const useLandmarksDrawing = ({
       face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#F97316' }
     };
     
+    // Calculate scale factor based on image size
+    // Use a base size for reference (e.g., 500px) and scale proportionally
+    const baseSize = 500;
+    const scaleFactor = Math.max(1, Math.min(3, Math.max(canvas.width, canvas.height) / baseSize));
+    
+    // Adjust point size and line width based on scale factor
+    const pointSize = 2 * scaleFactor;
+    const lineWidth = 1.5 * scaleFactor;
+    
     // Draw face bounding box - light green
     ctx.strokeStyle = '#F2FCE2';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = lineWidth;
     const box = faceDetection.detection.box;
     ctx.strokeRect(box.x, box.y, box.width, box.height);
     
@@ -41,6 +50,7 @@ export const useLandmarksDrawing = ({
     Object.entries(featureGroups).forEach(([groupName, group]) => {
       ctx.fillStyle = group.color;
       ctx.strokeStyle = group.color;
+      ctx.lineWidth = lineWidth;
       
       // Connect points for better visualization
       if (group.points.length > 1) {
@@ -59,10 +69,10 @@ export const useLandmarksDrawing = ({
         ctx.stroke();
       }
       
-      // Draw points
+      // Draw points with scaled size
       group.points.forEach(pointIdx => {
         ctx.beginPath();
-        ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, 2, 0, 2 * Math.PI);
+        ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, pointSize, 0, 2 * Math.PI);
         ctx.fill();
       });
     });

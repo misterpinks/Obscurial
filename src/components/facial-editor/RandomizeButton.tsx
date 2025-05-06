@@ -8,8 +8,8 @@ interface RandomizeButtonProps {
 }
 
 const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
+  // Create a handler that ensures the randomize function is called only once
   const handleClick = () => {
-    // Call the randomize function directly, without any other processing
     onRandomize();
   };
 

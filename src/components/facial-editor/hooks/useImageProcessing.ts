@@ -71,9 +71,9 @@ export const useImageProcessing = ({
     isProcessing,
     cleanProcessedImageURL,
     processImage,
+    debouncedProcess,
     processingQueued,
-    setProcessingQueued,
-    debouncedProcess
+    setProcessingQueued
   } = useImageProcessingCore({
     originalImage,
     initialProcessingDone,
