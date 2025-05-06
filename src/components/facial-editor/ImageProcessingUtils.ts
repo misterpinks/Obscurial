@@ -10,6 +10,14 @@ import { processRow } from './utils/transformation/pixelProcessor';
 import { processImageInChunks } from './utils/transformation/chunkedProcessor';
 import { adjustSliderValues, hasTransformations, hasEffects } from './utils/transformation/sliderAdjuster';
 
+// Export face effects
+import { 
+  applyFaceEffect,
+  applyBlur,
+  applyFaceMask,
+  applyPixelation 
+} from './utils/faceEffects';
+
 // Re-export all functions that were originally available
 export {
   createImageFromCanvas,
@@ -17,12 +25,18 @@ export {
   drawFaceLandmarks,
   TransformationParams,
   
-  // Also export new modular transformation functions
+  // Also export modular transformation functions
   calculateTransitionFactor,
   bilinearInterpolation,
   processRow,
   processImageInChunks,
   adjustSliderValues,
   hasTransformations,
-  hasEffects
+  hasEffects,
+  
+  // Face effects
+  applyFaceEffect,
+  applyBlur,
+  applyFaceMask,
+  applyPixelation
 };
