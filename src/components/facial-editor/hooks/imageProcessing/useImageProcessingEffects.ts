@@ -41,6 +41,7 @@ export const useImageProcessingEffects = ({
   faceDetection
 }: UseImageProcessingEffectsProps) => {
   // Process the image whenever slider values change or when face effects change
+  // Added deep comparison to prevent unnecessary reprocessing
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       // Check if values actually changed or if face effects changed
@@ -56,7 +57,7 @@ export const useImageProcessingEffects = ({
         setLastProcessedValues(currentValuesString);
       }
     }
-  }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues, faceEffectOptions, setLastProcessedValues, processImage]);
+  }, [sliderValues, faceEffectOptions, originalImage, initialProcessingDone]);
 
   // Display the original image immediately after loading
   useEffect(() => {
@@ -67,6 +68,9 @@ export const useImageProcessingEffects = ({
         // Set canvas dimensions to match image
         originalCanvasRef.current.width = originalImage.width;
         originalCanvasRef.current.height = originalImage.height;
+        
+        // Clear any previous content
+        origCtx.clearRect(0, 0, originalCanvasRef.current.width, originalCanvasRef.current.height);
         
         // Draw the image to canvas
         origCtx.drawImage(originalImage, 0, 0);
@@ -79,10 +83,9 @@ export const useImageProcessingEffects = ({
     }
   }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
-  // Process image once after face detection completes
+  // Process image once after face detection completes (but prevent redundant processing)
   useEffect(() => {
     if (originalImage && faceDetection && initialProcessingDone) {
-      // Only run this once when face detection completes
       const currentValuesString = JSON.stringify({
         sliders: sliderValues,
         effects: faceEffectOptions
@@ -94,5 +97,5 @@ export const useImageProcessingEffects = ({
         setLastProcessedValues(currentValuesString);
       }
     }
-  }, [faceDetection, initialProcessingDone, originalImage, processImage, sliderValues, faceEffectOptions, lastProcessedValues, setLastProcessedValues]);
+  }, [faceDetection, initialProcessingDone, originalImage]);
 };

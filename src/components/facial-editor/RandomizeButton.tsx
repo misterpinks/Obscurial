@@ -8,8 +8,10 @@ interface RandomizeButtonProps {
 }
 
 const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
-  // Create a handler that ensures the randomize function is called only once
-  const handleClick = () => {
+  // Create a handler with stopPropagation to prevent event bubbling issues
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     onRandomize();
   };
 
@@ -17,6 +19,7 @@ const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
     <Button 
       className="w-full bg-editor-purple hover:bg-editor-accent"
       onClick={handleClick}
+      type="button"
     >
       <Shuffle className="h-4 w-4 mr-2" />
       Randomize Features

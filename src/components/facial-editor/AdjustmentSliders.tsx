@@ -35,6 +35,12 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
     return acc;
   }, {} as Record<string, FeatureSlider[]>);
 
+  const handleSliderChange = (id: string, values: number[]) => {
+    if (values.length > 0) {
+      onSliderChange(id, values[0]);
+    }
+  };
+
   return (
     <Card className="h-[600px] overflow-y-auto">
       <CardContent className="p-4">
@@ -75,17 +81,18 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                     <span style={{color: slider.color}}>{slider.name}</span>
                     <span className="text-muted-foreground">{sliderValues[slider.id]}</span>
                   </div>
-                  <Slider
-                    id={slider.id}
-                    min={slider.min}
-                    max={slider.max}
-                    step={slider.step}
-                    value={[sliderValues[slider.id]]}
-                    onValueChange={(values) => onSliderChange(slider.id, values[0])}
-                    onValueCommit={onSliderChangeComplete}
-                    aria-label={`${slider.name} slider`}
-                    className="mt-1 relative z-10"
-                  />
+                  <div className="relative z-20">
+                    <Slider
+                      id={slider.id}
+                      min={slider.min}
+                      max={slider.max}
+                      step={slider.step}
+                      value={[sliderValues[slider.id]]}
+                      onValueChange={(values) => handleSliderChange(slider.id, values)}
+                      onValueCommit={onSliderChangeComplete}
+                      aria-label={`${slider.name} slider`}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

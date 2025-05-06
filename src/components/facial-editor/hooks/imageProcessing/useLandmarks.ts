@@ -28,14 +28,14 @@ export const useLandmarksDrawing = ({
       face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#F97316' }
     };
     
-    // Calculate scale factor based on image size
-    // Use a base size for reference (e.g., 500px) and scale proportionally
-    const baseSize = 500;
-    const scaleFactor = Math.max(1, Math.min(3, Math.max(canvas.width, canvas.height) / baseSize));
+    // Calculate scale factor based on image size - INCREASED SCALING
+    // Adjust base size to make landmarks larger overall
+    const baseSize = 400; // Reduced from 500 to make scaling more aggressive
+    const scaleFactor = Math.max(1.5, Math.min(5, Math.max(canvas.width, canvas.height) / baseSize));
     
-    // Adjust point size and line width based on scale factor
-    const pointSize = 2 * scaleFactor;
-    const lineWidth = 1.5 * scaleFactor;
+    // Increased point size and line width based on scale factor
+    const pointSize = 3 * scaleFactor; // Increased from 2 to 3
+    const lineWidth = 2 * scaleFactor; // Increased from 1.5 to 2
     
     // Draw face bounding box - light green
     ctx.strokeStyle = '#F2FCE2';
@@ -69,10 +69,18 @@ export const useLandmarksDrawing = ({
         ctx.stroke();
       }
       
-      // Draw points with scaled size
+      // Draw points with scaled size and add white outline for better visibility
       group.points.forEach(pointIdx => {
+        // Draw white outline for better contrast
+        ctx.beginPath();
+        ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, pointSize + 1, 0, 2 * Math.PI);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        
+        // Draw colored point
         ctx.beginPath();
         ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, pointSize, 0, 2 * Math.PI);
+        ctx.fillStyle = group.color;
         ctx.fill();
       });
     });

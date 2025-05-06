@@ -1,9 +1,9 @@
 
-import { useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 
 interface UseFileUploadProps {
-  setOriginalImage: (image: HTMLImageElement) => void;
+  setOriginalImage: (img: HTMLImageElement | null) => void;
   setActiveTab: (tab: string) => void;
   setFaceDetection: (detection: any) => void;
   setInitialProcessingDone: (done: boolean) => void;
@@ -20,6 +20,18 @@ export const useFileUpload = ({
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const clearCanvases = () => {
+    // Find all canvas elements and clear them
+    // This ensures we don't have stale image data persisting
+    const canvases = document.querySelectorAll('canvas');
+    canvases.forEach(canvas => {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    });
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -33,6 +45,9 @@ export const useFileUpload = ({
       });
       return;
     }
+    
+    // Clear canvases before loading new image to prevent stale data
+    clearCanvases();
     
     // Reset states when loading a new image
     setFaceDetection(null);
@@ -52,6 +67,7 @@ export const useFileUpload = ({
   };
 
   const triggerFileInput = () => {
+    // Reset the input value first to allow selecting the same file again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
