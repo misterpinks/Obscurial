@@ -17,13 +17,16 @@ export const adjustSliderValues = (sliderValues: Record<string, number>) => {
   return clampedValues;
 };
 
-// Check if any transformations are needed
+// Check if any transformations are needed - optimized with early return
 export const hasTransformations = (sliderValues: Record<string, number>) => {
-  // Check if any slider has a non-zero value (with a small epsilon to handle floating point comparisons)
-  return Object.values(sliderValues).some(value => Math.abs(value) > 0.01);
+  // Check if any slider has a non-zero value
+  for (const value of Object.values(sliderValues)) {
+    if (Math.abs(value) > 0.01) return true;
+  }
+  return false;
 };
 
-// Check if any effects need to be applied
+// Check if any effects need to be applied - optimized
 export const hasEffects = (faceEffectOptions?: {
   effectType: 'blur' | 'pixelate' | 'mask' | 'none';
   effectIntensity: number;
@@ -31,8 +34,7 @@ export const hasEffects = (faceEffectOptions?: {
   maskPosition?: { x: number, y: number };
   maskScale?: number;
 }) => {
-  if (!faceEffectOptions) return false;
-  
-  // Check if there's an active effect with non-zero intensity
-  return faceEffectOptions.effectType !== 'none' && faceEffectOptions.effectIntensity > 0;
+  return !!(faceEffectOptions && 
+    faceEffectOptions.effectType !== 'none' && 
+    faceEffectOptions.effectIntensity > 0);
 };

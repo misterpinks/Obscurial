@@ -10,7 +10,7 @@ import { getFacialRegions } from '../facialRegions';
 export const processRow = (
   y: number,
   width: number,
-  height: number, // Add height parameter to fix errors
+  height: number,
   originalData: ImageData,
   outputData: ImageData,
   centerX: number,
@@ -25,16 +25,19 @@ export const processRow = (
 ): void => {
   const facialRegions = getFacialRegions();
   
+  // Pre-calculate row offset for performance
+  const rowOffset = y * width;
+  
   for (let x = 0; x < width; x++) {
     // Calculate normalized position relative to face center
     const normX = (x - centerX) / halfFaceWidth;
     const normY = (y - centerY) / halfFaceHeight;
     const distFromCenter = Math.sqrt(normX * normX + normY * normY);
     
-    // Skip if outside approximate face area
+    // Skip if outside approximate face area (fast path)
     if (distFromCenter > maxInfluenceDistance) {
       // Just copy original pixel for areas outside the face
-      const i = (y * width + x) * 4;
+      const i = (rowOffset + x) * 4;
       copyPixel(originalData, outputData, i, i);
       continue;
     }
@@ -65,13 +68,12 @@ export const processRow = (
     const sampleX = x - displacementX;
     const sampleY = y - displacementY;
     
-    // Check image boundaries before sampling
-    const index = (y * width + x) * 4;
+    // Pixel index calculation (optimized)
+    const index = (rowOffset + x) * 4;
     
     // Handle edge cases and perform bilinear interpolation
     if (sampleX < safetyMargin || sampleY < safetyMargin || 
         sampleX >= width - safetyMargin || sampleY >= height - safetyMargin) {
-        
       // For near-edge pixels, use clamped interpolation
       let adjustedSampleX = Math.max(safetyMargin, Math.min(width - safetyMargin - 1, sampleX));
       let adjustedSampleY = Math.max(safetyMargin, Math.min(height - safetyMargin - 1, sampleY));

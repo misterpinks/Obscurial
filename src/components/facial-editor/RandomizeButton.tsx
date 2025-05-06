@@ -8,19 +8,19 @@ interface RandomizeButtonProps {
 }
 
 const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
+  const handleClick = () => {
+    onRandomize();
+    
+    // Dispatch event to trigger reprocessing after state updates
+    setTimeout(() => {
+      document.dispatchEvent(new Event('sliderchange', { bubbles: true }));
+    }, 10);
+  };
+
   return (
     <Button 
       className="w-full bg-editor-purple hover:bg-editor-accent"
-      onClick={() => {
-        // Call the randomize function
-        onRandomize();
-        // Add a slight delay to ensure state updates before processing
-        setTimeout(() => {
-          // Dispatch a change event to trigger reprocessing
-          const event = new Event('sliderchange', { bubbles: true });
-          document.dispatchEvent(event);
-        }, 50);
-      }}
+      onClick={handleClick}
     >
       <Shuffle className="h-4 w-4 mr-2" />
       Randomize Features

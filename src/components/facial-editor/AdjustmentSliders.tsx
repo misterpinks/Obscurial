@@ -32,12 +32,6 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
     return acc;
   }, {} as Record<string, FeatureSlider[]>);
 
-  const handleSliderChangeComplete = () => {
-    if (onSliderChangeComplete) {
-      onSliderChangeComplete();
-    }
-  };
-
   return (
     <Card className="h-[600px] overflow-y-auto">
       <CardContent className="p-4">
@@ -46,14 +40,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => {
-              onReset();
-              // Trigger processing after reset
-              setTimeout(() => {
-                const event = new Event('sliderchange', { bubbles: true });
-                document.dispatchEvent(event);
-              }, 50);
-            }}
+            onClick={onReset}
           >
             Reset All
           </Button>
@@ -85,7 +72,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                     step={slider.step}
                     value={[sliderValues[slider.id]]}
                     onValueChange={(values) => onSliderChange(slider.id, values[0])}
-                    onValueCommit={handleSliderChangeComplete}
+                    onValueCommit={onSliderChangeComplete}
                     aria-label={`${slider.name} slider`}
                     className="mt-1"
                   />

@@ -22,7 +22,7 @@ export const applyFeatureTransformations = ({
 }: TransformationParams) => {
   if (!ctx || !originalImage) return;
   
-  // Check if any transformations are actually needed
+  // Quick check if any transformations or effects are actually needed
   const needsTransformations = hasTransformations(sliderValues);
   const needsEffects = hasEffects(faceEffectOptions);
   
@@ -32,7 +32,22 @@ export const applyFeatureTransformations = ({
     return;
   }
   
-  // Create an off-screen canvas for processing
+  // Skip expensive pixel-by-pixel operations if only effects are needed
+  if (!needsTransformations && needsEffects && faceEffectOptions) {
+    // Draw original image first
+    ctx.drawImage(originalImage, 0, 0);
+    
+    // Then apply face effects only
+    applyFaceEffect({
+      ctx,
+      originalImage,
+      faceDetection,
+      ...faceEffectOptions
+    });
+    return;
+  }
+  
+  // For actual transformations, use off-screen canvas for processing
   const offCanvas = document.createElement("canvas");
   offCanvas.width = width;
   offCanvas.height = height;
@@ -41,23 +56,6 @@ export const applyFeatureTransformations = ({
   
   // Draw original to off-screen canvas
   offCtx.drawImage(originalImage, 0, 0);
-  
-  // Only read pixel data if actual transformations are needed
-  if (!needsTransformations) {
-    // If only effects are needed with no transformations, skip the expensive pixel operations
-    ctx.drawImage(offCanvas, 0, 0);
-    
-    // Apply face effects if needed
-    if (needsEffects && faceEffectOptions) {
-      applyFaceEffect({
-        ctx,
-        originalImage,
-        faceDetection,
-        ...faceEffectOptions
-      });
-    }
-    return;
-  }
   
   // Get image data for processing
   const originalData = offCtx.getImageData(0, 0, width, height);

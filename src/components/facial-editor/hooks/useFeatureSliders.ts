@@ -45,7 +45,7 @@ export const useFeatureSliders = () => {
       }));
     } else if (id === 'batch' && typeof value === 'object') {
       // Handle batch update of all slider values
-      setSliderValues(value);
+      setSliderValues({...value});
     }
   };
 
@@ -75,8 +75,8 @@ export const useFeatureSliders = () => {
       return acc;
     }, {} as Record<string, number>);
     
-    // Apply the randomized values
-    setSliderValues(randomValues);
+    // Apply the randomized values directly with a new reference
+    setSliderValues({...randomValues});
   };
 
   return { featureSliders, sliderValues, handleSliderChange, resetSliders, randomizeSliders };

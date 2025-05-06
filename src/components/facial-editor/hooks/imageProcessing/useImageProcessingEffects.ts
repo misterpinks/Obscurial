@@ -57,9 +57,10 @@ export const useImageProcessingEffects = ({
     }
   }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues, faceEffectOptions, setLastProcessedValues, setProcessingQueued]);
 
-  // Run the debounced processing when needed
+  // Run the debounced processing when needed - with shorter timeout
   useEffect(() => {
     if (processingQueued) {
+      // Process immediately to improve responsiveness
       debouncedProcess();
     }
   }, [processingQueued, debouncedProcess]);
@@ -92,4 +93,3 @@ export const useImageProcessingEffects = ({
     }
   }, [faceDetection, initialProcessingDone, originalImage, processImage]);
 };
-
