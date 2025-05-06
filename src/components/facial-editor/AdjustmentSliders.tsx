@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { type FeatureSlider } from './hooks';
 import RandomizeButton from './RandomizeButton';
+import { useToast } from "@/components/ui/use-toast";
 
 interface AdjustmentSlidersProps {
   featureSliders: FeatureSlider[];
@@ -26,6 +27,8 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
   onRandomize,
   faceMaskSelector
 }) => {
+  const { toast } = useToast();
+  
   // Group sliders by category
   const slidersByCategory = featureSliders.reduce((acc, slider) => {
     if (!acc[slider.category]) {
@@ -35,17 +38,31 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
     return acc;
   }, {} as Record<string, FeatureSlider[]>);
 
-  const handleSliderValueChange = (id: string, values: number[]) => {
+  // Handle slider value change with proper logging
+  const handleSliderValueChange = useCallback((id: string, values: number[]) => {
     if (values && values.length > 0) {
+      console.log(`Slider ${id} changed to:`, values[0]);
       onSliderChange(id, values[0]);
     }
-  };
+  }, [onSliderChange]);
 
-  const handleSliderValueCommit = () => {
+  // Handle slider value commit when user finishes dragging
+  const handleSliderValueCommit = useCallback(() => {
+    console.log("Slider value committed, processing image");
     if (onSliderChangeComplete) {
       onSliderChangeComplete();
     }
-  };
+  }, [onSliderChangeComplete]);
+
+  // Handle reset with feedback
+  const handleReset = useCallback(() => {
+    console.log("Resetting all sliders");
+    onReset();
+    toast({
+      title: "Reset Complete",
+      description: "All sliders have been reset to default values"
+    });
+  }, [onReset, toast]);
 
   return (
     <Card className="h-[600px] overflow-y-auto relative">
@@ -55,7 +72,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
           <Button 
             variant="outline" 
             size="sm"
-            onClick={onReset}
+            onClick={handleReset}
           >
             Reset All
           </Button>

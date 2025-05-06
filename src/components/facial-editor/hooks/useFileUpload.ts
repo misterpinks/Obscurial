@@ -70,6 +70,12 @@ export const useFileUpload = ({
         
         // After the image is loaded, set the states
         setOriginalImage(img);
+        
+        // After a short delay, force initialize processing - this ensures the image is shown
+        setTimeout(() => {
+          setInitialProcessingDone(true);
+        }, 300);
+        
         setActiveTab("edit");
       };
       img.src = event.target?.result as string;

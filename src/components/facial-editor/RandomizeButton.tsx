@@ -2,16 +2,27 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Shuffle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface RandomizeButtonProps {
   onRandomize: () => void;
 }
 
 const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
+  const { toast } = useToast();
+
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Provide feedback to user
+    toast({
+      title: "Randomizing features",
+      description: "Applying random adjustments to facial features"
+    });
+    
     onRandomize();
+    console.log("Randomize button clicked, onRandomize function called");
   };
   
   return (
