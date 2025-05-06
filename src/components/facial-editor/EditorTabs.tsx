@@ -1,18 +1,20 @@
+
 import React, { RefObject } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Upload, ImageIcon } from "lucide-react";
-import WebcamCapture from './WebcamCapture';
-import ImageUploader from './ImageUploader';
+import { Camera, Upload, ImageIcon, Circle } from "lucide-react";
 import EditorContent from './EditorContent';
+import ImageUploader from './ImageUploader';
+import WebcamCapture from './WebcamCapture';
+import { SplitViewMode } from './hooks/useSplitView';
 
 interface EditorTabsProps {
   activeTab: string;
   onTabChange: (value: string) => void;
   originalImage: HTMLImageElement | null;
-  fileInputRef: RefObject<HTMLInputElement>;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  videoRef: RefObject<HTMLVideoElement>;
-  streamRef: RefObject<MediaStream | null>;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  videoRef: React.RefObject<HTMLVideoElement>;
+  streamRef: React.MutableRefObject<MediaStream | null>;
   onCapture: () => void;
   originalCanvasRef: RefObject<HTMLCanvasElement>;
   processedCanvasRef: RefObject<HTMLCanvasElement>;
@@ -31,19 +33,25 @@ interface EditorTabsProps {
   featureSliders: any[];
   sliderValues: Record<string, number>;
   onSliderChange: (id: string, value: number) => void;
+  onSliderChangeComplete?: () => void;
   onResetSliders: () => void;
   onRandomizeSliders: () => void;
   handleLandmarkMove: (pointIndex: number, x: number, y: number) => void;
   autoAnalyze?: boolean;
   onToggleAutoAnalyze?: () => void;
+  splitViewMode?: SplitViewMode;
+  splitPosition?: number;
+  onSplitPositionChange?: (position: number) => void;
+  splitViewComponent?: React.ReactNode;
+  presetsComponent?: React.ReactNode;
 }
 
 const EditorTabs: React.FC<EditorTabsProps> = ({
   activeTab,
   onTabChange,
   originalImage,
-  fileInputRef,
   handleImageUpload,
+  fileInputRef,
   videoRef,
   streamRef,
   onCapture,
@@ -64,11 +72,17 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
   featureSliders,
   sliderValues,
   onSliderChange,
+  onSliderChangeComplete,
   onResetSliders,
   onRandomizeSliders,
   handleLandmarkMove,
   autoAnalyze,
-  onToggleAutoAnalyze
+  onToggleAutoAnalyze,
+  splitViewMode = SplitViewMode.NONE,
+  splitPosition = 0.5,
+  onSplitPositionChange,
+  splitViewComponent,
+  presetsComponent
 }) => {
   return (
     <Tabs defaultValue="upload" value={activeTab} onValueChange={onTabChange}>
@@ -89,47 +103,64 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
 
       <TabsContent value="upload">
         <ImageUploader 
-          onImageUpload={handleImageUpload}
-          inputRef={fileInputRef}
+          fileInputRef={fileInputRef} 
+          handleImageUpload={handleImageUpload} 
+          triggerFileInput={triggerFileInput}
         />
       </TabsContent>
 
       <TabsContent value="webcam">
         <WebcamCapture 
-          videoRef={videoRef}
-          streamRef={streamRef}
-          onCapture={onCapture}
+          videoRef={videoRef} 
+          streamRef={streamRef} 
+          onCapture={onCapture} 
         />
       </TabsContent>
 
       <TabsContent value="edit">
-        <EditorContent 
-          originalCanvasRef={originalCanvasRef}
-          processedCanvasRef={processedCanvasRef}
-          cleanProcessedCanvasRef={cleanProcessedCanvasRef}
-          originalImage={originalImage}
-          isProcessing={isProcessing}
-          isAnalyzing={isAnalyzing}
-          faceDetection={faceDetection}
-          facialDifference={facialDifference}
-          imageDimensions={imageDimensions}
-          triggerFileInput={triggerFileInput}
-          fileInputRef={fileInputRef}
-          handleImageUpload={handleImageUpload}
-          downloadImage={downloadImage}
-          hasProcessedImage={hasProcessedImage}
-          handleRunAnalysis={handleRunAnalysis}
-          showLandmarks={showLandmarks}
-          toggleLandmarks={toggleLandmarks}
-          featureSliders={featureSliders}
-          sliderValues={sliderValues}
-          onSliderChange={onSliderChange}
-          onResetSliders={onResetSliders}
-          onRandomizeSliders={onRandomizeSliders}
-          handleLandmarkMove={handleLandmarkMove}
-          autoAnalyze={autoAnalyze}
-          onToggleAutoAnalyze={onToggleAutoAnalyze}
-        />
+        <div className="space-y-6">
+          {/* Show split view when active */}
+          {splitViewMode !== SplitViewMode.NONE && splitViewComponent ? (
+            <div className="mb-4">
+              {splitViewComponent}
+            </div>
+          ) : (
+            <EditorContent
+              originalCanvasRef={originalCanvasRef}
+              processedCanvasRef={processedCanvasRef}
+              cleanProcessedCanvasRef={cleanProcessedCanvasRef}
+              originalImage={originalImage}
+              isProcessing={isProcessing}
+              isAnalyzing={isAnalyzing}
+              faceDetection={faceDetection}
+              facialDifference={facialDifference}
+              imageDimensions={imageDimensions}
+              triggerFileInput={triggerFileInput}
+              fileInputRef={fileInputRef}
+              handleImageUpload={handleImageUpload}
+              downloadImage={downloadImage}
+              hasProcessedImage={hasProcessedImage}
+              handleRunAnalysis={handleRunAnalysis}
+              showLandmarks={showLandmarks}
+              toggleLandmarks={toggleLandmarks}
+              featureSliders={featureSliders}
+              sliderValues={sliderValues}
+              onSliderChange={onSliderChange}
+              onResetSliders={onResetSliders}
+              onRandomizeSliders={onRandomizeSliders}
+              handleLandmarkMove={handleLandmarkMove}
+              autoAnalyze={autoAnalyze}
+              onToggleAutoAnalyze={onToggleAutoAnalyze}
+            />
+          )}
+          
+          {/* Presets section */}
+          {presetsComponent && (
+            <div className="mb-4">
+              {presetsComponent}
+            </div>
+          )}
+        </div>
       </TabsContent>
     </Tabs>
   );

@@ -1,10 +1,21 @@
 
 import FacialEditor from "@/components/facial-editor/FacialEditor";
 import { Toaster } from "@/components/ui/toaster";
+import { useEffect, useState } from "react";
 
 const Index = () => {
-  // Create a dynamic background path that works in both web and electron
-  const bgImagePath = process.env.ELECTRON_RUN ? './Background.png' : './src/components/ui/Background.png';
+  const [bgImagePath, setBgImagePath] = useState<string>('./Background.png');
+  
+  // Handle different environments for background image
+  useEffect(() => {
+    // For Electron, use the resources path
+    if (window.electron) {
+      setBgImagePath(window.electron.getResourcePath('ui/Background.png') || './Background.png');
+    } else {
+      // For web, use the regular path
+      setBgImagePath('./src/components/ui/Background.png');
+    }
+  }, []);
   
   return (
     <div className="min-h-screen relative bg-gray-50">

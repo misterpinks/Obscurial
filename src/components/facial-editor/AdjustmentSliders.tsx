@@ -1,25 +1,16 @@
 
 import React from 'react';
-import { Slider } from '@/components/ui/slider';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-
-interface FeatureSlider {
-  id: string;
-  name: string;
-  min: number;
-  max: number;
-  step: number;
-  defaultValue: number;
-  category: string;
-  color?: string;
-}
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { FeatureSlider } from './hooks';
 
 interface AdjustmentSlidersProps {
   featureSliders: FeatureSlider[];
   sliderValues: Record<string, number>;
   onSliderChange: (id: string, value: number) => void;
+  onSliderChangeComplete?: () => void;
   onReset: () => void;
 }
 
@@ -27,6 +18,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
   featureSliders,
   sliderValues,
   onSliderChange,
+  onSliderChangeComplete,
   onReset
 }) => {
   // Group sliders by category
@@ -37,6 +29,12 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
     acc[slider.category].push(slider);
     return acc;
   }, {} as Record<string, FeatureSlider[]>);
+
+  const handleSliderChangeComplete = () => {
+    if (onSliderChangeComplete) {
+      onSliderChangeComplete();
+    }
+  };
 
   return (
     <Card className="h-[600px] overflow-y-auto">
@@ -71,6 +69,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                     step={slider.step}
                     value={[sliderValues[slider.id]]}
                     onValueChange={(values) => onSliderChange(slider.id, values[0])}
+                    onValueCommit={handleSliderChangeComplete}
                     className="mt-1"
                   />
                 </div>

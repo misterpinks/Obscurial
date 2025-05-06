@@ -29,6 +29,7 @@ interface EditorContentProps {
   featureSliders: any[];
   sliderValues: Record<string, number>;
   onSliderChange: (id: string, value: number) => void;
+  onSliderChangeComplete?: () => void;
   onResetSliders: () => void;
   onRandomizeSliders: () => void;
   handleLandmarkMove: (pointIndex: number, x: number, y: number) => void;
@@ -57,6 +58,7 @@ const EditorContent: React.FC<EditorContentProps> = ({
   featureSliders,
   sliderValues,
   onSliderChange,
+  onSliderChangeComplete,
   onResetSliders,
   onRandomizeSliders,
   handleLandmarkMove,
@@ -134,6 +136,7 @@ const EditorContent: React.FC<EditorContentProps> = ({
           featureSliders={featureSliders}
           sliderValues={sliderValues}
           onSliderChange={onSliderChange}
+          onSliderChangeComplete={onSliderChangeComplete}
           onReset={onResetSliders}
         />
       </div>

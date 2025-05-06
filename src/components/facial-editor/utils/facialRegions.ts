@@ -8,11 +8,14 @@ import { FacialRegion } from './transformationTypes';
 // Amplification factor for transformations - significantly increased for more dramatic effects
 const AMPLIFICATION_FACTOR = 3.5;
 
+// Max influence distance - controls how far transformations extend
+const MAX_INFLUENCE_DISTANCE = 2.0; // Increased from 1.5 for wider effect area
+
 export const getFacialRegions = (): FacialRegion[] => [
   // Eye region - expanded with better blending
   {
     condition: (normX, normY) => 
-      normY < -0.1 && normY > -0.7 && Math.abs(normX) > 0.05 && Math.abs(normX) < 0.5,
+      normY < -0.05 && normY > -0.75 && Math.abs(normX) > 0.05 && Math.abs(normX) < 0.6,
     transform: (normX, normY, sliderValues, amplificationFactor) => {
       let displacementX = 0;
       let displacementY = 0;
@@ -31,7 +34,7 @@ export const getFacialRegions = (): FacialRegion[] => [
   // Eyebrow region - expanded and intensified
   {
     condition: (normX, normY) => 
-      normY < -0.2 && normY > -0.8 && Math.abs(normX) > 0.05 && Math.abs(normX) < 0.5,
+      normY < -0.15 && normY > -0.85 && Math.abs(normX) > 0.05 && Math.abs(normX) < 0.6,
     transform: (normX, normY, sliderValues, amplificationFactor) => {
       // Increased effect for eyebrow height
       const displacementY = -(sliderValues.eyebrowHeight / 100) * amplificationFactor * 1.25;
@@ -42,7 +45,7 @@ export const getFacialRegions = (): FacialRegion[] => [
   // Nose region - expanded with more dramatic effects and better blending
   {
     condition: (normX, normY) => 
-      Math.abs(normX) < 0.35 && normY > -0.45 && normY < 0.3,
+      Math.abs(normX) < 0.4 && normY > -0.5 && normY < 0.35,
     transform: (normX, normY, sliderValues, amplificationFactor) => {
       // Intensified nose transformations
       const displacementX = (sliderValues.noseWidth / 100) * normX * amplificationFactor * 1.5;
@@ -54,7 +57,7 @@ export const getFacialRegions = (): FacialRegion[] => [
   // Mouth region - expanded with more dramatic effects
   {
     condition: (normX, normY) => 
-      Math.abs(normX) < 0.4 && normY > 0.0 && normY < 0.5,
+      Math.abs(normX) < 0.45 && normY > -0.05 && normY < 0.55,
     transform: (normX, normY, sliderValues, amplificationFactor) => {
       // Intensified mouth transformations
       const displacementX = (sliderValues.mouthWidth / 100) * normX * amplificationFactor * 1.5;
@@ -66,7 +69,7 @@ export const getFacialRegions = (): FacialRegion[] => [
   // Overall face width - expanded with more dramatic effect
   {
     condition: (normX, normY, distFromCenter) => 
-      distFromCenter > 0.35 && distFromCenter < 1.3,
+      distFromCenter > 0.3 && distFromCenter < 1.8,
     transform: (normX, normY, sliderValues, amplificationFactor) => {
       // More dramatic face width transformation
       const displacementX = (sliderValues.faceWidth / 100) * normX * amplificationFactor * 1.4;
@@ -77,7 +80,7 @@ export const getFacialRegions = (): FacialRegion[] => [
   // Chin shape - expanded with more dramatic effect
   {
     condition: (normX, normY) => 
-      normY > 0.3 && Math.abs(normX) < 0.45,
+      normY > 0.25 && Math.abs(normX) < 0.5,
     transform: (normX, normY, sliderValues, amplificationFactor) => {
       // More dramatic chin shape transformation
       const displacementY = (sliderValues.chinShape / 100) * (normY - 0.4) * amplificationFactor * 1.6;
@@ -88,7 +91,7 @@ export const getFacialRegions = (): FacialRegion[] => [
   // Jawline - expanded with more dramatic effect
   {
     condition: (normX, normY) => 
-      normY > 0.1 && Math.abs(normX) > 0.2 && Math.abs(normX) < 0.7,
+      normY > 0.05 && Math.abs(normX) > 0.15 && Math.abs(normX) < 0.8,
     transform: (normX, normY, sliderValues, amplificationFactor) => {
       // More dramatic jawline transformation
       const displacementX = (sliderValues.jawline / 100) * (normX > 0 ? 1 : -1) * amplificationFactor * 1.5;
@@ -99,3 +102,6 @@ export const getFacialRegions = (): FacialRegion[] => [
 
 // Helper function to get amplification factor
 export const getAmplificationFactor = () => AMPLIFICATION_FACTOR;
+
+// Helper function to get maximum influence distance
+export const getMaxInfluenceDistance = () => MAX_INFLUENCE_DISTANCE;

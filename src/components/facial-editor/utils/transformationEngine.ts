@@ -1,12 +1,12 @@
 
 import { TransformationParams } from './transformationTypes';
-import { getFacialRegions, getAmplificationFactor } from './facialRegions';
+import { getFacialRegions, getAmplificationFactor, getMaxInfluenceDistance } from './facialRegions';
 
 /**
  * Core transformation engine for applying facial feature modifications
  */
 
-// Updated function to apply more dramatic transformations with the -100/+100 slider range
+// Updated function to apply more dramatic transformations with smoother transitions
 export const applyFeatureTransformations = ({
   ctx,
   originalImage,
@@ -19,7 +19,7 @@ export const applyFeatureTransformations = ({
   const offCanvas = document.createElement("canvas");
   offCanvas.width = width;
   offCanvas.height = height;
-  const offCtx = offCanvas.getContext("2d");
+  const offCtx = offCanvas.getContext("2d", { alpha: false });
   if (!offCtx || !originalImage) return;
   
   // Draw original to off-screen canvas
@@ -32,17 +32,17 @@ export const applyFeatureTransformations = ({
   // Approximate face center - use face detection if available, otherwise estimate
   let centerX = width / 2;
   let centerY = height / 2;
-  let faceWidth = width * 0.7; // Increased from 0.6 to cover more area
-  let faceHeight = height * 0.8; // Increased from 0.7 to cover more area
+  let faceWidth = width * 0.8; // Increased from 0.7 to cover more area
+  let faceHeight = height * 0.9; // Increased from 0.8 to cover more area
   
   // Use detected face box if available
   if (faceDetection && faceDetection.detection) {
     const box = faceDetection.detection.box;
     centerX = box.x + box.width / 2;
     centerY = box.y + box.height / 2;
-    // Make face area 40% larger than detected to avoid edge artifacts (increased from 25%)
-    faceWidth = box.width * 1.4;
-    faceHeight = box.height * 1.4;
+    // Make face area 50% larger than detected to avoid edge artifacts (increased from 40%)
+    faceWidth = box.width * 1.5;
+    faceHeight = box.height * 1.5;
   }
   
   // Get facial regions and amplification factor
@@ -64,7 +64,7 @@ export const applyFeatureTransformations = ({
   console.log("Total amplification factor:", amplificationFactor);
   
   // Apply super-strong distortion effect for extreme values
-  const extremeThreshold = 75; // When slider exceeds this value, apply extreme effect
+  const extremeThreshold = 70; // When slider exceeds this value, apply extreme effect
   let hasExtremeValues = false;
   
   // Check if any sliders are at extreme values
@@ -76,9 +76,9 @@ export const applyFeatureTransformations = ({
 
   // Calculate the maximum influence distance from face center
   // This ensures smoother transitions between transformed and non-transformed regions
-  const maxInfluenceDistance = hasExtremeValues ? 1.8 : 1.5; // Increased from 1.5/1.3
+  const maxInfluenceDistance = hasExtremeValues ? 2.0 : getMaxInfluenceDistance();
   
-  // Apply distortions based on slider values
+  // Apply distortions based on slider values with wider influence area
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       // Calculate normalized position relative to face center
@@ -111,9 +111,10 @@ export const applyFeatureTransformations = ({
       }
       
       // Apply additional transition zone for smoother blending at edges
-      if (distFromCenter > 1.0 && distFromCenter < maxInfluenceDistance) {
+      // Extended transition zone for better edge blending
+      if (distFromCenter > 0.8 && distFromCenter < maxInfluenceDistance) {
         // Calculate fade factor (1.0 at inner edge, 0.0 at outer edge)
-        const fadeFactor = 1.0 - ((distFromCenter - 1.0) / (maxInfluenceDistance - 1.0));
+        const fadeFactor = 1.0 - ((distFromCenter - 0.8) / (maxInfluenceDistance - 0.8));
         displacementX *= fadeFactor;
         displacementY *= fadeFactor;
       }
@@ -170,7 +171,7 @@ export const applyFeatureTransformations = ({
         // For extreme values, add subtle color shifting
         if (hasExtremeValues) {
           // Apply subtle color shifts based on position
-          const colorShift = Math.sin(x * 0.05 + y * 0.05) * 15; // Reduced from 30 to be more subtle
+          const colorShift = Math.sin(x * 0.05 + y * 0.05) * 10; // Reduced to be more subtle
           interpolated += colorShift;
         }
         
