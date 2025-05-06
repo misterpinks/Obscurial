@@ -64,11 +64,15 @@ function createWindow() {
       console.log('Loading file:', indexPath);
       console.log('File exists:', fs.existsSync(indexPath));
       
-      // Using loadFile instead of loadURL with file protocol
-      // This can help with path resolution issues
-      mainWindow.loadFile(path.resolve(indexPath));
+      // Using file protocol with loadURL to ensure proper path resolution
+      const fileUrl = url.format({
+        pathname: indexPath,
+        protocol: 'file:',
+        slashes: true
+      });
       
-      console.log('Attempting to load app with resolved path:', path.resolve(indexPath));
+      console.log('Loading app with URL:', fileUrl);
+      mainWindow.loadURL(fileUrl);
     } catch (err) {
       console.error('Error loading app:', err);
     }
