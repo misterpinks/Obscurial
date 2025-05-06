@@ -13,7 +13,8 @@ export interface FeatureSlider {
 }
 
 export const useFeatureSliders = () => {
-  // Updated slider ranges from -75 to 75 to prevent glitching at extreme values
+  // Updated slider ranges to match UI expectations 
+  // but with internal safeguards against extreme values
   const featureSliders: FeatureSlider[] = [
     { id: 'eyeSize', name: 'Eye Size', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
     { id: 'eyeSpacing', name: 'Eye Spacing', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
@@ -60,16 +61,17 @@ export const useFeatureSliders = () => {
   const randomizeSliders = () => {
     const randomValues = featureSliders.reduce((acc, slider) => {
       // Generate random values within each slider's range
-      // Use a higher probability of more extreme values to make changes more noticeable
-      const randomValue = () => {
-        const range = slider.max - slider.min;
-        const randomFactor = Math.random();
-        // Apply a bias toward the extremes (more likely to be close to min or max)
-        const biasedRandom = Math.pow(randomFactor * 2 - 1, 3) / 2 + 0.5; 
-        return Math.round(slider.min + biasedRandom * range);
-      };
+      // Use a more controlled range to avoid extreme values (-60 to 60 instead of full -75 to 75)
+      const safeMin = Math.max(slider.min, -60);
+      const safeMax = Math.min(slider.max, 60);
+      const range = safeMax - safeMin;
       
-      acc[slider.id] = randomValue();
+      // Apply a bias toward reasonable values (closer to center than extremes)
+      const randomFactor = Math.random();
+      // This creates a bell curve effect for more natural results
+      const biasedRandom = Math.pow(randomFactor * 2 - 1, 3) / 2 + 0.5;
+      
+      acc[slider.id] = Math.round(safeMin + biasedRandom * range);
       return acc;
     }, {} as Record<string, number>);
     

@@ -70,6 +70,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                     value={[sliderValues[slider.id]]}
                     onValueChange={(values) => onSliderChange(slider.id, values[0])}
                     onValueCommit={handleSliderChangeComplete}
+                    aria-label={`${slider.name} slider`}
                     className="mt-1"
                   />
                 </div>
