@@ -2,8 +2,6 @@
 
 A JavaScript-based face veiling tool that helps protect privacy in images by applying various disguise filters to detected faces to break facial recognition tools such as Pimeyes or Clearview.
 
-![Face Veil Disguise Demo](https://raw.githubusercontent.com/misterpinks/face-veil-disguise/main/examples/demo.png)
-
 ## Overview
 
 Face Veil Disguise is an open-source tool designed to anonymize images by applying various effects to detected faces. This can be useful for privacy protection when sharing photos online, for educational purposes, or in applications where facial privacy is a concern.
