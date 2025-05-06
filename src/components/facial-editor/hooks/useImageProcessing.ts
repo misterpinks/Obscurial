@@ -1,4 +1,3 @@
-
 import { useState, useEffect, RefObject, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { applyFeatureTransformations } from '../utils/transformationEngine';
@@ -183,43 +182,16 @@ export const useImageProcessing = ({
     cleanCanvas.width = originalImage.width;
     cleanCanvas.height = originalImage.height;
     
-    // Create offscreen canvas for better performance
-    const offscreenCanvas = new OffscreenCanvas(originalImage.width, originalImage.height);
-    const offscreenCtx = offscreenCanvas.getContext('2d');
-    
-    if (!offscreenCtx) {
-      // Fallback to direct rendering if offscreen canvas is not supported
-      // Apply feature transformations to the clean canvas
-      applyFeatureTransformations({
-        ctx: cleanCtx,
-        originalImage,
-        width: cleanCanvas.width,
-        height: cleanCanvas.height,
-        faceDetection,
-        sliderValues,
-        faceEffectOptions
-      });
-    } else {
-      // Use offscreen canvas for better performance
-      offscreenCtx.drawImage(originalImage, 0, 0);
-      
-      // Apply transformations to offscreen canvas
-      applyFeatureTransformations({
-        ctx: offscreenCtx,
-        originalImage,
-        width: cleanCanvas.width,
-        height: cleanCanvas.height,
-        faceDetection,
-        sliderValues,
-        faceEffectOptions
-      });
-      
-      // Transfer result to visible canvas
-      createImageBitmap(offscreenCanvas).then(bitmap => {
-        cleanCtx.drawImage(bitmap, 0, 0);
-        bitmap.close(); // Release bitmap resources
-      });
-    }
+    // Apply feature transformations directly to the clean canvas
+    applyFeatureTransformations({
+      ctx: cleanCtx,
+      originalImage,
+      width: cleanCanvas.width,
+      height: cleanCanvas.height,
+      faceDetection,
+      sliderValues,
+      faceEffectOptions
+    });
     
     // Update clean processed image URL for download
     // Use a timeout to allow the UI to update before generating the data URL
