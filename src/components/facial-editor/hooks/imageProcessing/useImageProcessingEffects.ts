@@ -50,6 +50,7 @@ export const useImageProcessingEffects = ({
       });
       
       if (currentValuesString !== lastProcessedValues) {
+        console.log("Values changed, queuing processing");
         // Queue processing instead of doing it immediately
         setProcessingQueued(true);
         setLastProcessedValues(currentValuesString);
@@ -57,13 +58,31 @@ export const useImageProcessingEffects = ({
     }
   }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues, faceEffectOptions, setLastProcessedValues, setProcessingQueued]);
 
-  // Run the debounced processing when needed - with shorter timeout
+  // Run the processing when needed - with immediate execution
   useEffect(() => {
     if (processingQueued) {
+      console.log("Processing queued, executing immediately");
       // Process immediately to improve responsiveness
-      debouncedProcess();
+      processImage(); // Direct call instead of debounced version
+      setProcessingQueued(false);
     }
-  }, [processingQueued, debouncedProcess]);
+  }, [processingQueued, processImage, setProcessingQueued]);
+
+  // Listen for custom slider change events (from randomize button)
+  useEffect(() => {
+    const handleSliderValueChange = () => {
+      console.log("Custom slider change event received");
+      if (originalImage && initialProcessingDone) {
+        processImage();
+      }
+    };
+
+    document.addEventListener('sliderValueChange', handleSliderValueChange);
+    
+    return () => {
+      document.removeEventListener('sliderValueChange', handleSliderValueChange);
+    };
+  }, [originalImage, initialProcessingDone, processImage]);
 
   // Display the original image immediately after loading
   useEffect(() => {

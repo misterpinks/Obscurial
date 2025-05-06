@@ -1,5 +1,5 @@
 
-import { useState, useCallback, RefObject } from 'react';
+import { useState, useCallback } from 'react';
 import debounce from 'lodash/debounce';
 
 interface UseImageProcessingCoreProps {
@@ -33,7 +33,15 @@ export const useImageProcessingCore = ({
   const processImage = useCallback(() => {
     if (!originalImage) return;
     
+    // Prevent reprocessing if already processing
+    if (isProcessing) {
+      console.log("Already processing, queueing another update");
+      setProcessingQueued(true);
+      return;
+    }
+    
     setIsProcessing(true);
+    console.log("Starting image processing");
     
     try {
       // Process the image using our implementation
@@ -56,24 +64,34 @@ export const useImageProcessingCore = ({
       console.error("Error processing image:", error);
     } finally {
       setIsProcessing(false);
+      
+      // Check if another processing was queued while we were processing
+      if (processingQueued) {
+        console.log("Processing was queued, executing next process");
+        setProcessingQueued(false);
+        // Use a small timeout to give the UI a chance to update
+        setTimeout(processImage, 10);
+      }
     }
   }, [
     originalImage,
+    isProcessing,
     processImageImpl,
     faceDetection,
     isFaceApiLoaded,
     autoAnalyze,
-    analyzeModifiedImage
+    analyzeModifiedImage,
+    processingQueued
   ]);
 
-  // Reduced debounce time for more responsive UI (from 50ms to 10ms)
+  // Very short debounce time for more responsive UI
   const debouncedProcess = useCallback(
     debounce(() => {
       if (processingQueued) {
         processImage();
         setProcessingQueued(false);
       }
-    }, 10),
+    }, 5), // Extremely short debounce time
     [processingQueued, processImage]
   );
 

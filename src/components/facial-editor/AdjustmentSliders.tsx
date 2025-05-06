@@ -32,6 +32,19 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
     return acc;
   }, {} as Record<string, FeatureSlider[]>);
 
+  // Custom handler to trigger value change event after slider interaction
+  const handleSliderValueChange = (id: string, values: number[]) => {
+    const value = values[0];
+    onSliderChange(id, value);
+    
+    // Dispatch a custom event for immediate processing
+    const event = new CustomEvent('sliderValueChange', { 
+      bubbles: true,
+      detail: { id, value, source: 'slider' } 
+    });
+    document.dispatchEvent(event);
+  };
+
   return (
     <Card className="h-[600px] overflow-y-auto">
       <CardContent className="p-4">
@@ -40,7 +53,17 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
           <Button 
             variant="outline" 
             size="sm"
-            onClick={onReset}
+            onClick={() => {
+              onReset();
+              // Trigger processing after reset
+              setTimeout(() => {
+                const event = new CustomEvent('sliderValueChange', {
+                  bubbles: true,
+                  detail: { source: 'reset' }
+                });
+                document.dispatchEvent(event);
+              }, 50);
+            }}
           >
             Reset All
           </Button>
@@ -71,7 +94,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                     max={slider.max}
                     step={slider.step}
                     value={[sliderValues[slider.id]]}
-                    onValueChange={(values) => onSliderChange(slider.id, values[0])}
+                    onValueChange={(values) => handleSliderValueChange(slider.id, values)}
                     onValueCommit={onSliderChangeComplete}
                     aria-label={`${slider.name} slider`}
                     className="mt-1"

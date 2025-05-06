@@ -10,8 +10,15 @@ export const adjustSliderValues = (sliderValues: Record<string, number>) => {
   
   // Process each slider value
   Object.entries(sliderValues).forEach(([key, value]) => {
-    // Normal range is -60 to +60, with strict clamping
+    // Ensure values are within safe range (-60 to +60)
+    // This prevents visual artifacts while allowing UI to show wider range
     clampedValues[key] = Math.max(-60, Math.min(60, value));
+    
+    // Ensure values are numbers (protection against NaN)
+    if (isNaN(clampedValues[key])) {
+      console.warn(`Slider value for ${key} was NaN, resetting to 0`);
+      clampedValues[key] = 0;
+    }
   });
   
   return clampedValues;
@@ -21,6 +28,7 @@ export const adjustSliderValues = (sliderValues: Record<string, number>) => {
 export const hasTransformations = (sliderValues: Record<string, number>) => {
   // Check if any slider has a non-zero value
   for (const value of Object.values(sliderValues)) {
+    // Use a small threshold to account for floating point precision
     if (Math.abs(value) > 0.01) return true;
   }
   return false;
