@@ -10,6 +10,7 @@ import { getFacialRegions } from '../facialRegions';
 export const processRow = (
   y: number,
   width: number,
+  height: number, // Add height parameter to fix errors
   originalData: ImageData,
   outputData: ImageData,
   centerX: number,

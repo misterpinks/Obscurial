@@ -1,21 +1,19 @@
 
 /**
- * Processes images in chunks to prevent UI freezing
+ * Optimized image processing in chunks for better UI responsiveness
  */
 
-import { processRow } from './pixelProcessor';
 import { applyFaceEffect } from '../faceEffects';
-import type { TransformationParams } from '../transformationTypes';
-import { getMaxInfluenceDistance } from '../facialRegions';
+import { processRow } from './pixelProcessor';
 
-// Process the image in chunks
+// Process image in small chunks with a yield to UI thread
 export const processImageInChunks = (
   ctx: CanvasRenderingContext2D,
   originalData: ImageData,
   outputData: ImageData,
   width: number,
   height: number,
-  centerX: number,
+  centerX: number, 
   centerY: number,
   faceWidth: number,
   faceHeight: number,
@@ -23,26 +21,38 @@ export const processImageInChunks = (
   amplificationFactor: number,
   originalImage: HTMLImageElement,
   faceDetection: any,
-  faceEffectOptions?: TransformationParams['faceEffectOptions']
-): void => {
-  // Constants
-  const chunkHeight = 50; // Process 50 rows at a time
-  const safetyMargin = 5; // Pixels of safety margin
+  faceEffectOptions?: {
+    effectType: 'blur' | 'pixelate' | 'mask' | 'none';
+    effectIntensity: number;
+    maskImage?: HTMLImageElement | null;
+    maskPosition?: { x: number, y: number };
+    maskScale?: number;
+  }
+) => {
+  // Calculate influence boundaries
   const halfFaceWidth = faceWidth / 2;
   const halfFaceHeight = faceHeight / 2;
-  const innerEdge = 0.8;
-  const maxInfluenceDistance = getMaxInfluenceDistance();
   
-  let currentRow = 0;
+  // Transition zone configuration
+  const innerEdge = 0.85;  // Inner edge of the transition zone (as a proportion of max influence distance)
+  const maxInfluenceDistance = 1.1; // Maximum distance for transform influence
   
-  function processChunk() {
-    const endRow = Math.min(currentRow + chunkHeight, height);
+  // Safety margin for edge handling
+  const safetyMargin = 3;
+  
+  // Determine how many rows to process per chunk
+  const rowsPerChunk = 20; // Process 20 rows at a time
+  
+  // Use requestAnimationFrame for better UI responsiveness
+  const processChunk = (startY: number) => {
+    // Process a chunk of rows
+    const endY = Math.min(startY + rowsPerChunk, height);
     
-    // Process each row in the chunk
-    for (let y = currentRow; y < endRow; y++) {
+    for (let y = startY; y < endY; y++) {
       processRow(
         y,
         width,
+        height, // Pass the height parameter to fix the error
         originalData,
         outputData,
         centerX,
@@ -57,18 +67,15 @@ export const processImageInChunks = (
       );
     }
     
-    currentRow = endRow;
-    
     // If there are more rows to process, schedule the next chunk
-    if (currentRow < height) {
-      // Use requestAnimationFrame to prevent UI freezing
-      requestAnimationFrame(processChunk);
+    if (endY < height) {
+      requestAnimationFrame(() => processChunk(endY));
     } else {
-      // All processing done, finalize the image
+      // All done, put the image data on the canvas
       ctx.putImageData(outputData, 0, 0);
       
-      // Apply face effects if enabled
-      if (faceEffectOptions && faceEffectOptions.effectType !== 'none' && faceEffectOptions.effectIntensity > 0) {
+      // Apply any face effects (blur, pixelate, mask) if needed
+      if (faceEffectOptions && faceDetection) {
         applyFaceEffect({
           ctx,
           originalImage,
@@ -77,8 +84,8 @@ export const processImageInChunks = (
         });
       }
     }
-  }
+  };
   
-  // Start the first chunk
-  processChunk();
+  // Start processing from the first row
+  processChunk(0);
 };

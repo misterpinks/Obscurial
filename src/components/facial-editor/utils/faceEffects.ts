@@ -20,12 +20,15 @@ export const applyBlur = (
 ) => {
   if (blurAmount <= 0) return;
   
+  // Increase blur intensity by multiplying by 3x
+  const enhancedBlurAmount = blurAmount * 3;
+  
   // Save the current canvas state
   ctx.save();
   
   try {
-    // Apply the blur filter
-    ctx.filter = `blur(${blurAmount}px)`;
+    // Apply the blur filter with enhanced amount
+    ctx.filter = `blur(${enhancedBlurAmount}px)`;
     
     // Create a temporary canvas to hold the blurred region
     const tempCanvas = document.createElement('canvas');
@@ -88,6 +91,7 @@ export const applyFaceMask = (
 
 /**
  * Apply pixelation effect to a region with optimized performance
+ * Completely rewritten to ensure proper pixelation
  */
 export const applyPixelation = (
   ctx: CanvasRenderingContext2D,
@@ -99,37 +103,51 @@ export const applyPixelation = (
 ) => {
   if (pixelSize <= 1) return;
   
+  // Make pixel size more significant and ensure it's an integer
+  const effectivePixelSize = Math.max(2, Math.round(pixelSize * 1.5));
+  
   // Save the current canvas state
   ctx.save();
   
   try {
-    // Optimize for large images - use lower resolution temporary canvas
-    const tempCanvas = document.createElement('canvas');
-    const scaleFactor = Math.max(1, Math.min(5, Math.floor(pixelSize / 2)));
-    const tempWidth = Math.ceil(width / scaleFactor);
-    const tempHeight = Math.ceil(height / scaleFactor);
+    // Get the image data from the region
+    const imageData = ctx.getImageData(x, y, width, height);
     
-    tempCanvas.width = tempWidth;
-    tempCanvas.height = tempHeight;
-    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+    // Apply pixelation directly to the image data
+    for (let blockY = 0; blockY < height; blockY += effectivePixelSize) {
+      for (let blockX = 0; blockX < width; blockX += effectivePixelSize) {
+        // Get color from the top-left pixel of each block
+        const blockWidthLimit = Math.min(effectivePixelSize, width - blockX);
+        const blockHeightLimit = Math.min(effectivePixelSize, height - blockY);
+        
+        // Sample from the middle of each block for better appearance
+        const sampleX = blockX + Math.floor(blockWidthLimit / 2);
+        const sampleY = blockY + Math.floor(blockHeightLimit / 2);
+        
+        // Get the pixel index
+        const sampleIndex = (sampleY * width + sampleX) * 4;
+        
+        // Get color components
+        const r = imageData.data[sampleIndex];
+        const g = imageData.data[sampleIndex + 1];
+        const b = imageData.data[sampleIndex + 2];
+        const a = imageData.data[sampleIndex + 3];
+        
+        // Apply the color to all pixels in the block
+        for (let y = 0; y < blockHeightLimit; y++) {
+          for (let x = 0; x < blockWidthLimit; x++) {
+            const index = ((blockY + y) * width + (blockX + x)) * 4;
+            imageData.data[index] = r;
+            imageData.data[index + 1] = g;
+            imageData.data[index + 2] = b;
+            imageData.data[index + 3] = a;
+          }
+        }
+      }
+    }
     
-    if (!tempCtx) return;
-    
-    // Draw scaled down version
-    tempCtx.drawImage(
-      ctx.canvas,
-      x, y, width, height,
-      0, 0, tempWidth, tempHeight
-    );
-    
-    // Draw scaled up version (pixelated)
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(
-      tempCanvas,
-      0, 0, tempWidth, tempHeight,
-      x, y, width, height
-    );
-    ctx.imageSmoothingEnabled = true;
+    // Put the modified image data back on the canvas
+    ctx.putImageData(imageData, x, y);
   } finally {
     // Restore the canvas state
     ctx.restore();
