@@ -1,6 +1,5 @@
 
 import { useState, useCallback } from 'react';
-import debounce from 'lodash/debounce';
 
 interface UseImageProcessingCoreProps {
   originalImage: HTMLImageElement | null;
@@ -27,17 +26,13 @@ export const useImageProcessingCore = ({
 }: UseImageProcessingCoreProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
-  const [processingQueued, setProcessingQueued] = useState(false);
   
   // Wrapper for process image that handles state updates
   const processImage = useCallback(() => {
     if (!originalImage) return;
     
-    // If already processing, queue the next processing
-    if (isProcessing) {
-      setProcessingQueued(true);
-      return;
-    }
+    // Don't allow overlapping processing operations
+    if (isProcessing) return;
     
     // Set processing state
     setIsProcessing(true);
@@ -64,13 +59,6 @@ export const useImageProcessingCore = ({
       console.error("Error processing image:", error);
     } finally {
       setIsProcessing(false);
-      
-      // Process the next item if queued
-      if (processingQueued) {
-        setProcessingQueued(false);
-        // Small delay to prevent UI blocking
-        setTimeout(() => processImage(), 10);
-      }
     }
   }, [
     originalImage,
@@ -79,22 +67,16 @@ export const useImageProcessingCore = ({
     isFaceApiLoaded,
     autoAnalyze,
     analyzeModifiedImage,
-    isProcessing,
-    processingQueued
+    isProcessing
   ]);
 
-  // No debounce for real-time processing
-  const debouncedProcess = useCallback(
-    processImage, 
-    [processImage]
-  );
+  // Reference the same function for consistency
+  const debouncedProcess = processImage;
 
   return {
     isProcessing,
     cleanProcessedImageURL,
     processImage,
-    processingQueued,
-    setProcessingQueued,
     debouncedProcess
   };
 };

@@ -32,13 +32,6 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
     return acc;
   }, {} as Record<string, FeatureSlider[]>);
 
-  // Handler for slider value changes - simplified to ensure it works properly
-  const handleSliderValueChange = (id: string, values: number[]) => {
-    const value = values[0];
-    // Update the state with the new value
-    onSliderChange(id, value);
-  };
-
   return (
     <Card className="h-[600px] overflow-y-auto">
       <CardContent className="p-4">
@@ -78,7 +71,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                     max={slider.max}
                     step={slider.step}
                     value={[sliderValues[slider.id]]}
-                    onValueChange={(values) => handleSliderValueChange(slider.id, values)}
+                    onValueChange={(values) => onSliderChange(slider.id, values[0])}
                     onValueCommit={onSliderChangeComplete}
                     aria-label={`${slider.name} slider`}
                     className="mt-1"

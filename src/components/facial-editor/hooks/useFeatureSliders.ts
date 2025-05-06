@@ -14,7 +14,6 @@ export interface FeatureSlider {
 
 export const useFeatureSliders = () => {
   // Updated slider ranges to match UI expectations 
-  // but with internal safeguards against extreme values
   const featureSliders: FeatureSlider[] = [
     { id: 'eyeSize', name: 'Eye Size', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
     { id: 'eyeSpacing', name: 'Eye Spacing', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
@@ -44,8 +43,8 @@ export const useFeatureSliders = () => {
         [id]: value
       }));
     } else if (id === 'batch' && typeof value === 'object') {
-      // Handle batch update of all slider values
-      setSliderValues(value);
+      // Handle batch update of all slider values - ensure we create a new object
+      setSliderValues({...value});
     }
   };
 
@@ -61,21 +60,17 @@ export const useFeatureSliders = () => {
   const randomizeSliders = () => {
     console.log("Randomizing slider values");
     const randomValues = featureSliders.reduce((acc, slider) => {
-      // Generate random values within each slider's range
-      // Use a more controlled range to avoid extreme values (-40 to 40 instead of full -75 to 75)
-      const safeMin = Math.max(slider.min, -40);
-      const safeMax = Math.min(slider.max, 40);
+      // Generate more moderate random values to avoid extreme values
+      const safeMin = Math.max(slider.min, -35);
+      const safeMax = Math.min(slider.max, 35);
       
-      // Apply a bias toward reasonable values (closer to center than extremes)
-      const biasedRandom = ((Math.random() * 2 - 1) * 0.8);
+      // Simple random value generation
       const range = safeMax - safeMin;
-      
-      acc[slider.id] = Math.round(biasedRandom * range);
+      acc[slider.id] = Math.round(safeMin + Math.random() * range);
       return acc;
     }, {} as Record<string, number>);
     
     console.log("New random values:", randomValues);
-    // Apply the randomized values directly with a new reference
     setSliderValues({...randomValues});
   };
 
