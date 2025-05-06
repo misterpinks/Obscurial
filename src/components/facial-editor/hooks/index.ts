@@ -1,6 +1,6 @@
 
 import { useFaceApiModels } from './useFaceApiModels';
-import { useFeatureSliders } from './useFeatureSliders';
+import { useFeatureSliders, type FeatureSlider } from './useFeatureSliders';
 import { useFaceAnalysis } from './useFaceAnalysis';
 import { useImageProcessing } from './useImageProcessing';
 import { useTabs } from './useTabs';
@@ -23,5 +23,6 @@ export {
   usePresets,
   useSplitView,
   useBatchProcessing,
-  SplitViewMode
+  SplitViewMode,
+  type FeatureSlider
 };

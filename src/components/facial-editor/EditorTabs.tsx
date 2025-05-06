@@ -1,3 +1,4 @@
+
 import React, { RefObject } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Upload, ImageIcon, Circle } from "lucide-react";
@@ -103,7 +104,7 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
       <TabsContent value="upload">
         <ImageUploader 
           inputRef={fileInputRef} 
-          handleImageUpload={handleImageUpload} 
+          onImageUpload={handleImageUpload} 
           triggerFileInput={triggerFileInput}
         />
       </TabsContent>

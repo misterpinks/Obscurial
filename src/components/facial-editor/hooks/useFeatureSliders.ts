@@ -35,11 +35,17 @@ export const useFeatureSliders = () => {
     }, {} as Record<string, number>);
   });
 
-  const handleSliderChange = (id: string, value: number) => {
-    setSliderValues((prev) => ({
-      ...prev,
-      [id]: value
-    }));
+  const handleSliderChange = (id: string, value: number | Record<string, number>) => {
+    if (typeof value === 'number') {
+      // Handle single slider change
+      setSliderValues((prev) => ({
+        ...prev,
+        [id]: value
+      }));
+    } else if (id === 'batch' && typeof value === 'object') {
+      // Handle batch update of all slider values
+      setSliderValues(value);
+    }
   };
 
   const resetSliders = () => {
