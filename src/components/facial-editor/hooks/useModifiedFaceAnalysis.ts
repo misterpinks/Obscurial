@@ -28,10 +28,13 @@ export const useModifiedFaceAnalysis = (
         
       if (detections && faceDetection) {
         // Update state with modified face descriptor
-        setFaceDetection(prev => ({
-          ...prev!,
+        // Fix: Create a new object instead of using a function updater
+        const updatedFaceDetection: FaceDetection = {
+          ...faceDetection,
           modified: detections.descriptor
-        }));
+        };
+        
+        setFaceDetection(updatedFaceDetection);
         
         // Calculate similarity between original and modified faces
         if (faceDetection.original) {
