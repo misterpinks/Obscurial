@@ -9,12 +9,11 @@
     "dist/**/*",
     "electron/**/*",
     "index.js",
-    "src/assets/**/*",
-    "public/models/**/*"
+    "public/**/*"
   ],
   "extraMetadata": {
-    "description": "Facial Privacy Editor Application",
-    "main": "index.js"
+    "main": "index.js",
+    "description": "Facial Privacy Editor Application"
   },
   "extraResources": [
     {
@@ -23,6 +22,7 @@
       "filter": ["**/*"]
     }
   ],
+  "asar": true,
   "win": {
     "target": [
       "portable",

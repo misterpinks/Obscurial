@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Configure base path differently for electron build
+  // Configure base path for electron build
   base: process.env.ELECTRON_RUN ? './' : '/',
   build: {
     outDir: 'dist',
@@ -36,7 +36,6 @@ export default defineConfig(({ mode }) => ({
     target: process.env.ELECTRON_RUN ? 'chrome108' : 'modules',
     // Always use esbuild for minification - resolves terser dependency issues
     minify: 'esbuild',
-    // Remove terser-specific options since we're now using esbuild
   },
   // Ensure proper handling of static assets for Electron
   publicDir: 'public',

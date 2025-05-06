@@ -7,15 +7,24 @@ const url = require('url');
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
 
+// Improve path resolution for production
+function resolveAppPath(relativePath) {
+  return path.join(process.env.NODE_ENV === 'development' 
+    ? process.cwd()
+    : path.dirname(app.getAppPath()), relativePath);
+}
+
 function createWindow() {
   console.log('Creating Electron window');
+  console.log('App path:', app.getAppPath());
+  console.log('App directory:', __dirname);
   
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     title: "Obscurial - Facial Privacy Editor",
-    icon: path.join(__dirname, '../public/app-icon.png'),
+    icon: resolveAppPath('public/app-icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -48,15 +57,19 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   } else {
     // In production, load the built files
-    const indexPath = path.join(__dirname, '../dist/index.html');
-    console.log('Loading file:', indexPath);
-    console.log('File exists:', fs.existsSync(indexPath));
-    
-    mainWindow.loadURL(url.format({
-      pathname: indexPath,
-      protocol: 'file:',
-      slashes: true
-    }));
+    try {
+      const indexPath = path.join(__dirname, '../dist/index.html');
+      console.log('Loading file:', indexPath);
+      console.log('File exists:', fs.existsSync(indexPath));
+      
+      // Using loadFile instead of loadURL with file protocol
+      // This can help with path resolution issues
+      mainWindow.loadFile(path.resolve(indexPath));
+      
+      console.log('Attempting to load app with resolved path:', path.resolve(indexPath));
+    } catch (err) {
+      console.error('Error loading app:', err);
+    }
   }
 
   // Event handler for when the window is closed
