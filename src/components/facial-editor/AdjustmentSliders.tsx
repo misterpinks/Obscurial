@@ -32,12 +32,16 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
     return acc;
   }, {} as Record<string, FeatureSlider[]>);
 
-  // Custom handler to trigger value change event after slider interaction
+  // Improved handler to trigger value change event after slider interaction
   const handleSliderValueChange = (id: string, values: number[]) => {
     const value = values[0];
+    
+    // Update the state
     onSliderChange(id, value);
     
     // Dispatch a custom event for immediate processing
+    // This will be caught by the image processing hook and trigger a rerender
+    console.log(`Slider ${id} changed to ${value}`);
     const event = new CustomEvent('sliderValueChange', { 
       bubbles: true,
       detail: { id, value, source: 'slider' } 
@@ -55,14 +59,15 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
             size="sm"
             onClick={() => {
               onReset();
-              // Trigger processing after reset
+              // Trigger processing after reset with a minimal timeout
+              console.log("Reset all sliders");
               setTimeout(() => {
                 const event = new CustomEvent('sliderValueChange', {
                   bubbles: true,
                   detail: { source: 'reset' }
                 });
                 document.dispatchEvent(event);
-              }, 50);
+              }, 0);
             }}
           >
             Reset All

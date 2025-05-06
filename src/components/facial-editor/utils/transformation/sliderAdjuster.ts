@@ -24,17 +24,17 @@ export const adjustSliderValues = (sliderValues: Record<string, number>) => {
   return clampedValues;
 };
 
-// Check if any transformations are needed - optimized with early return
+// Optimized check if any transformations are needed - uses faster approach
 export const hasTransformations = (sliderValues: Record<string, number>) => {
   // Check if any slider has a non-zero value
-  for (const value of Object.values(sliderValues)) {
-    // Use a small threshold to account for floating point precision
-    if (Math.abs(value) > 0.01) return true;
+  for (const key in sliderValues) {
+    // Use a tiny threshold to account for floating point precision
+    if (Math.abs(sliderValues[key]) > 0.01) return true;
   }
   return false;
 };
 
-// Check if any effects need to be applied - optimized
+// Check if any effects need to be applied - simplified for better performance
 export const hasEffects = (faceEffectOptions?: {
   effectType: 'blur' | 'pixelate' | 'mask' | 'none';
   effectIntensity: number;

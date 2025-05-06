@@ -58,7 +58,7 @@ export const useImageProcessingCore = ({
       
       // If we have face data, analyze the modified image
       if (faceDetection && isFaceApiLoaded && autoAnalyze) {
-        setTimeout(analyzeModifiedImage, 100);
+        setTimeout(analyzeModifiedImage, 0);
       }
     } catch (error) {
       console.error("Error processing image:", error);
@@ -69,8 +69,8 @@ export const useImageProcessingCore = ({
       if (processingQueued) {
         console.log("Processing was queued, executing next process");
         setProcessingQueued(false);
-        // Use a small timeout to give the UI a chance to update
-        setTimeout(processImage, 10);
+        // Use a minimal timeout to give the UI a chance to update
+        setTimeout(processImage, 0);
       }
     }
   }, [
@@ -84,14 +84,14 @@ export const useImageProcessingCore = ({
     processingQueued
   ]);
 
-  // Very short debounce time for more responsive UI
+  // Super-short debounce time for responsiveness
   const debouncedProcess = useCallback(
     debounce(() => {
       if (processingQueued) {
         processImage();
         setProcessingQueued(false);
       }
-    }, 5), // Extremely short debounce time
+    }, 0), // No debounce time for immediate response
     [processingQueued, processImage]
   );
 

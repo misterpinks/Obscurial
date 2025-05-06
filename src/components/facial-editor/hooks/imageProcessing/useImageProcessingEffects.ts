@@ -62,25 +62,29 @@ export const useImageProcessingEffects = ({
   useEffect(() => {
     if (processingQueued) {
       console.log("Processing queued, executing immediately");
-      // Process immediately to improve responsiveness
-      processImage(); // Direct call instead of debounced version
+      // Process immediately without debounce to improve responsiveness
+      processImage(); 
       setProcessingQueued(false);
     }
   }, [processingQueued, processImage, setProcessingQueued]);
 
-  // Listen for custom slider change events (from randomize button)
+  // Listen for custom slider change events (from sliders and randomize button)
   useEffect(() => {
-    const handleSliderValueChange = () => {
-      console.log("Custom slider change event received");
+    const handleSliderValueChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log(`Custom slider change event received from ${customEvent.detail?.source || 'unknown'}`);
+      
       if (originalImage && initialProcessingDone) {
+        // Process immediately for better responsiveness
         processImage();
       }
     };
 
-    document.addEventListener('sliderValueChange', handleSliderValueChange);
+    // Use capture phase to ensure we get all events
+    document.addEventListener('sliderValueChange', handleSliderValueChange, true);
     
     return () => {
-      document.removeEventListener('sliderValueChange', handleSliderValueChange);
+      document.removeEventListener('sliderValueChange', handleSliderValueChange, true);
     };
   }, [originalImage, initialProcessingDone, processImage]);
 
@@ -89,6 +93,7 @@ export const useImageProcessingEffects = ({
     if (originalImage && originalCanvasRef.current) {
       const origCtx = originalCanvasRef.current.getContext("2d");
       if (origCtx) {
+        console.log("Drawing original image to canvas");
         // Set canvas dimensions to match image
         originalCanvasRef.current.width = originalImage.width;
         originalCanvasRef.current.height = originalImage.height;
@@ -107,6 +112,7 @@ export const useImageProcessingEffects = ({
   // Process image immediately after face detection completes
   useEffect(() => {
     if (originalImage && faceDetection && initialProcessingDone) {
+      console.log("Processing image after face detection");
       // Process image immediately after face detection is done
       processImage();
     }
