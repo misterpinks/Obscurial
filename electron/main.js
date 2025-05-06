@@ -21,6 +21,20 @@ function createWindow() {
   console.log('App path:', app.getAppPath());
   console.log('App directory:', __dirname);
   
+  // Copy Background.png to the app directory if it doesn't exist
+  const backgroundSrc = resolveAppPath('src/components/ui/Background.png');
+  const backgroundDest = resolveAppPath('public/Background.png');
+  
+  try {
+    // Only copy if source exists and destination doesn't
+    if (fs.existsSync(backgroundSrc) && !fs.existsSync(backgroundDest)) {
+      fs.copyFileSync(backgroundSrc, backgroundDest);
+      console.log('Background image copied to public folder');
+    }
+  } catch (err) {
+    console.error('Error copying background image:', err);
+  }
+  
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1200,

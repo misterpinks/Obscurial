@@ -21,6 +21,11 @@
       "from": "public/models",
       "to": "models",
       "filter": ["**/*"]
+    },
+    {
+      "from": "src/components/ui",
+      "to": "resources/ui",
+      "filter": ["Background.png"]
     }
   ],
   "asar": true,

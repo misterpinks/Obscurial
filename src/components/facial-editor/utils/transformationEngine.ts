@@ -32,17 +32,17 @@ export const applyFeatureTransformations = ({
   // Approximate face center - use face detection if available, otherwise estimate
   let centerX = width / 2;
   let centerY = height / 2;
-  let faceWidth = width * 0.6;
-  let faceHeight = height * 0.7;
+  let faceWidth = width * 0.7; // Increased from 0.6 to cover more area
+  let faceHeight = height * 0.8; // Increased from 0.7 to cover more area
   
   // Use detected face box if available
   if (faceDetection && faceDetection.detection) {
     const box = faceDetection.detection.box;
     centerX = box.x + box.width / 2;
     centerY = box.y + box.height / 2;
-    // Make face area 25% larger than detected to avoid edge artifacts
-    faceWidth = box.width * 1.25;
-    faceHeight = box.height * 1.25;
+    // Make face area 40% larger than detected to avoid edge artifacts (increased from 25%)
+    faceWidth = box.width * 1.4;
+    faceHeight = box.height * 1.4;
   }
   
   // Get facial regions and amplification factor
@@ -73,6 +73,10 @@ export const applyFeatureTransformations = ({
       hasExtremeValues = true;
     }
   });
+
+  // Calculate the maximum influence distance from face center
+  // This ensures smoother transitions between transformed and non-transformed regions
+  const maxInfluenceDistance = hasExtremeValues ? 1.8 : 1.5; // Increased from 1.5/1.3
   
   // Apply distortions based on slider values
   for (let y = 0; y < height; y++) {
@@ -83,8 +87,7 @@ export const applyFeatureTransformations = ({
       const distFromCenter = Math.sqrt(normX * normX + normY * normY);
       
       // Skip if outside approximate face area (with some expansion for extreme values)
-      const faceAreaLimit = hasExtremeValues ? 1.5 : 1.3;
-      if (distFromCenter > faceAreaLimit) {
+      if (distFromCenter > maxInfluenceDistance) {
         // Just copy original pixel for areas outside the face
         const i = (y * width + x) * 4;
         outputData.data[i] = originalData.data[i];
@@ -107,14 +110,25 @@ export const applyFeatureTransformations = ({
         }
       }
       
+      // Apply additional transition zone for smoother blending at edges
+      if (distFromCenter > 1.0 && distFromCenter < maxInfluenceDistance) {
+        // Calculate fade factor (1.0 at inner edge, 0.0 at outer edge)
+        const fadeFactor = 1.0 - ((distFromCenter - 1.0) / (maxInfluenceDistance - 1.0));
+        displacementX *= fadeFactor;
+        displacementY *= fadeFactor;
+      }
+      
       // Apply additional chaotic displacement for extreme values
       if (hasExtremeValues) {
         // Add some chaotic, but deterministic displacement based on position
         const chaosX = Math.sin(y * 0.1) * Math.cos(x * 0.1) * 5.0;
         const chaosY = Math.cos(y * 0.1) * Math.sin(x * 0.1) * 5.0;
         
-        displacementX += chaosX;
-        displacementY += chaosY;
+        // Scale chaos by distance from center to avoid affecting the core face too much
+        const chaosFactor = Math.min(1.0, distFromCenter / 0.8);
+        
+        displacementX += chaosX * chaosFactor;
+        displacementY += chaosY * chaosFactor;
       }
       
       // Calculate sample position with displacement
@@ -156,7 +170,7 @@ export const applyFeatureTransformations = ({
         // For extreme values, add subtle color shifting
         if (hasExtremeValues) {
           // Apply subtle color shifts based on position
-          const colorShift = Math.sin(x * 0.05 + y * 0.05) * 30;
+          const colorShift = Math.sin(x * 0.05 + y * 0.05) * 15; // Reduced from 30 to be more subtle
           interpolated += colorShift;
         }
         
