@@ -2,6 +2,7 @@
 import { useState, useEffect, RefObject, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { applyFeatureTransformations } from '../utils/transformationEngine';
+import debounce from 'lodash/debounce';
 
 interface UseImageProcessingProps {
   originalImage: HTMLImageElement | null;
@@ -22,6 +23,8 @@ interface UseImageProcessingProps {
     effectType: 'blur' | 'pixelate' | 'mask' | 'none';
     effectIntensity: number;
     maskImage?: HTMLImageElement | null;
+    maskPosition?: { x: number, y: number };
+    maskScale?: number;
   };
 }
 
@@ -45,6 +48,7 @@ export const useImageProcessing = ({
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
+  const [processingQueued, setProcessingQueued] = useState(false);
 
   // Draw landmarks on the processed canvas with updated colors
   const drawFaceLandmarks = useCallback(() => {
@@ -102,6 +106,17 @@ export const useImageProcessing = ({
     });
   }, [faceDetection, processedCanvasRef, originalImage]);
 
+  // Debounced process function to prevent too many renders
+  const debouncedProcess = useCallback(
+    debounce(() => {
+      if (processingQueued) {
+        processImage();
+        setProcessingQueued(false);
+      }
+    }, 150),
+    [processingQueued]
+  );
+
   // Process the image whenever slider values change or when face detection completes
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
@@ -112,11 +127,19 @@ export const useImageProcessing = ({
       });
       
       if (currentValuesString !== lastProcessedValues) {
-        processImage();
+        // Queue processing instead of doing it immediately
+        setProcessingQueued(true);
         setLastProcessedValues(currentValuesString);
       }
     }
   }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues, faceEffectOptions]);
+
+  // Run the debounced processing when needed
+  useEffect(() => {
+    if (processingQueued) {
+      debouncedProcess();
+    }
+  }, [processingQueued, debouncedProcess]);
 
   // Display the original image immediately after loading
   useEffect(() => {
@@ -153,26 +176,56 @@ export const useImageProcessing = ({
     
     // First process the clean canvas (without landmarks)
     const cleanCanvas = cleanProcessedCanvasRef.current;
-    const cleanCtx = cleanCanvas.getContext("2d");
+    const cleanCtx = cleanCanvas.getContext("2d", { willReadFrequently: true });
     if (!cleanCtx) return;
     
     // Set canvas dimensions to match image
     cleanCanvas.width = originalImage.width;
     cleanCanvas.height = originalImage.height;
     
-    // Apply feature transformations to the clean canvas
-    applyFeatureTransformations({
-      ctx: cleanCtx,
-      originalImage,
-      width: cleanCanvas.width,
-      height: cleanCanvas.height,
-      faceDetection,
-      sliderValues,
-      faceEffectOptions
-    });
+    // Create offscreen canvas for better performance
+    const offscreenCanvas = new OffscreenCanvas(originalImage.width, originalImage.height);
+    const offscreenCtx = offscreenCanvas.getContext('2d');
+    
+    if (!offscreenCtx) {
+      // Fallback to direct rendering if offscreen canvas is not supported
+      // Apply feature transformations to the clean canvas
+      applyFeatureTransformations({
+        ctx: cleanCtx,
+        originalImage,
+        width: cleanCanvas.width,
+        height: cleanCanvas.height,
+        faceDetection,
+        sliderValues,
+        faceEffectOptions
+      });
+    } else {
+      // Use offscreen canvas for better performance
+      offscreenCtx.drawImage(originalImage, 0, 0);
+      
+      // Apply transformations to offscreen canvas
+      applyFeatureTransformations({
+        ctx: offscreenCtx,
+        originalImage,
+        width: cleanCanvas.width,
+        height: cleanCanvas.height,
+        faceDetection,
+        sliderValues,
+        faceEffectOptions
+      });
+      
+      // Transfer result to visible canvas
+      createImageBitmap(offscreenCanvas).then(bitmap => {
+        cleanCtx.drawImage(bitmap, 0, 0);
+        bitmap.close(); // Release bitmap resources
+      });
+    }
     
     // Update clean processed image URL for download
-    setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
+    // Use a timeout to allow the UI to update before generating the data URL
+    setTimeout(() => {
+      setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
+    }, 0);
     
     // Now process the canvas with landmarks
     const canvas = processedCanvasRef.current;

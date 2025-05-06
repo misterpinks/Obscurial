@@ -2,6 +2,7 @@
 /**
  * Utility functions for applying special effects to faces
  * like blurring and masks
+ * Optimized for better performance
  */
 
 import type { TransformationParams } from './transformationTypes';
@@ -30,7 +31,7 @@ export const applyBlur = (
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = width;
     tempCanvas.height = height;
-    const tempCtx = tempCanvas.getContext('2d');
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
     
     if (!tempCtx) return;
     
@@ -86,7 +87,7 @@ export const applyFaceMask = (
 };
 
 /**
- * Apply pixelation effect to a region
+ * Apply pixelation effect to a region with optimized performance
  */
 export const applyPixelation = (
   ctx: CanvasRenderingContext2D,
@@ -102,44 +103,33 @@ export const applyPixelation = (
   ctx.save();
   
   try {
-    // Get the image data for the region
-    const imageData = ctx.getImageData(x, y, width, height);
-    const data = imageData.data;
+    // Optimize for large images - use lower resolution temporary canvas
+    const tempCanvas = document.createElement('canvas');
+    const scaleFactor = Math.max(1, Math.min(5, Math.floor(pixelSize / 2)));
+    const tempWidth = Math.ceil(width / scaleFactor);
+    const tempHeight = Math.ceil(height / scaleFactor);
     
-    // Calculate the number of pixels in each dimension
-    const pixelsX = Math.ceil(width / pixelSize);
-    const pixelsY = Math.ceil(height / pixelSize);
+    tempCanvas.width = tempWidth;
+    tempCanvas.height = tempHeight;
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
     
-    // Loop through each "large pixel"
-    for (let i = 0; i < pixelsY; i++) {
-      for (let j = 0; j < pixelsX; j++) {
-        // Calculate the corner of the current "large pixel"
-        const pixelX = j * pixelSize;
-        const pixelY = i * pixelSize;
-        
-        // Sample the color from the center of the "large pixel"
-        const sampleX = Math.min(pixelX + Math.floor(pixelSize / 2), width - 1);
-        const sampleY = Math.min(pixelY + Math.floor(pixelSize / 2), height - 1);
-        const sampleIndex = (sampleY * width + sampleX) * 4;
-        
-        const r = data[sampleIndex];
-        const g = data[sampleIndex + 1];
-        const b = data[sampleIndex + 2];
-        
-        // Fill the entire "large pixel" with the sampled color
-        for (let y = 0; y < pixelSize && pixelY + y < height; y++) {
-          for (let x = 0; x < pixelSize && pixelX + x < width; x++) {
-            const index = ((pixelY + y) * width + (pixelX + x)) * 4;
-            data[index] = r;
-            data[index + 1] = g;
-            data[index + 2] = b;
-          }
-        }
-      }
-    }
+    if (!tempCtx) return;
     
-    // Put the modified image data back
-    ctx.putImageData(imageData, x, y);
+    // Draw scaled down version
+    tempCtx.drawImage(
+      ctx.canvas,
+      x, y, width, height,
+      0, 0, tempWidth, tempHeight
+    );
+    
+    // Draw scaled up version (pixelated)
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(
+      tempCanvas,
+      0, 0, tempWidth, tempHeight,
+      x, y, width, height
+    );
+    ctx.imageSmoothingEnabled = true;
   } finally {
     // Restore the canvas state
     ctx.restore();

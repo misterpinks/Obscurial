@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { Circle, ZoomIn, ZoomOut, Grab, Move } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,8 @@ interface ImagePreviewProps {
   faceDetection?: any;
 }
 
-const ImagePreview: React.FC<ImagePreviewProps> = ({
+// Use memo to prevent unnecessary re-renders
+const ImagePreview: React.FC<ImagePreviewProps> = memo(({
   title,
   canvasRef,
   isProcessing = false,
@@ -116,6 +117,69 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
     setActiveLandmark(null);
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!canvasRef.current || !enableZoom || e.touches.length !== 1) return;
+    
+    const touch = e.touches[0];
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = (touch.clientX - rect.left) / scale;
+    const y = (touch.clientY - rect.top) / scale;
+    
+    // Check for landmark touch
+    if (faceDetection?.landmarks) {
+      const landmarks = faceDetection.landmarks.positions;
+      for (let i = 0; i < landmarks.length; i++) {
+        const point = landmarks[i];
+        // Use larger touch area for mobile
+        const touchRadius = 20; 
+        const adjustedX = point.x * scale + offset.x;
+        const adjustedY = point.y * scale + offset.y;
+        
+        if (Math.abs(x * scale - adjustedX) < touchRadius && 
+            Math.abs(y * scale - adjustedY) < touchRadius) {
+          setActiveLandmark(i);
+          e.preventDefault(); // Prevent scrolling
+          return;
+        }
+      }
+    }
+    
+    // Start panning on touch
+    setIsDragging(true);
+    setDragStart({ x: touch.clientX, y: touch.clientY });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!enableZoom || e.touches.length !== 1) return;
+    e.preventDefault(); // Prevent scrolling while manipulating
+    
+    const touch = e.touches[0];
+    if (isDragging) {
+      // Handle touch panning
+      const dx = touch.clientX - dragStart.x;
+      const dy = touch.clientY - dragStart.y;
+      setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      setDragStart({ x: touch.clientX, y: touch.clientY });
+    } else if (activeLandmark !== null && onLandmarkMove && canvasRef.current) {
+      // Handle landmark dragging on touch
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = (touch.clientX - rect.left) / scale - offset.x / scale;
+      const y = (touch.clientY - rect.top) / scale - offset.y / scale;
+      
+      onLandmarkMove(activeLandmark, x, y);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    setActiveLandmark(null);
+  };
+
+  const handleReset = () => {
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
+  };
+
   const canvasTransform = enableZoom ? `scale(${scale}) translate(${offset.x / scale}px, ${offset.y / scale}px)` : undefined;
 
   return (
@@ -129,13 +193,17 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <canvas 
             ref={canvasRef} 
             className="max-w-full max-h-full object-contain origin-center transition-transform"
             style={{ 
               transform: canvasTransform,
-              cursor: enableZoom ? (isDragging ? 'grabbing' : 'grab') : 'default'
+              cursor: enableZoom ? (isDragging ? 'grabbing' : 'grab') : 'default',
+              willChange: 'transform' // Performance hint
             }}
           />
           {isProcessing && (
@@ -187,7 +255,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
                 variant="secondary"
                 size="icon"
                 className="w-8 h-8 bg-white/90 hover:bg-white"
-                onClick={() => { setScale(1); setOffset({ x: 0, y: 0 }); }}
+                onClick={handleReset}
               >
                 <Move size={16} />
               </Button>
@@ -197,6 +265,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+ImagePreview.displayName = 'ImagePreview';
 
 export default ImagePreview;
