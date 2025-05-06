@@ -5,10 +5,7 @@ import EditorHeader from './EditorHeader';
 import ModelSetup from '../ModelSetup';
 import EditorTabs from './EditorTabs';
 import PresetSelector from './PresetSelector';
-import UndoRedoControls from './UndoRedoControls';
-import SplitViewControls from './SplitViewControls';
-import SplitViewComparison from './SplitViewComparison';
-import BatchProcessor from './BatchProcessor';
+import EditorToolbar from './EditorToolbar';
 
 import {
   useFaceApiModels,
@@ -20,14 +17,11 @@ import {
   useLandmarks,
   usePresets,
   useHistory,
-  useSplitView,
-  useBatchProcessing,
-  SplitViewMode
+  useBatchProcessing
 } from './hooks';
 
 // Import the transformation engine
 import { applyFeatureTransformations } from './utils/transformationEngine';
-import EditorToolbar from './EditorToolbar';
 
 const FacialEditor = () => {
   const { toast } = useToast();
@@ -151,15 +145,6 @@ const FacialEditor = () => {
     baseHandleSliderChange('batch', newValues);
     pushSliderState(newValues);
   });
-
-  // Hook for split view
-  const {
-    splitViewMode,
-    splitPosition,
-    toggleSplitViewMode,
-    updateSplitPosition,
-    isTransitioning
-  } = useSplitView();
 
   // Process single image for batch processing
   const processSingleImage = async (img: HTMLImageElement): Promise<string> => {
@@ -296,8 +281,6 @@ const FacialEditor = () => {
         canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
-        splitViewMode={splitViewMode}
-        onSplitViewChange={toggleSplitViewMode}
         batchJobs={batchJobs}
         isBatchProcessing={isBatchProcessing}
         onAddBatchImages={handleBatchUpload}
@@ -339,20 +322,6 @@ const FacialEditor = () => {
         handleLandmarkMove={handleLandmarkMove}
         autoAnalyze={autoAnalyze}
         onToggleAutoAnalyze={handleToggleAutoAnalyze}
-        splitViewMode={splitViewMode}
-        splitPosition={splitPosition}
-        onSplitPositionChange={updateSplitPosition}
-        splitViewComponent={
-          splitViewMode !== SplitViewMode.NONE && originalCanvasRef.current && processedCanvasRef.current ? (
-            <SplitViewComparison 
-              originalCanvas={originalCanvasRef}
-              processedCanvas={processedCanvasRef}
-              mode={splitViewMode}
-              splitPosition={splitPosition}
-              onSplitPositionChange={updateSplitPosition}
-            />
-          ) : null
-        }
         presetsComponent={
           <PresetSelector 
             presets={presets}

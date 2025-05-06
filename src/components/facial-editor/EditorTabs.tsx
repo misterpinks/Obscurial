@@ -5,7 +5,6 @@ import { Camera, Upload, ImageIcon } from "lucide-react";
 import EditorContent from './EditorContent';
 import ImageUploader from './ImageUploader';
 import WebcamCapture from './WebcamCapture';
-import { SplitViewMode } from './hooks/useSplitView';
 
 interface EditorTabsProps {
   activeTab: string;
@@ -39,10 +38,6 @@ interface EditorTabsProps {
   handleLandmarkMove: (pointIndex: number, x: number, y: number) => void;
   autoAnalyze?: boolean;
   onToggleAutoAnalyze?: () => void;
-  splitViewMode?: SplitViewMode;
-  splitPosition?: number;
-  onSplitPositionChange?: (position: number) => void;
-  splitViewComponent?: React.ReactNode;
   presetsComponent?: React.ReactNode;
 }
 
@@ -78,10 +73,6 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
   handleLandmarkMove,
   autoAnalyze,
   onToggleAutoAnalyze,
-  splitViewMode = SplitViewMode.NONE,
-  splitPosition = 0.5,
-  onSplitPositionChange,
-  splitViewComponent,
   presetsComponent
 }) => {
   return (
@@ -119,41 +110,34 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
 
       <TabsContent value="edit">
         <div className="space-y-6">
-          {/* Show split view when active */}
-          {splitViewMode !== SplitViewMode.NONE && splitViewComponent ? (
-            <div className="mb-4">
-              {splitViewComponent}
-            </div>
-          ) : (
-            <EditorContent
-              originalCanvasRef={originalCanvasRef}
-              processedCanvasRef={processedCanvasRef}
-              cleanProcessedCanvasRef={cleanProcessedCanvasRef}
-              originalImage={originalImage}
-              isProcessing={isProcessing}
-              isAnalyzing={isAnalyzing}
-              faceDetection={faceDetection}
-              facialDifference={facialDifference}
-              imageDimensions={imageDimensions}
-              triggerFileInput={triggerFileInput}
-              fileInputRef={fileInputRef}
-              handleImageUpload={handleImageUpload}
-              downloadImage={downloadImage}
-              hasProcessedImage={hasProcessedImage}
-              handleRunAnalysis={handleRunAnalysis}
-              showLandmarks={showLandmarks}
-              toggleLandmarks={toggleLandmarks}
-              featureSliders={featureSliders}
-              sliderValues={sliderValues}
-              onSliderChange={onSliderChange}
-              onSliderChangeComplete={onSliderChangeComplete}
-              onResetSliders={onResetSliders}
-              onRandomizeSliders={onRandomizeSliders}
-              handleLandmarkMove={handleLandmarkMove}
-              autoAnalyze={autoAnalyze}
-              onToggleAutoAnalyze={onToggleAutoAnalyze}
-            />
-          )}
+          <EditorContent
+            originalCanvasRef={originalCanvasRef}
+            processedCanvasRef={processedCanvasRef}
+            cleanProcessedCanvasRef={cleanProcessedCanvasRef}
+            originalImage={originalImage}
+            isProcessing={isProcessing}
+            isAnalyzing={isAnalyzing}
+            faceDetection={faceDetection}
+            facialDifference={facialDifference}
+            imageDimensions={imageDimensions}
+            triggerFileInput={triggerFileInput}
+            fileInputRef={fileInputRef}
+            handleImageUpload={handleImageUpload}
+            downloadImage={downloadImage}
+            hasProcessedImage={hasProcessedImage}
+            handleRunAnalysis={handleRunAnalysis}
+            showLandmarks={showLandmarks}
+            toggleLandmarks={toggleLandmarks}
+            featureSliders={featureSliders}
+            sliderValues={sliderValues}
+            onSliderChange={onSliderChange}
+            onSliderChangeComplete={onSliderChangeComplete}
+            onResetSliders={onResetSliders}
+            onRandomizeSliders={onRandomizeSliders}
+            handleLandmarkMove={handleLandmarkMove}
+            autoAnalyze={autoAnalyze}
+            onToggleAutoAnalyze={onToggleAutoAnalyze}
+          />
           
           {/* Presets section */}
           {presetsComponent && (

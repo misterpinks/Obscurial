@@ -8,7 +8,6 @@ import { useFileUpload } from './useFileUpload';
 import { useLandmarks } from './useLandmarks';
 import { useHistory } from './useHistory';
 import { usePresets } from './usePresets';
-import { useSplitView, SplitViewMode } from './useSplitView';
 import { useBatchProcessing, type BatchJob } from './useBatchProcessing';
 
 export {
@@ -21,9 +20,7 @@ export {
   useLandmarks,
   useHistory,
   usePresets,
-  useSplitView,
   useBatchProcessing,
-  SplitViewMode,
   type FeatureSlider,
   type FaceDetection,
   type BatchJob

@@ -96,7 +96,7 @@ export const useImageProcessing = ({
     });
   }, [faceDetection, processedCanvasRef, originalImage]);
 
-  // Process the image whenever slider values change
+  // Process the image whenever slider values change or when face detection completes
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       // Check if values actually changed
@@ -127,6 +127,14 @@ export const useImageProcessing = ({
       }
     }
   }, [originalImage, isFaceApiLoaded, detectFaces]);
+
+  // Add a new effect to process the image after face detection completes
+  useEffect(() => {
+    if (originalImage && faceDetection && initialProcessingDone) {
+      // Process image immediately after face detection is done
+      processImage();
+    }
+  }, [faceDetection, initialProcessingDone]);
 
   const processImage = useCallback(() => {
     if (!originalImage || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) return;
