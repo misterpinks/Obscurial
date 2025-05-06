@@ -27,6 +27,7 @@ export const useFileUpload = ({
     canvases.forEach(canvas => {
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        console.log("Clearing canvas:", canvas.id || "unnamed canvas");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
     });
@@ -46,18 +47,20 @@ export const useFileUpload = ({
       return;
     }
     
-    // Clear canvases before loading new image to prevent stale data
-    clearCanvases();
-    
-    // Reset states when loading a new image
+    // First set all states to null/false to ensure clean slate
+    setOriginalImage(null);
     setFaceDetection(null);
     setInitialProcessingDone(false);
     setHasShownNoFaceToast(false);
+    
+    // Clear canvases before loading new image to prevent stale data
+    clearCanvases();
     
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
+        // After the image is loaded, set the states
         setOriginalImage(img);
         setActiveTab("edit");
       };

@@ -8,17 +8,10 @@ interface RandomizeButtonProps {
 }
 
 const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
-  // Create a handler with stopPropagation to prevent event bubbling issues
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onRandomize();
-  };
-
   return (
     <Button 
       className="w-full bg-editor-purple hover:bg-editor-accent"
-      onClick={handleClick}
+      onClick={onRandomize}
       type="button"
     >
       <Shuffle className="h-4 w-4 mr-2" />

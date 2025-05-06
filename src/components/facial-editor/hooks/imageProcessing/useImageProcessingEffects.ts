@@ -83,7 +83,7 @@ export const useImageProcessingEffects = ({
     }
   }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
-  // Process image once after face detection completes (but prevent redundant processing)
+  // Process image once after face detection completes and also immediately after loading
   useEffect(() => {
     if (originalImage && faceDetection && initialProcessingDone) {
       const currentValuesString = JSON.stringify({
@@ -91,11 +91,19 @@ export const useImageProcessingEffects = ({
         effects: faceEffectOptions
       });
       
-      if (lastProcessedValues !== currentValuesString) {
-        console.log("Processing image after face detection");
-        processImage();
-        setLastProcessedValues(currentValuesString);
-      }
+      // Always process at least once when face detection is complete
+      console.log("Processing image after face detection");
+      processImage();
+      setLastProcessedValues(currentValuesString);
     }
   }, [faceDetection, initialProcessingDone, originalImage]);
+  
+  // Force process image when initially loaded
+  useEffect(() => {
+    if (originalImage && initialProcessingDone) {
+      // Only run once when initialProcessingDone changes from false to true
+      console.log("Initial processing - forcing image display");
+      processImage();
+    }
+  }, [initialProcessingDone, originalImage]);
 };

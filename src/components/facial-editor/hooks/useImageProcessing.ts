@@ -113,6 +113,9 @@ export const useImageProcessing = ({
     isProcessing,
     cleanProcessedImageURL,
     processImage,
-    downloadImage
+    debouncedProcess,
+    downloadImage,
+    processingQueued,
+    setProcessingQueued
   };
 };

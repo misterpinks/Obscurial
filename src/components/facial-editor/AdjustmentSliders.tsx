@@ -42,7 +42,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
   };
 
   return (
-    <Card className="h-[600px] overflow-y-auto">
+    <Card className="h-[600px] overflow-y-auto relative z-10">
       <CardContent className="p-4">
         <div className="flex justify-between mb-4">
           <h3 className="text-lg font-medium">Adjustments</h3>
@@ -81,7 +81,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                     <span style={{color: slider.color}}>{slider.name}</span>
                     <span className="text-muted-foreground">{sliderValues[slider.id]}</span>
                   </div>
-                  <div className="relative z-20">
+                  <div className="relative z-50">
                     <Slider
                       id={slider.id}
                       min={slider.min}
