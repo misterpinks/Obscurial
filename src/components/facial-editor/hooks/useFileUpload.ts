@@ -1,5 +1,5 @@
 
-import { useState, useRef, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 
 interface UseFileUploadProps {
@@ -20,19 +20,6 @@ export const useFileUpload = ({
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const clearCanvases = useCallback(() => {
-    // Find all canvas elements and clear them
-    // This ensures we don't have stale image data persisting
-    const canvases = document.querySelectorAll('canvas');
-    canvases.forEach(canvas => {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        console.log("Clearing canvas:", canvas.id || "unnamed canvas");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    });
-  }, []);
-
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -47,68 +34,24 @@ export const useFileUpload = ({
       return;
     }
     
-    console.log("Loading new image file:", file.name);
-    
-    // Reset all state to ensure a clean slate
-    setOriginalImage(null);
+    // Reset states when loading a new image
     setFaceDetection(null);
     setInitialProcessingDone(false);
     setHasShownNoFaceToast(false);
-    
-    // Clear canvases before loading new image
-    clearCanvases();
+    setOriginalImage(null); // Clear the current image first to force refresh
     
     const reader = new FileReader();
     reader.onload = (event) => {
-      console.log("File loaded into memory, creating image object");
-      
       const img = new Image();
       img.onload = () => {
-        console.log("Image loaded successfully, dimensions:", img.width, "x", img.height);
-        
-        // Clear canvases again to be safe
-        clearCanvases();
-        
-        // Set the image in state
+        console.log("New image loaded:", img.width, "x", img.height);
         setOriginalImage(img);
-        
-        // After a short delay, trigger initial processing
-        // This ensures the image is rendered before face detection starts
-        setTimeout(() => {
-          console.log("Setting initialProcessingDone to true to trigger processing");
-          setInitialProcessingDone(true);
-        }, 100);
-        
-        // Switch to edit tab
         setActiveTab("edit");
       };
-      
-      // Handle image loading errors
-      img.onerror = (error) => {
-        console.error("Failed to load image:", error);
-        toast({
-          variant: "destructive",
-          title: "Image Loading Failed",
-          description: "Could not load the selected image."
-        });
-      };
-      
-      // Set the image source from the file reader result
       img.src = event.target?.result as string;
     };
-    
-    // Handle file reading errors
-    reader.onerror = () => {
-      toast({
-        variant: "destructive",
-        title: "File Reading Error",
-        description: "Failed to read the selected file."
-      });
-    };
-    
-    // Start reading the file
     reader.readAsDataURL(file);
-  }, [toast, setOriginalImage, setFaceDetection, setInitialProcessingDone, setHasShownNoFaceToast, clearCanvases, setActiveTab]);
+  }, [setOriginalImage, setActiveTab, setFaceDetection, setInitialProcessingDone, setHasShownNoFaceToast, toast]);
 
   const triggerFileInput = useCallback(() => {
     // Reset the input value first to allow selecting the same file again
@@ -121,7 +64,6 @@ export const useFileUpload = ({
   return {
     fileInputRef,
     handleImageUpload,
-    triggerFileInput,
-    clearCanvases
+    triggerFileInput
   };
 };

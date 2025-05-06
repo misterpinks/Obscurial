@@ -34,6 +34,8 @@ export const useCanvasProcessing = ({
   const processImage = useCallback(() => {
     if (!originalImage || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) return;
     
+    console.log("Starting image processing");
+    
     // First process the clean canvas (without landmarks)
     const cleanCanvas = cleanProcessedCanvasRef.current;
     const cleanCtx = cleanCanvas.getContext("2d", { willReadFrequently: true });
@@ -42,6 +44,9 @@ export const useCanvasProcessing = ({
     // Set canvas dimensions to match image
     cleanCanvas.width = originalImage.width;
     cleanCanvas.height = originalImage.height;
+    
+    // Clear the canvas first to ensure no remnants of previous images
+    cleanCtx.clearRect(0, 0, cleanCanvas.width, cleanCanvas.height);
     
     // Apply feature transformations directly to the clean canvas
     applyFeatureTransformations({
@@ -62,6 +67,9 @@ export const useCanvasProcessing = ({
     // Set canvas dimensions to match image
     canvas.width = originalImage.width;
     canvas.height = originalImage.height;
+    
+    // Clear the canvas first to ensure no remnants of previous images
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // Copy the clean processed image to the display canvas
     ctx.drawImage(cleanCanvas, 0, 0);

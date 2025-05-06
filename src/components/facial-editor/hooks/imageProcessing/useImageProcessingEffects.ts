@@ -73,11 +73,9 @@ export const useImageProcessingEffects = ({
       if (origCtx) {
         console.log("Drawing original image to canvas");
         
-        // Set canvas dimensions to match image
+        // Clear previous content first
         originalCanvasRef.current.width = originalImage.width;
         originalCanvasRef.current.height = originalImage.height;
-        
-        // Clear any previous content
         origCtx.clearRect(0, 0, originalCanvasRef.current.width, originalCanvasRef.current.height);
         
         // Draw the image to canvas
