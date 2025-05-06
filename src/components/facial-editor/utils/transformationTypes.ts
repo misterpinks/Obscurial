@@ -1,9 +1,4 @@
 
-/**
- * Type definitions for facial transformations
- */
-
-// Interface for the parameters of applyFeatureTransformations
 export interface TransformationParams {
   ctx: CanvasRenderingContext2D;
   originalImage: HTMLImageElement;
@@ -15,16 +10,7 @@ export interface TransformationParams {
     effectType: 'blur' | 'pixelate' | 'mask' | 'none';
     effectIntensity: number;
     maskImage?: HTMLImageElement | null;
+    maskPosition?: { x: number, y: number };
+    maskScale?: number;
   };
-}
-
-// Define regions for facial features used in transformations
-export interface FacialRegion {
-  condition: (normX: number, normY: number, distFromCenter: number) => boolean;
-  transform: (
-    normX: number, 
-    normY: number, 
-    sliderValues: Record<string, number>, 
-    amplificationFactor: number
-  ) => { displacementX: number; displacementY: number };
 }

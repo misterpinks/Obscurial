@@ -4,10 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { EyeOff, CircleSlash, Smile } from 'lucide-react';
+import { EyeOff, CircleSlash, Smile, Move, Scale } from 'lucide-react';
 import { Label } from "@/components/ui/label";
 
-// Mask options with their source images
+// Mask options with their source images - optimal size 300x300px
 const FACE_MASKS = [
   { id: 'mask1', name: 'Mask 1', src: '/masks/mask1.png' },
   { id: 'mask2', name: 'Mask 2', src: '/masks/mask2.png' },
@@ -26,6 +26,10 @@ interface FaceMaskSelectorProps {
   selectedMaskId: string | null;
   setSelectedMaskId: (id: string | null) => void;
   onLoadMaskImage: (img: HTMLImageElement | null) => void;
+  maskPosition: { x: number, y: number };
+  setMaskPosition: (position: { x: number, y: number }) => void;
+  maskScale: number;
+  setMaskScale: (scale: number) => void;
 }
 
 const FaceMaskSelector: React.FC<FaceMaskSelectorProps> = ({
@@ -35,7 +39,11 @@ const FaceMaskSelector: React.FC<FaceMaskSelectorProps> = ({
   setEffectIntensity,
   selectedMaskId,
   setSelectedMaskId,
-  onLoadMaskImage
+  onLoadMaskImage,
+  maskPosition,
+  setMaskPosition,
+  maskScale,
+  setMaskScale
 }) => {
   // Load a mask image when selected
   const handleMaskSelect = (maskId: string) => {
@@ -156,6 +164,76 @@ const FaceMaskSelector: React.FC<FaceMaskSelectorProps> = ({
                   </div>
                 </Button>
               ))}
+            </div>
+            
+            {/* Position controls for mask */}
+            <div className="mt-6 space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="flex items-center">
+                    <Move className="h-4 w-4 mr-1" />
+                    Horizontal Position
+                  </span>
+                  <span className="text-muted-foreground">{Math.round(maskPosition.x * 100)}%</span>
+                </div>
+                <Slider
+                  min={-0.5}
+                  max={0.5}
+                  step={0.01}
+                  value={[maskPosition.x]}
+                  onValueChange={(values) => setMaskPosition({ ...maskPosition, x: values[0] })}
+                  aria-label="Horizontal position"
+                />
+              </div>
+              
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="flex items-center">
+                    <Move className="h-4 w-4 mr-1" />
+                    Vertical Position
+                  </span>
+                  <span className="text-muted-foreground">{Math.round(maskPosition.y * 100)}%</span>
+                </div>
+                <Slider
+                  min={-0.5}
+                  max={0.5}
+                  step={0.01}
+                  value={[maskPosition.y]}
+                  onValueChange={(values) => setMaskPosition({ ...maskPosition, y: values[0] })}
+                  aria-label="Vertical position"
+                />
+              </div>
+              
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="flex items-center">
+                    <Scale className="h-4 w-4 mr-1" />
+                    Mask Size
+                  </span>
+                  <span className="text-muted-foreground">{Math.round(maskScale * 100)}%</span>
+                </div>
+                <Slider
+                  min={0.5}
+                  max={2}
+                  step={0.05}
+                  value={[maskScale]}
+                  onValueChange={(values) => setMaskScale(values[0])}
+                  aria-label="Mask size"
+                />
+              </div>
+              
+              {/* Reset position and scale button */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  setMaskPosition({ x: 0, y: 0 });
+                  setMaskScale(1);
+                }}
+              >
+                Reset Position & Size
+              </Button>
             </div>
           </div>
         )}

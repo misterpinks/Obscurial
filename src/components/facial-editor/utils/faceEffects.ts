@@ -51,7 +51,7 @@ export const applyBlur = (
 };
 
 /**
- * Apply a mask image to a face region
+ * Apply a mask image to a face region with position and scale
  */
 export const applyFaceMask = (
   ctx: CanvasRenderingContext2D,
@@ -60,6 +60,8 @@ export const applyFaceMask = (
   y: number,
   width: number,
   height: number,
+  position: { x: number, y: number } = { x: 0, y: 0 },
+  scale: number = 1,
   opacity: number = 0.9
 ) => {
   // Save current canvas state
@@ -69,8 +71,14 @@ export const applyFaceMask = (
     // Set global alpha for the mask
     ctx.globalAlpha = opacity;
     
-    // Draw the mask image resized to fit the face region
-    ctx.drawImage(maskImage, x, y, width, height);
+    // Calculate the adjusted position and size based on position and scale
+    const adjustedX = x + (position.x * width);
+    const adjustedY = y + (position.y * height);
+    const adjustedWidth = width * scale;
+    const adjustedHeight = height * scale;
+    
+    // Draw the mask image with position and scale adjustments
+    ctx.drawImage(maskImage, adjustedX, adjustedY, adjustedWidth, adjustedHeight);
   } finally {
     // Restore canvas state
     ctx.restore();
@@ -147,7 +155,9 @@ export const applyFaceEffect = ({
   faceDetection,
   effectType,
   effectIntensity,
-  maskImage
+  maskImage,
+  maskPosition = { x: 0, y: 0 },
+  maskScale = 1
 }: {
   ctx: CanvasRenderingContext2D;
   originalImage: HTMLImageElement;
@@ -155,6 +165,8 @@ export const applyFaceEffect = ({
   effectType: 'blur' | 'pixelate' | 'mask' | 'none';
   effectIntensity: number;
   maskImage?: HTMLImageElement | null;
+  maskPosition?: { x: number, y: number };
+  maskScale?: number;
 }) => {
   if (!faceDetection || effectType === 'none' || effectIntensity <= 0) return;
   
@@ -171,7 +183,16 @@ export const applyFaceEffect = ({
       break;
     case 'mask':
       if (maskImage) {
-        applyFaceMask(ctx, maskImage, box.x, box.y, box.width, box.height);
+        applyFaceMask(
+          ctx, 
+          maskImage, 
+          box.x, 
+          box.y, 
+          box.width, 
+          box.height,
+          maskPosition,
+          maskScale
+        );
       }
       break;
     default:

@@ -1,11 +1,10 @@
+/**
+ * Core transformation engine for applying facial feature modifications
+ */
 
 import { TransformationParams } from './transformationTypes';
 import { getFacialRegions, getAmplificationFactor, getMaxInfluenceDistance } from './facialRegions';
 import { applyFaceEffect } from './faceEffects';
-
-/**
- * Core transformation engine for applying facial feature modifications
- */
 
 // Enhanced function to apply transformations with improved edge handling
 export const applyFeatureTransformations = ({
@@ -200,7 +199,7 @@ export const applyFeatureTransformations = ({
           const bottomRight = originalData.data[(y2 * width + x2) * 4 + c];
           
           const top = topLeft + (topRight - topLeft) * xWeight;
-          const bottom = bottomLeft + (bottomRight - bottomLeft) * xWeight;
+          const bottom = bottomLeft + (bottomRight - bottomLeft) * yWeight;
           const interpolated = top + (bottom - top) * yWeight;
           
           // Clamp values between 0-255
