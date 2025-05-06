@@ -46,7 +46,14 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
           <Button 
             variant="outline" 
             size="sm"
-            onClick={onReset}
+            onClick={() => {
+              onReset();
+              // Trigger processing after reset
+              setTimeout(() => {
+                const event = new Event('sliderchange', { bubbles: true });
+                document.dispatchEvent(event);
+              }, 50);
+            }}
           >
             Reset All
           </Button>

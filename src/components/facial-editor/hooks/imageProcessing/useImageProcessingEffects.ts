@@ -40,7 +40,7 @@ export const useImageProcessingEffects = ({
   isFaceApiLoaded,
   faceDetection
 }: UseImageProcessingEffectsProps) => {
-  // Process the image whenever slider values change or when face detection completes
+  // Process the image whenever slider values change or when face effects change
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       // Check if values actually changed or if face effects changed
@@ -55,7 +55,7 @@ export const useImageProcessingEffects = ({
         setLastProcessedValues(currentValuesString);
       }
     }
-  }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues, faceEffectOptions, setLastProcessedValues]);
+  }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues, faceEffectOptions, setLastProcessedValues, setProcessingQueued]);
 
   // Run the debounced processing when needed
   useEffect(() => {
@@ -84,7 +84,7 @@ export const useImageProcessingEffects = ({
     }
   }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces]);
 
-  // Add a new effect to process the image after face detection completes
+  // Process image immediately after face detection completes
   useEffect(() => {
     if (originalImage && faceDetection && initialProcessingDone) {
       // Process image immediately after face detection is done
@@ -92,3 +92,4 @@ export const useImageProcessingEffects = ({
     }
   }, [faceDetection, initialProcessingDone, originalImage, processImage]);
 };
+

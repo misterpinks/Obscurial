@@ -75,6 +75,7 @@ export const useFeatureSliders = () => {
       return acc;
     }, {} as Record<string, number>);
     
+    // Apply the randomized values
     setSliderValues(randomValues);
   };
 

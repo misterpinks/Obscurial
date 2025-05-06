@@ -35,22 +35,30 @@ export const useImageProcessingCore = ({
     
     setIsProcessing(true);
     
-    // Process the image using our implementation
-    const cleanCanvas = processImageImpl();
-    
-    // Update clean processed image URL for download
-    // Use a timeout to allow the UI to update before generating the data URL
-    if (cleanCanvas) {
-      setTimeout(() => {
-        setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
-      }, 0);
-    }
-    
-    setIsProcessing(false);
-    
-    // If we have face data, analyze the modified image
-    if (faceDetection && isFaceApiLoaded && autoAnalyze) {
-      setTimeout(analyzeModifiedImage, 300);
+    try {
+      // Process the image using our implementation
+      const cleanCanvas = processImageImpl();
+      
+      // Update clean processed image URL for download
+      // Use a timeout to allow the UI to update before generating the data URL
+      if (cleanCanvas) {
+        setTimeout(() => {
+          try {
+            setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
+          } catch (e) {
+            console.error("Failed to generate data URL:", e);
+          }
+        }, 0);
+      }
+      
+      // If we have face data, analyze the modified image
+      if (faceDetection && isFaceApiLoaded && autoAnalyze) {
+        setTimeout(analyzeModifiedImage, 300);
+      }
+    } catch (error) {
+      console.error("Error processing image:", error);
+    } finally {
+      setIsProcessing(false);
     }
   }, [
     originalImage,
@@ -68,7 +76,7 @@ export const useImageProcessingCore = ({
         processImage();
         setProcessingQueued(false);
       }
-    }, 150),
+    }, 50), // Reduced debounce time for more responsive UI
     [processingQueued, processImage]
   );
 

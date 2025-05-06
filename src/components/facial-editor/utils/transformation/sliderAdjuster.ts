@@ -10,7 +10,7 @@ export const adjustSliderValues = (sliderValues: Record<string, number>) => {
   
   // Process each slider value
   Object.entries(sliderValues).forEach(([key, value]) => {
-    // Normal range is -50 to +50, but allow some flexibility
+    // Normal range is -60 to +60, with strict clamping
     clampedValues[key] = Math.max(-60, Math.min(60, value));
   });
   
@@ -19,8 +19,8 @@ export const adjustSliderValues = (sliderValues: Record<string, number>) => {
 
 // Check if any transformations are needed
 export const hasTransformations = (sliderValues: Record<string, number>) => {
-  // Check if any slider has a non-zero value
-  return Object.values(sliderValues).some(value => Math.abs(value) > 0.001);
+  // Check if any slider has a non-zero value (with a small epsilon to handle floating point comparisons)
+  return Object.values(sliderValues).some(value => Math.abs(value) > 0.01);
 };
 
 // Check if any effects need to be applied
