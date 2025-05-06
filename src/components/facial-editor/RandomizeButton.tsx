@@ -12,6 +12,7 @@ const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
   const { toast } = useToast();
 
   const handleClick = useCallback((e: React.MouseEvent) => {
+    // Prevent default behavior to ensure we don't trigger other events
     e.preventDefault();
     e.stopPropagation();
     

@@ -49,38 +49,64 @@ export const useFileUpload = ({
     
     console.log("Loading new image file:", file.name);
     
-    // First set all states to null/false to ensure clean slate
+    // Reset all state to ensure a clean slate
     setOriginalImage(null);
     setFaceDetection(null);
     setInitialProcessingDone(false);
     setHasShownNoFaceToast(false);
     
-    // Clear canvases before loading new image to prevent stale data
+    // Clear canvases before loading new image
     clearCanvases();
     
     const reader = new FileReader();
     reader.onload = (event) => {
       console.log("File loaded into memory, creating image object");
+      
       const img = new Image();
       img.onload = () => {
-        console.log("Image loaded, dimensions:", img.width, "x", img.height);
+        console.log("Image loaded successfully, dimensions:", img.width, "x", img.height);
         
-        // Clear canvases once more before setting the image
+        // Clear canvases again to be safe
         clearCanvases();
         
-        // After the image is loaded, set the states
+        // Set the image in state
         setOriginalImage(img);
         
-        // After a short delay, force initialize processing - this ensures the image is shown
+        // After a short delay, trigger initial processing
+        // This ensures the image is rendered before face detection starts
         setTimeout(() => {
           console.log("Setting initialProcessingDone to true to trigger processing");
           setInitialProcessingDone(true);
-        }, 300);
+        }, 100);
         
+        // Switch to edit tab
         setActiveTab("edit");
       };
+      
+      // Handle image loading errors
+      img.onerror = (error) => {
+        console.error("Failed to load image:", error);
+        toast({
+          variant: "destructive",
+          title: "Image Loading Failed",
+          description: "Could not load the selected image."
+        });
+      };
+      
+      // Set the image source from the file reader result
       img.src = event.target?.result as string;
     };
+    
+    // Handle file reading errors
+    reader.onerror = () => {
+      toast({
+        variant: "destructive",
+        title: "File Reading Error",
+        description: "Failed to read the selected file."
+      });
+    };
+    
+    // Start reading the file
     reader.readAsDataURL(file);
   }, [toast, setOriginalImage, setFaceDetection, setInitialProcessingDone, setHasShownNoFaceToast, clearCanvases, setActiveTab]);
 

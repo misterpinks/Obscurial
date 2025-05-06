@@ -1,5 +1,5 @@
 
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

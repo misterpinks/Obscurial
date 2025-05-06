@@ -41,7 +41,7 @@ export const useImageProcessingEffects = ({
   faceDetection
 }: UseImageProcessingEffectsProps) => {
 
-  // Process the image immediately whenever slider values change
+  // Process the image whenever slider values change
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       // Check if values actually changed
@@ -50,10 +50,11 @@ export const useImageProcessingEffects = ({
         effects: faceEffectOptions
       });
       
+      // Prevent unnecessary processing if values haven't changed
       if (currentValuesString !== lastProcessedValues) {
-        console.log("Slider values changed, processing image immediately");
+        console.log("Slider values changed, processing image");
         
-        // Use requestAnimationFrame to prevent UI freezing
+        // Use requestAnimationFrame for smooth UI updates
         requestAnimationFrame(() => {
           console.log("Processing image due to value change");
           processImage();
@@ -63,7 +64,7 @@ export const useImageProcessingEffects = ({
     }
   }, [sliderValues, faceEffectOptions, originalImage, initialProcessingDone, lastProcessedValues, processImage, setLastProcessedValues]);
 
-  // Display the original image immediately after loading
+  // Display the original image on canvas after loading
   useEffect(() => {
     if (originalImage && originalCanvasRef.current) {
       console.log("Original image provided, rendering to canvas");
@@ -71,6 +72,7 @@ export const useImageProcessingEffects = ({
       const origCtx = originalCanvasRef.current.getContext("2d");
       if (origCtx) {
         console.log("Drawing original image to canvas");
+        
         // Set canvas dimensions to match image
         originalCanvasRef.current.width = originalImage.width;
         originalCanvasRef.current.height = originalImage.height;
@@ -82,7 +84,7 @@ export const useImageProcessingEffects = ({
         origCtx.drawImage(originalImage, 0, 0);
       }
       
-      // After displaying original image, proceed with initial processing
+      // After displaying original image, detect faces if needed
       if (isFaceApiLoaded && !initialProcessingDone) {
         console.log("Detecting faces after image loaded");
         detectFaces();
@@ -90,17 +92,17 @@ export const useImageProcessingEffects = ({
     }
   }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
-  // Process image once after face detection completes or initialProcessingDone changes
+  // Process image after face detection completes
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       console.log("Processing image after face detection or initialProcessingDone changed");
       
-      // Use requestAnimationFrame to prevent UI freezing
+      // Use requestAnimationFrame for smooth UI
       requestAnimationFrame(() => {
         console.log("Processing image after detection completed");
         processImage();
         
-        // Save current state to prevent reprocessing
+        // Save current state to prevent reprocessing the same values
         const currentValuesString = JSON.stringify({
           sliders: sliderValues,
           effects: faceEffectOptions
@@ -110,12 +112,11 @@ export const useImageProcessingEffects = ({
     }
   }, [faceDetection, initialProcessingDone, originalImage, processImage, setLastProcessedValues, sliderValues, faceEffectOptions]);
   
-  // Force process image when initially loaded - ALWAYS process at least once
+  // Force process image when initially loaded
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       console.log("Initial processing - forcing image display");
       
-      // Use requestAnimationFrame to prevent UI freezing
       requestAnimationFrame(() => {
         console.log("Force processing image on initial load");
         processImage();
@@ -123,7 +124,7 @@ export const useImageProcessingEffects = ({
     }
   }, [initialProcessingDone, originalImage, processImage]);
 
-  // Always ensure the image is processed even if no face is detected
+  // Ensure image is processed even if no face is detected
   useEffect(() => {
     if (originalImage && initialProcessingDone && !faceDetection) {
       console.log("No face detected but still processing image");

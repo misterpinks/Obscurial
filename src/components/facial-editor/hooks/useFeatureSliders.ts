@@ -13,7 +13,7 @@ export interface FeatureSlider {
 }
 
 export const useFeatureSliders = () => {
-  // Updated slider ranges to match UI expectations 
+  // Define sliders with their properties
   const featureSliders: FeatureSlider[] = [
     { id: 'eyeSize', name: 'Eye Size', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
     { id: 'eyeSpacing', name: 'Eye Spacing', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
@@ -27,8 +27,8 @@ export const useFeatureSliders = () => {
     { id: 'jawline', name: 'Jawline', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
   ];
 
+  // Initialize slider values with default values
   const [sliderValues, setSliderValues] = useState<Record<string, number>>(() => {
-    // Initialize all sliders with their default values
     return featureSliders.reduce((acc, slider) => {
       acc[slider.id] = slider.defaultValue;
       return acc;
@@ -44,7 +44,7 @@ export const useFeatureSliders = () => {
         [id]: value
       }));
     } else if (id === 'batch' && typeof value === 'object') {
-      // Handle batch update of all slider values - ensure we create a new object
+      // Handle batch update of all slider values
       console.log("Batch updating sliders", value);
       setSliderValues({...value});
     }
@@ -62,12 +62,13 @@ export const useFeatureSliders = () => {
 
   const randomizeSliders = () => {
     console.log("Randomizing slider values");
+    // Generate new random values for each slider
     const randomValues = featureSliders.reduce((acc, slider) => {
-      // Generate more moderate random values to avoid extreme values
+      // Use more moderate random values to avoid extremes
       const safeMin = Math.max(slider.min, -35);
       const safeMax = Math.min(slider.max, 35);
       
-      // Simple random value generation
+      // Generate random value within the range
       const range = safeMax - safeMin;
       acc[slider.id] = Math.round(safeMin + Math.random() * range);
       return acc;

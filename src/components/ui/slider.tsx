@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as SliderPrimitive from "@radix-ui/react-slider"
 
@@ -7,23 +8,15 @@ const Slider = React.forwardRef<
   React.ElementRef<typeof SliderPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
 >(({ className, ...props }, ref) => {
-  // Create refs for the track and thumb elements
   const trackRef = React.useRef<HTMLSpanElement>(null);
   const [isDragging, setIsDragging] = React.useState(false);
-  const dragHandlersRef = React.useRef({
-    handleDocumentMouseMove: (e: MouseEvent) => {},
-    handleDocumentMouseUp: () => {},
-    handleDocumentTouchMove: (e: TouchEvent) => {},
-    handleDocumentTouchEnd: () => {}
-  });
-
-  // Create persistent handlers with useCallback
+  
+  // Create stable function references with useCallback
   const handleDocumentMouseMove = React.useCallback((e: MouseEvent) => {
     if (!isDragging || !trackRef.current) return;
     
-    // Radix UI handles the actual slider interaction through its own events
-    // We just need to keep track of the dragging state
-    console.log("Mouse moving while dragging");
+    console.log("Mouse moving while dragging slider");
+    // The actual value update is handled by Radix UI through its own event system
   }, [isDragging]);
 
   const handleDocumentMouseUp = React.useCallback(() => {
@@ -33,18 +26,22 @@ const Slider = React.forwardRef<
     setIsDragging(false);
     
     // Remove event listeners
-    document.removeEventListener('mousemove', dragHandlersRef.current.handleDocumentMouseMove);
-    document.removeEventListener('mouseup', dragHandlersRef.current.handleDocumentMouseUp);
-  }, [isDragging]);
+    document.removeEventListener('mousemove', handleDocumentMouseMove);
+    document.removeEventListener('mouseup', handleDocumentMouseUp);
+    
+    // Call the onValueCommit prop if provided
+    if (props.onValueCommit) {
+      props.onValueCommit();
+    }
+  }, [isDragging, props]);
 
   const handleDocumentTouchMove = React.useCallback((e: TouchEvent) => {
     if (!isDragging || !trackRef.current) return;
     
-    // For touch events, prevent scrolling while dragging the slider
+    // Prevent scrolling while dragging the slider
     e.preventDefault();
-    console.log("Touch moving while dragging");
-    
-    // Radix UI handles the actual slider interaction through its own events
+    console.log("Touch moving while dragging slider");
+    // The actual value update is handled by Radix UI
   }, [isDragging]);
 
   const handleDocumentTouchEnd = React.useCallback(() => {
@@ -54,49 +51,45 @@ const Slider = React.forwardRef<
     setIsDragging(false);
     
     // Remove event listeners
-    document.removeEventListener('touchmove', dragHandlersRef.current.handleDocumentTouchMove);
-    document.removeEventListener('touchend', dragHandlersRef.current.handleDocumentTouchEnd);
-  }, [isDragging]);
-
-  // Update the ref whenever the handlers change
-  React.useEffect(() => {
-    dragHandlersRef.current = {
-      handleDocumentMouseMove,
-      handleDocumentMouseUp,
-      handleDocumentTouchMove,
-      handleDocumentTouchEnd
-    };
-  }, [handleDocumentMouseMove, handleDocumentMouseUp, handleDocumentTouchMove, handleDocumentTouchEnd]);
-
-  // Clean up any lingering event listeners on unmount
-  React.useEffect(() => {
-    return () => {
-      document.removeEventListener('mousemove', dragHandlersRef.current.handleDocumentMouseMove);
-      document.removeEventListener('mouseup', dragHandlersRef.current.handleDocumentMouseUp);
-      document.removeEventListener('touchmove', dragHandlersRef.current.handleDocumentTouchMove);
-      document.removeEventListener('touchend', dragHandlersRef.current.handleDocumentTouchEnd);
-    };
-  }, []);
-
-  // Track mouse down to initiate dragging
+    document.removeEventListener('touchmove', handleDocumentTouchMove, { passive: false } as EventListenerOptions);
+    document.removeEventListener('touchend', handleDocumentTouchEnd);
+    
+    // Call the onValueCommit prop if provided
+    if (props.onValueCommit) {
+      props.onValueCommit();
+    }
+  }, [isDragging, props]);
+  
+  // Handle mouse down to initiate dragging
   const handleMouseDown = React.useCallback((e: React.MouseEvent) => {
     console.log("Mouse down on slider track - starting drag");
     setIsDragging(true);
     
     // Add document-level event listeners
-    document.addEventListener('mousemove', dragHandlersRef.current.handleDocumentMouseMove);
-    document.addEventListener('mouseup', dragHandlersRef.current.handleDocumentMouseUp);
-  }, []);
+    document.addEventListener('mousemove', handleDocumentMouseMove);
+    document.addEventListener('mouseup', handleDocumentMouseUp);
+  }, [handleDocumentMouseMove, handleDocumentMouseUp]);
 
-  // Track touch start to initiate dragging
+  // Handle touch start to initiate dragging
   const handleTouchStart = React.useCallback((e: React.TouchEvent) => {
     console.log("Touch start on slider track - starting drag");
     setIsDragging(true);
     
     // Add document-level event listeners
-    document.addEventListener('touchmove', dragHandlersRef.current.handleDocumentTouchMove, { passive: false });
-    document.addEventListener('touchend', dragHandlersRef.current.handleDocumentTouchEnd);
-  }, []);
+    document.addEventListener('touchmove', handleDocumentTouchMove, { passive: false });
+    document.addEventListener('touchend', handleDocumentTouchEnd);
+  }, [handleDocumentTouchMove, handleDocumentTouchEnd]);
+  
+  // Clean up event listeners when component unmounts
+  React.useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleDocumentMouseMove);
+      document.removeEventListener('mouseup', handleDocumentMouseUp);
+      document.removeEventListener('touchmove', handleDocumentTouchMove);
+      document.removeEventListener('touchend', handleDocumentTouchEnd);
+      console.log("Cleaning up slider event listeners on unmount");
+    };
+  }, [handleDocumentMouseMove, handleDocumentMouseUp, handleDocumentTouchMove, handleDocumentTouchEnd]);
 
   return (
     <SliderPrimitive.Root
@@ -105,7 +98,6 @@ const Slider = React.forwardRef<
         "relative flex w-full touch-none select-none items-center",
         className
       )}
-      onValueCommit={props.onValueCommit}
       {...props}
     >
       <SliderPrimitive.Track 
