@@ -1,12 +1,13 @@
 
-import { useState, useEffect, useRef } from 'react';
-import { useToast } from "@/components/ui/use-toast";
+import { useState, useEffect, RefObject, useCallback } from 'react';
+import { useToast } from '@/components/ui/use-toast';
+import { applyFeatureTransformations } from '../utils/transformationEngine';
 
 interface UseImageProcessingProps {
   originalImage: HTMLImageElement | null;
-  originalCanvasRef: React.RefObject<HTMLCanvasElement>;
-  processedCanvasRef: React.RefObject<HTMLCanvasElement>;
-  cleanProcessedCanvasRef: React.RefObject<HTMLCanvasElement>;
+  originalCanvasRef: RefObject<HTMLCanvasElement>;
+  processedCanvasRef: RefObject<HTMLCanvasElement>;
+  cleanProcessedCanvasRef: RefObject<HTMLCanvasElement>;
   faceDetection: any;
   sliderValues: Record<string, number>;
   initialProcessingDone: boolean;
@@ -15,6 +16,8 @@ interface UseImageProcessingProps {
   detectFaces: () => void;
   analyzeModifiedImage: () => void;
   autoAnalyze: boolean;
+  lastProcessedValues: string;
+  setLastProcessedValues: (values: string) => void;
 }
 
 export const useImageProcessing = ({
@@ -29,83 +32,166 @@ export const useImageProcessing = ({
   isFaceApiLoaded,
   detectFaces,
   analyzeModifiedImage,
-  autoAnalyze
+  autoAnalyze,
+  lastProcessedValues,
+  setLastProcessedValues
 }: UseImageProcessingProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
-  const lastProcessedValuesRef = useRef<string>("");
-  
-  // Force initial processing when face detection completes
-  useEffect(() => {
-    if (initialProcessingDone && originalImage && faceDetection) {
-      processImage();
-    }
-  }, [initialProcessingDone, faceDetection]);
 
-  // Process when sliders change or when landmarks toggle changes
+  // Draw landmarks on the processed canvas with updated colors
+  const drawFaceLandmarks = useCallback(() => {
+    if (!faceDetection?.landmarks || !processedCanvasRef.current || !originalImage) return;
+    
+    const canvas = processedCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Color coding by feature groups with updated colors
+    const featureGroups = {
+      eyes: { points: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47], color: '#1EAEDB' },
+      nose: { points: [27, 28, 29, 30, 31, 32, 33, 34, 35], color: '#FEF7CD' },
+      mouth: { points: [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67], color: '#ea384c' },
+      face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#F97316' }
+    };
+    
+    // Draw face bounding box - light green
+    ctx.strokeStyle = '#F2FCE2';
+    ctx.lineWidth = 2;
+    const box = faceDetection.detection.box;
+    ctx.strokeRect(box.x, box.y, box.width, box.height);
+    
+    // Draw all landmarks by feature group
+    const landmarks = faceDetection.landmarks.positions;
+    
+    // Draw points for each feature group
+    Object.entries(featureGroups).forEach(([groupName, group]) => {
+      ctx.fillStyle = group.color;
+      ctx.strokeStyle = group.color;
+      
+      // Connect points for better visualization
+      if (group.points.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(landmarks[group.points[0]].x, landmarks[group.points[0]].y);
+        
+        for (let i = 1; i < group.points.length; i++) {
+          ctx.lineTo(landmarks[group.points[i]].x, landmarks[group.points[i]].y);
+        }
+        
+        // Close the path for face
+        if (groupName === 'face') {
+          ctx.closePath();
+        }
+        
+        ctx.stroke();
+      }
+      
+      // Draw points
+      group.points.forEach(pointIdx => {
+        ctx.beginPath();
+        ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, 2, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    });
+  }, [faceDetection, processedCanvasRef, originalImage]);
+
+  // Process the image whenever slider values change
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
-      // Check if values have actually changed to avoid unnecessary processing
+      // Check if values actually changed
       const currentValuesString = JSON.stringify(sliderValues);
-      if (currentValuesString !== lastProcessedValuesRef.current) {
+      if (currentValuesString !== lastProcessedValues) {
         processImage();
-        lastProcessedValuesRef.current = currentValuesString;
+        setLastProcessedValues(currentValuesString);
       }
     }
-  }, [sliderValues, showLandmarks, originalImage]);
+  }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues]);
 
-  // Also make sure we process when face detection changes
+  // Display the original image immediately after loading
   useEffect(() => {
-    if (faceDetection && originalImage && initialProcessingDone) {
-      processImage();
+    if (originalImage && originalCanvasRef.current) {
+      const origCtx = originalCanvasRef.current.getContext("2d");
+      if (origCtx) {
+        // Set canvas dimensions to match image
+        originalCanvasRef.current.width = originalImage.width;
+        originalCanvasRef.current.height = originalImage.height;
+        
+        // Draw the image to canvas
+        origCtx.drawImage(originalImage, 0, 0);
+      }
+      
+      // After displaying original image, proceed with initial processing
+      if (isFaceApiLoaded) {
+        detectFaces();
+      }
     }
-  }, [faceDetection]);
+  }, [originalImage, isFaceApiLoaded, detectFaces]);
 
-  // Track when images change to ensure we process
-  useEffect(() => {
-    if (originalImage) {
-      // Reset processed state when image changes
-      lastProcessedValuesRef.current = "";
-    }
-  }, [originalImage]);
-
-  const processImage = () => {
+  const processImage = useCallback(() => {
     if (!originalImage || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) return;
     
     setIsProcessing(true);
     
-    // Use requestAnimationFrame to ensure smooth UI
-    requestAnimationFrame(() => {
-      try {
-        // Process the image
-        // Implementation details will depend on your image processing logic
-        
-        // Update clean processed image URL for download
-        const cleanCanvas = cleanProcessedCanvasRef.current;
-        if (cleanCanvas) {
-          setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
-        }
-        
-        // If we have face data and auto-analyze is enabled, analyze the modified image
-        if (faceDetection && isFaceApiLoaded && autoAnalyze) {
-          setTimeout(analyzeModifiedImage, 100);
-        }
-        
-      } catch (error) {
-        console.error("Error processing image:", error);
-        toast({
-          variant: "destructive",
-          title: "Processing Error",
-          description: "Failed to process the image."
-        });
-      } finally {
-        setIsProcessing(false);
-      }
+    // First process the clean canvas (without landmarks)
+    const cleanCanvas = cleanProcessedCanvasRef.current;
+    const cleanCtx = cleanCanvas.getContext("2d");
+    if (!cleanCtx) return;
+    
+    // Set canvas dimensions to match image
+    cleanCanvas.width = originalImage.width;
+    cleanCanvas.height = originalImage.height;
+    
+    // Apply feature transformations to the clean canvas
+    applyFeatureTransformations({
+      ctx: cleanCtx,
+      originalImage,
+      width: cleanCanvas.width,
+      height: cleanCanvas.height,
+      faceDetection,
+      sliderValues
     });
-  };
+    
+    // Update clean processed image URL for download
+    setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
+    
+    // Now process the canvas with landmarks
+    const canvas = processedCanvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    
+    // Set canvas dimensions to match image
+    canvas.width = originalImage.width;
+    canvas.height = originalImage.height;
+    
+    // Copy the clean processed image to the display canvas
+    ctx.drawImage(cleanCanvas, 0, 0);
+    
+    // Draw landmarks on top of the processed image
+    if (faceDetection && showLandmarks) {
+      drawFaceLandmarks();
+    }
+    
+    setIsProcessing(false);
+    
+    // If we have face data, analyze the modified image
+    if (faceDetection && isFaceApiLoaded && autoAnalyze) {
+      setTimeout(analyzeModifiedImage, 300);
+    }
+  }, [
+    originalImage, 
+    processedCanvasRef, 
+    cleanProcessedCanvasRef, 
+    faceDetection, 
+    sliderValues, 
+    showLandmarks, 
+    isFaceApiLoaded, 
+    autoAnalyze, 
+    analyzeModifiedImage,
+    drawFaceLandmarks
+  ]);
 
-  const downloadImage = () => {
+  const downloadImage = useCallback(() => {
     if (!cleanProcessedImageURL) return;
     
     const link = document.createElement("a");
@@ -119,12 +205,12 @@ export const useImageProcessing = ({
       title: "Image Downloaded",
       description: "Your privacy-protected image has been saved."
     });
-  };
+  }, [cleanProcessedImageURL, toast]);
 
   return {
     isProcessing,
     cleanProcessedImageURL,
     processImage,
-    downloadImage,
+    downloadImage
   };
 };

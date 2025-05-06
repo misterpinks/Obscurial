@@ -1,7 +1,7 @@
 
 import React, { RefObject } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Upload, ImageIcon, Circle } from "lucide-react";
+import { Camera, Upload, ImageIcon } from "lucide-react";
 import EditorContent from './EditorContent';
 import ImageUploader from './ImageUploader';
 import WebcamCapture from './WebcamCapture';
@@ -146,6 +146,7 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
               featureSliders={featureSliders}
               sliderValues={sliderValues}
               onSliderChange={onSliderChange}
+              onSliderChangeComplete={onSliderChangeComplete}
               onResetSliders={onResetSliders}
               onRandomizeSliders={onRandomizeSliders}
               handleLandmarkMove={handleLandmarkMove}

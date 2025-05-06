@@ -5,12 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface ImageUploaderProps {
-  onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   inputRef?: React.RefObject<HTMLInputElement>;
+  onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   triggerFileInput?: () => void;
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, inputRef, triggerFileInput }) => {
+const ImageUploader: React.FC<ImageUploaderProps> = ({ 
+  inputRef, 
+  onImageUpload, 
+  triggerFileInput 
+}) => {
   const internalFileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = inputRef || internalFileInputRef;
 

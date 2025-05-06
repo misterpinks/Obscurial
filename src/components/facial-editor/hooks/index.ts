@@ -1,7 +1,7 @@
 
 import { useFaceApiModels } from './useFaceApiModels';
 import { useFeatureSliders, type FeatureSlider } from './useFeatureSliders';
-import { useFaceAnalysis } from './useFaceAnalysis';
+import { useFaceAnalysis, type FaceDetection } from './useFaceAnalysis';
 import { useImageProcessing } from './useImageProcessing';
 import { useTabs } from './useTabs';
 import { useFileUpload } from './useFileUpload';
@@ -9,7 +9,7 @@ import { useLandmarks } from './useLandmarks';
 import { useHistory } from './useHistory';
 import { usePresets } from './usePresets';
 import { useSplitView, SplitViewMode } from './useSplitView';
-import { useBatchProcessing } from './useBatchProcessing';
+import { useBatchProcessing, type BatchJob } from './useBatchProcessing';
 
 export {
   useFaceApiModels,
@@ -24,5 +24,7 @@ export {
   useSplitView,
   useBatchProcessing,
   SplitViewMode,
-  type FeatureSlider
+  type FeatureSlider,
+  type FaceDetection,
+  type BatchJob
 };

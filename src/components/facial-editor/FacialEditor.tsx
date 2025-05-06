@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+
+import React, { useState, useRef } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
 import ModelSetup from '../ModelSetup';
@@ -26,6 +27,7 @@ import {
 
 // Import the transformation engine
 import { applyFeatureTransformations } from './utils/transformationEngine';
+import EditorToolbar from './EditorToolbar';
 
 const FacialEditor = () => {
   const { toast } = useToast();
@@ -89,7 +91,9 @@ const FacialEditor = () => {
     hasShownNoFaceToast,
     setHasShownNoFaceToast,
     autoAnalyze,
-    toggleAutoAnalyze
+    toggleAutoAnalyze,
+    lastProcessedValues,
+    setLastProcessedValues
   } = useFaceAnalysis(isFaceApiLoaded, originalImage, cleanProcessedCanvasRef);
 
   // Custom hook for landmarks handling
@@ -132,7 +136,9 @@ const FacialEditor = () => {
     isFaceApiLoaded,
     detectFaces,
     analyzeModifiedImage,
-    autoAnalyze
+    autoAnalyze,
+    lastProcessedValues,
+    setLastProcessedValues
   });
 
   // Hook for presets
@@ -152,6 +158,7 @@ const FacialEditor = () => {
     splitPosition,
     toggleSplitViewMode,
     updateSplitPosition,
+    isTransitioning
   } = useSplitView();
 
   // Process single image for batch processing
@@ -284,33 +291,21 @@ const FacialEditor = () => {
 
       {modelsLoadingStatus === 'error' && <ModelSetup />}
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <UndoRedoControls 
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onUndo={undo}
-          onRedo={redo}
-        />
-        
-        <div className="h-6 border-l border-gray-200 mx-2"></div>
-        
-        <SplitViewControls 
-          mode={splitViewMode}
-          onChange={toggleSplitViewMode}
-        />
-        
-        <div className="h-6 border-l border-gray-200 mx-2"></div>
-        
-        <BatchProcessor 
-          jobs={batchJobs}
-          isProcessing={isBatchProcessing}
-          onAddImages={handleBatchUpload}
-          onRemoveJob={removeFromBatch}
-          onClearJobs={clearBatch}
-          onProcessJobs={processBatch}
-          onDownloadAll={downloadAll}
-        />
-      </div>
+      <EditorToolbar 
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
+        splitViewMode={splitViewMode}
+        onSplitViewChange={toggleSplitViewMode}
+        batchJobs={batchJobs}
+        isBatchProcessing={isBatchProcessing}
+        onAddBatchImages={handleBatchUpload}
+        onRemoveBatchJob={removeFromBatch}
+        onClearBatchJobs={clearBatch}
+        onProcessBatchJobs={processBatch}
+        onDownloadAllBatchJobs={downloadAll}
+      />
 
       <EditorTabs 
         activeTab={activeTab}
