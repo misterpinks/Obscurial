@@ -59,22 +59,24 @@ export const useFeatureSliders = () => {
   };
 
   const randomizeSliders = () => {
+    console.log("Randomizing slider values");
     const randomValues = featureSliders.reduce((acc, slider) => {
       // Generate random values within each slider's range
-      // Use a more controlled range to avoid extreme values (-60 to 60 instead of full -75 to 75)
-      const safeMin = Math.max(slider.min, -60);
-      const safeMax = Math.min(slider.max, 60);
+      // Use a more controlled range to avoid extreme values (-50 to 50 instead of full -75 to 75)
+      const safeMin = Math.max(slider.min, -50);
+      const safeMax = Math.min(slider.max, 50);
       const range = safeMax - safeMin;
       
       // Apply a bias toward reasonable values (closer to center than extremes)
       const randomFactor = Math.random();
       // This creates a bell curve effect for more natural results
-      const biasedRandom = Math.pow(randomFactor * 2 - 1, 3) / 2 + 0.5;
+      const biasedRandom = ((Math.random() * 2 - 1) * 0.8);
       
-      acc[slider.id] = Math.round(safeMin + biasedRandom * range);
+      acc[slider.id] = Math.round(biasedRandom * range);
       return acc;
     }, {} as Record<string, number>);
     
+    console.log("New random values:", randomValues);
     // Apply the randomized values directly with a new reference
     setSliderValues({...randomValues});
   };

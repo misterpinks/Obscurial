@@ -9,16 +9,8 @@ interface RandomizeButtonProps {
 
 const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onRandomize }) => {
   const handleClick = () => {
-    // Call the randomize function first to update slider values
+    // Call the randomize function to update slider values
     onRandomize();
-    
-    // Immediately trigger processing without a delay
-    // This event tells the app to reprocess the image based on the new values
-    const event = new CustomEvent('sliderValueChange', { 
-      bubbles: true,
-      detail: { source: 'randomize' }
-    });
-    document.dispatchEvent(event);
     
     // Log that randomization was triggered
     console.log("Randomize features triggered");

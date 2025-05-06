@@ -50,43 +50,13 @@ export const useImageProcessingEffects = ({
       });
       
       if (currentValuesString !== lastProcessedValues) {
-        console.log("Values changed, queuing processing");
-        // Queue processing instead of doing it immediately
-        setProcessingQueued(true);
+        console.log("Values changed, processing immediately");
+        // Process directly instead of queuing
+        processImage();
         setLastProcessedValues(currentValuesString);
       }
     }
-  }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues, faceEffectOptions, setLastProcessedValues, setProcessingQueued]);
-
-  // Run the processing when needed - with immediate execution
-  useEffect(() => {
-    if (processingQueued) {
-      console.log("Processing queued, executing immediately");
-      // Process immediately without debounce to improve responsiveness
-      processImage(); 
-      setProcessingQueued(false);
-    }
-  }, [processingQueued, processImage, setProcessingQueued]);
-
-  // Listen for custom slider change events (from sliders and randomize button)
-  useEffect(() => {
-    const handleSliderValueChange = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      console.log(`Custom slider change event received from ${customEvent.detail?.source || 'unknown'}`);
-      
-      if (originalImage && initialProcessingDone) {
-        // Process immediately for better responsiveness
-        processImage();
-      }
-    };
-
-    // Use capture phase to ensure we get all events
-    document.addEventListener('sliderValueChange', handleSliderValueChange, true);
-    
-    return () => {
-      document.removeEventListener('sliderValueChange', handleSliderValueChange, true);
-    };
-  }, [originalImage, initialProcessingDone, processImage]);
+  }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues, faceEffectOptions, setLastProcessedValues, processImage]);
 
   // Display the original image immediately after loading
   useEffect(() => {

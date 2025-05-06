@@ -24,7 +24,7 @@ export const adjustSliderValues = (sliderValues: Record<string, number>) => {
   return clampedValues;
 };
 
-// Optimized check if any transformations are needed - uses faster approach
+// Check if any transformations are needed - optimized for performance
 export const hasTransformations = (sliderValues: Record<string, number>) => {
   // Check if any slider has a non-zero value
   for (const key in sliderValues) {
@@ -34,7 +34,7 @@ export const hasTransformations = (sliderValues: Record<string, number>) => {
   return false;
 };
 
-// Check if any effects need to be applied - simplified for better performance
+// Check if any effects need to be applied - simplified for performance
 export const hasEffects = (faceEffectOptions?: {
   effectType: 'blur' | 'pixelate' | 'mask' | 'none';
   effectIntensity: number;
