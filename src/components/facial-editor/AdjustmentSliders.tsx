@@ -12,6 +12,7 @@ interface AdjustmentSlidersProps {
   onSliderChange: (id: string, value: number) => void;
   onSliderChangeComplete?: () => void;
   onReset: () => void;
+  faceMaskSelector?: React.ReactNode;
 }
 
 const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
@@ -19,7 +20,8 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
   sliderValues,
   onSliderChange,
   onSliderChangeComplete,
-  onReset
+  onReset,
+  faceMaskSelector
 }) => {
   // Group sliders by category
   const slidersByCategory = featureSliders.reduce((acc, slider) => {
@@ -49,6 +51,9 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
             Reset All
           </Button>
         </div>
+
+        {/* Face Mask Selector Component if provided */}
+        {faceMaskSelector}
 
         {/* Render sliders by category */}
         {Object.entries(slidersByCategory).map(([category, sliders]) => (

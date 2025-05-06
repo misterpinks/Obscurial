@@ -9,6 +9,7 @@ import { useLandmarks } from './useLandmarks';
 import { useHistory } from './useHistory';
 import { usePresets } from './usePresets';
 import { useBatchProcessing, type BatchJob } from './useBatchProcessing';
+import { useFaceEffects } from './useFaceEffects';
 
 export {
   useFaceApiModels,
@@ -21,6 +22,7 @@ export {
   useHistory,
   usePresets,
   useBatchProcessing,
+  useFaceEffects,
   type FeatureSlider,
   type FaceDetection,
   type BatchJob

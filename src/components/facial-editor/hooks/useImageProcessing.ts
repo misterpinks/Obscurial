@@ -18,6 +18,11 @@ interface UseImageProcessingProps {
   autoAnalyze: boolean;
   lastProcessedValues: string;
   setLastProcessedValues: (values: string) => void;
+  faceEffectOptions?: {
+    effectType: 'blur' | 'pixelate' | 'mask' | 'none';
+    effectIntensity: number;
+    maskImage?: HTMLImageElement | null;
+  };
 }
 
 export const useImageProcessing = ({
@@ -34,7 +39,8 @@ export const useImageProcessing = ({
   analyzeModifiedImage,
   autoAnalyze,
   lastProcessedValues,
-  setLastProcessedValues
+  setLastProcessedValues,
+  faceEffectOptions
 }: UseImageProcessingProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -99,14 +105,18 @@ export const useImageProcessing = ({
   // Process the image whenever slider values change or when face detection completes
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
-      // Check if values actually changed
-      const currentValuesString = JSON.stringify(sliderValues);
+      // Check if values actually changed or if face effects changed
+      const currentValuesString = JSON.stringify({
+        sliders: sliderValues,
+        effects: faceEffectOptions
+      });
+      
       if (currentValuesString !== lastProcessedValues) {
         processImage();
         setLastProcessedValues(currentValuesString);
       }
     }
-  }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues]);
+  }, [sliderValues, originalImage, initialProcessingDone, lastProcessedValues, faceEffectOptions]);
 
   // Display the original image immediately after loading
   useEffect(() => {
@@ -157,7 +167,8 @@ export const useImageProcessing = ({
       width: cleanCanvas.width,
       height: cleanCanvas.height,
       faceDetection,
-      sliderValues
+      sliderValues,
+      faceEffectOptions
     });
     
     // Update clean processed image URL for download
@@ -196,7 +207,8 @@ export const useImageProcessing = ({
     isFaceApiLoaded, 
     autoAnalyze, 
     analyzeModifiedImage,
-    drawFaceLandmarks
+    drawFaceLandmarks,
+    faceEffectOptions
   ]);
 
   const downloadImage = useCallback(() => {

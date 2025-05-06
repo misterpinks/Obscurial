@@ -1,0 +1,9 @@
+
+# Face mask images
+Place face mask images in this directory.
+
+Expected images:
+- mask1.png - A simple emoji mask
+- mask2.png - A different emoji mask
+- mask3.png - A third emoji type mask
+- black-bar.png - A solid black bar for eye/face censoring

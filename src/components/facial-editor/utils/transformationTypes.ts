@@ -11,6 +11,11 @@ export interface TransformationParams {
   height: number;
   faceDetection: any;
   sliderValues: Record<string, number>;
+  faceEffectOptions?: {
+    effectType: 'blur' | 'pixelate' | 'mask' | 'none';
+    effectIntensity: number;
+    maskImage?: HTMLImageElement | null;
+  };
 }
 
 // Define regions for facial features used in transformations

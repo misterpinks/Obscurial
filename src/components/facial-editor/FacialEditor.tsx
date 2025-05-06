@@ -6,6 +6,7 @@ import ModelSetup from '../ModelSetup';
 import EditorTabs from './EditorTabs';
 import PresetSelector from './PresetSelector';
 import EditorToolbar from './EditorToolbar';
+import FaceMaskSelector from './FaceMaskSelector';
 
 import {
   useFaceApiModels,
@@ -15,9 +16,10 @@ import {
   useTabs,
   useFileUpload,
   useLandmarks,
-  usePresets,
   useHistory,
-  useBatchProcessing
+  usePresets,
+  useBatchProcessing,
+  useFaceEffects
 } from './hooks';
 
 // Import the transformation engine
@@ -48,6 +50,20 @@ const FacialEditor = () => {
     canUndo, 
     canRedo 
   } = useHistory<Record<string, number>>(currentSliderValues);
+  
+  // Face effects hook
+  const {
+    effectType,
+    setEffectType,
+    effectIntensity,
+    setEffectIntensity,
+    selectedMaskId,
+    setSelectedMaskId,
+    maskImage,
+    handleLoadMaskImage,
+    resetEffects,
+    faceEffectOptions
+  } = useFaceEffects();
   
   // Handle slider changes with history
   const handleSliderChange = (id: string, value: number) => {
@@ -132,7 +148,8 @@ const FacialEditor = () => {
     analyzeModifiedImage,
     autoAnalyze,
     lastProcessedValues,
-    setLastProcessedValues
+    setLastProcessedValues,
+    faceEffectOptions
   });
 
   // Hook for presets
@@ -170,7 +187,8 @@ const FacialEditor = () => {
           width: canvas.width,
           height: canvas.height,
           faceDetection: null, // Just use approximate transformations
-          sliderValues
+          sliderValues,
+          faceEffectOptions
         });
         
         // Return the data URL
@@ -218,6 +236,7 @@ const FacialEditor = () => {
 
   const handleResetSliders = () => {
     resetSliders();
+    resetEffects();
     toast({
       title: "Settings Reset",
       description: "All adjustments have been reset to default values."
@@ -322,6 +341,17 @@ const FacialEditor = () => {
         handleLandmarkMove={handleLandmarkMove}
         autoAnalyze={autoAnalyze}
         onToggleAutoAnalyze={handleToggleAutoAnalyze}
+        faceMaskSelector={
+          <FaceMaskSelector
+            effectType={effectType}
+            setEffectType={setEffectType}
+            effectIntensity={effectIntensity}
+            setEffectIntensity={setEffectIntensity}
+            selectedMaskId={selectedMaskId}
+            setSelectedMaskId={setSelectedMaskId}
+            onLoadMaskImage={handleLoadMaskImage}
+          />
+        }
         presetsComponent={
           <PresetSelector 
             presets={presets}

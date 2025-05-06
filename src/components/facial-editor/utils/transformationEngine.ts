@@ -1,6 +1,7 @@
 
 import { TransformationParams } from './transformationTypes';
 import { getFacialRegions, getAmplificationFactor, getMaxInfluenceDistance } from './facialRegions';
+import { applyFaceEffect } from './faceEffects';
 
 /**
  * Core transformation engine for applying facial feature modifications
@@ -13,7 +14,8 @@ export const applyFeatureTransformations = ({
   width,
   height,
   faceDetection,
-  sliderValues
+  sliderValues,
+  faceEffectOptions
 }: TransformationParams) => {
   // Create an off-screen canvas for processing
   const offCanvas = document.createElement("canvas");
@@ -213,4 +215,14 @@ export const applyFeatureTransformations = ({
   
   // Put the processed image data onto the canvas
   ctx.putImageData(outputData, 0, 0);
+  
+  // Apply face effects (blur, pixelate, or mask) if enabled
+  if (faceEffectOptions && faceEffectOptions.effectType !== 'none' && faceEffectOptions.effectIntensity > 0) {
+    applyFaceEffect({
+      ctx,
+      originalImage,
+      faceDetection,
+      ...faceEffectOptions
+    });
+  }
 };
