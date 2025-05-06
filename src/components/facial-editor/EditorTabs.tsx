@@ -40,6 +40,10 @@ interface EditorTabsProps {
   onToggleAutoAnalyze?: () => void;
   presetsComponent?: React.ReactNode;
   faceMaskSelector?: React.ReactNode;
+  maskPosition?: { x: number, y: number };
+  maskScale?: number;
+  onMaskPositionChange?: (newPosition: { x: number, y: number }) => void;
+  onMaskScaleChange?: (newScale: number) => void;
 }
 
 const EditorTabs: React.FC<EditorTabsProps> = ({
@@ -75,7 +79,11 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
   autoAnalyze,
   onToggleAutoAnalyze,
   presetsComponent,
-  faceMaskSelector
+  faceMaskSelector,
+  maskPosition,
+  maskScale,
+  onMaskPositionChange,
+  onMaskScaleChange
 }) => {
   return (
     <Tabs defaultValue="upload" value={activeTab} onValueChange={onTabChange}>
@@ -146,6 +154,10 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
             handleLandmarkMove={handleLandmarkMove}
             autoAnalyze={autoAnalyze}
             onToggleAutoAnalyze={onToggleAutoAnalyze}
+            maskPosition={maskPosition}
+            maskScale={maskScale}
+            onMaskPositionChange={onMaskPositionChange}
+            onMaskScaleChange={onMaskScaleChange}
           />
           
           {/* Presets section */}

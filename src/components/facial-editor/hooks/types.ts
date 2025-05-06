@@ -1,4 +1,3 @@
-
 /**
  * Type definitions for face analysis hooks
  */
@@ -33,4 +32,13 @@ export interface FaceAnalysisResult extends FaceDetectionResult, ModifiedFaceAna
   toggleAutoAnalyze: () => void;
   lastProcessedValues: string;
   setLastProcessedValues: (value: string) => void;
+}
+
+// Add mask position and scale to face effect options
+export interface FaceEffectOptions {
+  effectType: 'blur' | 'pixelate' | 'mask' | 'none';
+  effectIntensity: number;
+  maskImage?: HTMLImageElement | null;
+  maskPosition?: { x: number, y: number };
+  maskScale?: number;
 }

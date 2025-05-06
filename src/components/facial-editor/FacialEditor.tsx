@@ -1,5 +1,4 @@
-
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
 import ModelSetup from '../ModelSetup';
@@ -8,6 +7,7 @@ import PresetSelector from './PresetSelector';
 import EditorToolbar from './EditorToolbar';
 import FaceMaskSelector from './FaceMaskSelector';
 
+// Import custom hooks
 import {
   useFaceApiModels,
   useFeatureSliders,
@@ -19,23 +19,30 @@ import {
   useHistory,
   usePresets,
   useBatchProcessing,
-  useFaceEffects
+  useFaceEffects,
+  useBatchUpload
 } from './hooks';
+import { useEditorState } from './hooks/useEditorState';
+import { useEditorActions } from './hooks/useEditorActions';
 
 // Import the transformation engine
 import { applyFeatureTransformations } from './utils/transformationEngine';
 
 const FacialEditor = () => {
   const { toast } = useToast();
-  const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   
-  const originalCanvasRef = useRef<HTMLCanvasElement>(null);
-  const processedCanvasRef = useRef<HTMLCanvasElement>(null);
-  const cleanProcessedCanvasRef = useRef<HTMLCanvasElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  // Use the editor state hook to manage canvas refs and original image
+  const {
+    originalCanvasRef,
+    processedCanvasRef,
+    cleanProcessedCanvasRef,
+    videoRef,
+    streamRef,
+    originalImage,
+    setOriginalImage
+  } = useEditorState();
 
-  // Custom hooks for models loading, facial processing
+  // Load face models
   const { isFaceApiLoaded, modelsLoadingStatus } = useFaceApiModels();
   
   // Feature sliders with history/undo support
@@ -156,6 +163,13 @@ const FacialEditor = () => {
     faceEffectOptions
   });
 
+  // Hook for editor actions
+  const {
+    handleResetSliders,
+    handleRunAnalysis,
+    handleToggleAutoAnalyze
+  } = useEditorActions(resetEffects, resetSliders, toggleAutoAnalyze, autoAnalyze);
+
   // Hook for presets
   const { 
     presets, 
@@ -214,83 +228,14 @@ const FacialEditor = () => {
     downloadAll
   } = useBatchProcessing(sliderValues, processSingleImage);
 
+  // Hook for batch upload
+  const { handleBatchUpload } = useBatchUpload(addToBatch);
+
   const handleCaptureFromWebcam = () => {
     const img = captureFromWebcam();
     if (img) {
       setOriginalImage(img);
     }
-  };
-
-  const handleRunAnalysis = () => {
-    if (faceDetection && isFaceApiLoaded) {
-      analyzeModifiedImage();
-      
-      toast({
-        title: "Analysis Started",
-        description: "Analyzing facial changes..."
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Cannot Analyze",
-        description: "No face was detected in the original image."
-      });
-    }
-  };
-
-  const handleResetSliders = () => {
-    resetSliders();
-    resetEffects();
-    toast({
-      title: "Settings Reset",
-      description: "All adjustments have been reset to default values."
-    });
-  };
-
-  const handleToggleAutoAnalyze = () => {
-    toggleAutoAnalyze();
-    toast({
-      title: autoAnalyze ? "Auto-Analysis Disabled" : "Auto-Analysis Enabled",
-      description: autoAnalyze 
-        ? "You'll need to manually run analysis now."
-        : "Analysis will run automatically when making adjustments."
-    });
-  };
-
-  // Handle multiple file uploads for batch processing
-  const handleBatchUpload = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.multiple = true;
-    input.accept = 'image/*';
-    
-    input.onchange = (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (!files) return;
-      
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        
-        reader.onload = (event) => {
-          const img = new Image();
-          
-          img.onload = () => {
-            addToBatch(img, file.name);
-          };
-          
-          img.src = event.target?.result as string;
-        };
-        
-        reader.readAsDataURL(file);
-      });
-    };
-    
-    input.click();
-  };
-
-  // Apply a preset
-  const handleApplyPreset = (presetId: string) => {
-    applyPreset(presetId);
   };
 
   // Create the mask selector element
@@ -370,7 +315,7 @@ const FacialEditor = () => {
         presetsComponent={
           <PresetSelector 
             presets={presets}
-            onApplyPreset={handleApplyPreset}
+            onApplyPreset={applyPreset}
             onSavePreset={saveCurrentAsPreset}
             onDeletePreset={deletePreset}
           />

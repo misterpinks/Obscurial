@@ -35,6 +35,8 @@ export const hasEffects = (faceEffectOptions?: {
   effectType: 'blur' | 'pixelate' | 'mask' | 'none';
   effectIntensity: number;
   maskImage?: HTMLImageElement | null;
+  maskPosition?: { x: number, y: number };
+  maskScale?: number;
 }): boolean => {
   if (!faceEffectOptions) return false;
   
