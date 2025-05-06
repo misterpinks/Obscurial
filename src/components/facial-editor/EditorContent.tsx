@@ -35,6 +35,10 @@ interface EditorContentProps {
   handleLandmarkMove: (pointIndex: number, x: number, y: number) => void;
   autoAnalyze?: boolean;
   onToggleAutoAnalyze?: () => void;
+  maskPosition?: { x: number, y: number };
+  maskScale?: number;
+  onMaskPositionChange?: (newPosition: { x: number, y: number }) => void;
+  onMaskScaleChange?: (newScale: number) => void;
 }
 
 const EditorContent: React.FC<EditorContentProps> = ({
@@ -63,7 +67,11 @@ const EditorContent: React.FC<EditorContentProps> = ({
   onRandomizeSliders,
   handleLandmarkMove,
   autoAnalyze = false,
-  onToggleAutoAnalyze
+  onToggleAutoAnalyze,
+  maskPosition,
+  maskScale,
+  onMaskPositionChange,
+  onMaskScaleChange
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -105,6 +113,12 @@ const EditorContent: React.FC<EditorContentProps> = ({
             title="Clean Result"
             canvasRef={cleanProcessedCanvasRef}
             originalImage={originalImage}
+            enableMaskControl={Boolean(faceDetection && onMaskPositionChange)}
+            maskPosition={maskPosition}
+            maskScale={maskScale}
+            onMaskPositionChange={onMaskPositionChange}
+            onMaskScaleChange={onMaskScaleChange}
+            faceDetection={faceDetection}
           />
         </div>
         

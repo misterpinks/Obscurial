@@ -8,7 +8,7 @@ export const useFaceEffects = () => {
   const [selectedMaskId, setSelectedMaskId] = useState<string | null>(null);
   const [maskImage, setMaskImage] = useState<HTMLImageElement | null>(null);
   
-  // New state for mask positioning and sizing
+  // New state for mask positioning and sizing with better defaults
   const [maskPosition, setMaskPosition] = useState({ x: 0, y: 0 });
   const [maskScale, setMaskScale] = useState(1);
 

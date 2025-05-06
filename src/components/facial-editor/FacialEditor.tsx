@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -344,6 +345,11 @@ const FacialEditor = () => {
         handleLandmarkMove={handleLandmarkMove}
         autoAnalyze={autoAnalyze}
         onToggleAutoAnalyze={handleToggleAutoAnalyze}
+        // Add mask position and scale controls
+        maskPosition={maskPosition}
+        maskScale={maskScale}
+        onMaskPositionChange={setMaskPosition}
+        onMaskScaleChange={setMaskScale}
         faceMaskSelector={
           <FaceMaskSelector
             effectType={effectType}
