@@ -91,7 +91,7 @@ export const applyFaceMask = (
 
 /**
  * Apply pixelation effect to a region with optimized performance
- * Completely rewritten to ensure proper pixelation
+ * Fixed to ensure proper pixelation
  */
 export const applyPixelation = (
   ctx: CanvasRenderingContext2D,
@@ -104,55 +104,74 @@ export const applyPixelation = (
   if (pixelSize <= 1) return;
   
   // Make pixel size more significant and ensure it's an integer
-  const effectivePixelSize = Math.max(2, Math.round(pixelSize * 1.5));
+  const effectivePixelSize = Math.max(2, Math.round(pixelSize * 2.5));
   
   // Save the current canvas state
   ctx.save();
   
   try {
-    // Get the image data from the region
+    // Get the image data for the region to be pixelated
     const imageData = ctx.getImageData(x, y, width, height);
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
     
-    // Apply pixelation directly to the image data
+    if (!tempCtx) return;
+    
+    // Draw the original image to the temporary canvas
+    tempCtx.putImageData(imageData, 0, 0);
+    
+    // Clear the original area
+    ctx.clearRect(x, y, width, height);
+    
+    // Draw the pixelated version
     for (let blockY = 0; blockY < height; blockY += effectivePixelSize) {
       for (let blockX = 0; blockX < width; blockX += effectivePixelSize) {
-        // Get color from the top-left pixel of each block
-        const blockWidthLimit = Math.min(effectivePixelSize, width - blockX);
-        const blockHeightLimit = Math.min(effectivePixelSize, height - blockY);
+        // Calculate block size (handling edge cases)
+        const blockWidth = Math.min(effectivePixelSize, width - blockX);
+        const blockHeight = Math.min(effectivePixelSize, height - blockY);
         
-        // Sample from the middle of each block for better appearance
-        const sampleX = blockX + Math.floor(blockWidthLimit / 2);
-        const sampleY = blockY + Math.floor(blockHeightLimit / 2);
+        if (blockWidth <= 0 || blockHeight <= 0) continue;
         
-        // Get the pixel index
-        const sampleIndex = (sampleY * width + sampleX) * 4;
+        // Get the average color of the block
+        const blockData = tempCtx.getImageData(blockX, blockY, blockWidth, blockHeight);
+        const rgba = getAverageColor(blockData.data);
         
-        // Get color components
-        const r = imageData.data[sampleIndex];
-        const g = imageData.data[sampleIndex + 1];
-        const b = imageData.data[sampleIndex + 2];
-        const a = imageData.data[sampleIndex + 3];
-        
-        // Apply the color to all pixels in the block
-        for (let y = 0; y < blockHeightLimit; y++) {
-          for (let x = 0; x < blockWidthLimit; x++) {
-            const index = ((blockY + y) * width + (blockX + x)) * 4;
-            imageData.data[index] = r;
-            imageData.data[index + 1] = g;
-            imageData.data[index + 2] = b;
-            imageData.data[index + 3] = a;
-          }
-        }
+        // Fill the block with the average color
+        ctx.fillStyle = `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${rgba.a / 255})`;
+        ctx.fillRect(x + blockX, y + blockY, blockWidth, blockHeight);
       }
     }
-    
-    // Put the modified image data back on the canvas
-    ctx.putImageData(imageData, x, y);
   } finally {
     // Restore the canvas state
     ctx.restore();
   }
 };
+
+/**
+ * Helper function to get the average color from an array of pixel data
+ */
+function getAverageColor(data: Uint8ClampedArray) {
+  let r = 0, g = 0, b = 0, a = 0, count = 0;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    r += data[i];
+    g += data[i + 1];
+    b += data[i + 2];
+    a += data[i + 3];
+    count++;
+  }
+  
+  if (count === 0) return { r: 0, g: 0, b: 0, a: 255 };
+  
+  return {
+    r: Math.round(r / count),
+    g: Math.round(g / count),
+    b: Math.round(b / count),
+    a: Math.round(a / count)
+  };
+}
 
 /**
  * Apply selected face effect based on provided parameters
@@ -187,7 +206,8 @@ export const applyFaceEffect = ({
       applyBlur(ctx, box.x, box.y, box.width, box.height, effectIntensity * 0.5);
       break;
     case 'pixelate':
-      applyPixelation(ctx, box.x, box.y, box.width, box.height, Math.max(2, Math.floor(effectIntensity * 0.4)));
+      // Increase the intensity impact for pixelation to make it more visible
+      applyPixelation(ctx, box.x, box.y, box.width, box.height, Math.max(2, Math.floor(effectIntensity * 0.3)));
       break;
     case 'mask':
       if (maskImage) {

@@ -1,51 +1,38 @@
 
 /**
- * Handles adjustments to slider values for safer transformations
+ * Utilities for adjusting and validating slider values
  */
 
-// Safely adjust slider values to prevent extreme transformations
-export const adjustSliderValues = (sliderValues: Record<string, number>): Record<string, number> => {
-  if (!sliderValues) return {};
+// Clamp slider values to reasonable ranges
+// Prevents transformations from going beyond displayable limits
+export const adjustSliderValues = (sliderValues: Record<string, number>) => {
+  const clampedValues: Record<string, number> = {};
   
-  const clampedSliderValues = { ...sliderValues };
-  
-  // Apply gradual dampening to extreme values
-  Object.keys(clampedSliderValues).forEach(key => {
-    const value = clampedSliderValues[key];
-    if (Math.abs(value) > 60) {
-      const excess = Math.abs(value) - 60;
-      // Apply logarithmic dampening to excess values
-      const dampened = 60 + Math.log10(1 + excess) * 5;
-      clampedSliderValues[key] = value > 0 ? dampened : -dampened;
-    }
+  // Process each slider value
+  Object.entries(sliderValues).forEach(([key, value]) => {
+    // Normal range is -50 to +50, but allow some flexibility
+    clampedValues[key] = Math.max(-60, Math.min(60, value));
   });
   
-  return clampedSliderValues;
+  return clampedValues;
 };
 
 // Check if any transformations are needed
-export const hasTransformations = (sliderValues: Record<string, number> | undefined): boolean => {
-  if (!sliderValues) return false;
-  
-  return Object.values(sliderValues).some(value => Math.abs(value) > 0.1);
+export const hasTransformations = (sliderValues: Record<string, number>) => {
+  // Check if any slider has a non-zero value
+  return Object.values(sliderValues).some(value => Math.abs(value) > 0.001);
 };
 
-// Check if effects are needed
+// Check if any effects need to be applied
 export const hasEffects = (faceEffectOptions?: {
   effectType: 'blur' | 'pixelate' | 'mask' | 'none';
   effectIntensity: number;
   maskImage?: HTMLImageElement | null;
   maskPosition?: { x: number, y: number };
   maskScale?: number;
-}): boolean => {
+}) => {
   if (!faceEffectOptions) return false;
   
-  const { effectType, effectIntensity, maskImage } = faceEffectOptions;
-  
-  // For mask type, we also need a valid mask image
-  if (effectType === 'mask') {
-    return maskImage !== null && maskImage !== undefined && effectIntensity > 0;
-  }
-  
-  return effectType !== 'none' && effectIntensity > 0;
+  // Check if there's an active effect with non-zero intensity
+  return faceEffectOptions.effectType !== 'none' && faceEffectOptions.effectIntensity > 0;
 };
