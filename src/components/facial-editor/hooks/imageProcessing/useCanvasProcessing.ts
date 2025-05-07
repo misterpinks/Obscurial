@@ -1,6 +1,7 @@
 
 import { useCallback } from 'react';
 import { applyFeatureTransformations } from '../../utils/transformationEngine';
+import { useLandmarksDrawing } from './useLandmarks';
 
 interface UseCanvasProcessingProps {
   originalImage: HTMLImageElement | null;
@@ -9,7 +10,6 @@ interface UseCanvasProcessingProps {
   faceDetection: any;
   sliderValues: Record<string, number>;
   showLandmarks: boolean;
-  drawFaceLandmarks: () => void;
   faceEffectOptions?: {
     effectType: 'blur' | 'pixelate' | 'mask' | 'none';
     effectIntensity: number;
@@ -26,9 +26,14 @@ export const useCanvasProcessing = ({
   faceDetection,
   sliderValues,
   showLandmarks,
-  drawFaceLandmarks,
   faceEffectOptions
 }: UseCanvasProcessingProps) => {
+  // Use the landmarks drawing hook
+  const { drawFaceLandmarks } = useLandmarksDrawing({
+    faceDetection,
+    processedCanvasRef,
+    originalImage
+  });
 
   // Process an image, applying transformations and optionally face effects
   const processImage = useCallback(() => {

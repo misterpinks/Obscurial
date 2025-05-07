@@ -5,6 +5,7 @@ import { Camera, Upload, ImageIcon } from "lucide-react";
 import EditorContent from './EditorContent';
 import ImageUploader from './ImageUploader';
 import WebcamCapture from './WebcamCapture';
+import FacialRecognitionResources from './FacialRecognitionResources';
 
 interface EditorTabsProps {
   activeTab: string;
@@ -160,12 +161,18 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
             onMaskScaleChange={onMaskScaleChange}
           />
           
-          {/* Presets section */}
-          {presetsComponent && (
-            <div className="mb-4">
-              {presetsComponent}
+          {/* Resources and Presets in separate sections */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-3">
+              <FacialRecognitionResources />
             </div>
-          )}
+            
+            {presetsComponent && (
+              <div className="lg:col-span-3">
+                {presetsComponent}
+              </div>
+            )}
+          </div>
         </div>
       </TabsContent>
     </Tabs>
