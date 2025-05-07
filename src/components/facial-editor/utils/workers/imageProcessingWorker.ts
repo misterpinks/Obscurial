@@ -257,13 +257,16 @@ self.onmessage = function(e) {
     const processingTime = performance.now() - startTime;
     
     // Transfer processed data back to main thread
-    // FIX: Proper usage of postMessage with transferable objects
-    self.postMessage({
+    // Fix: Correct usage of postMessage with transferable objects
+    const messageData = {
       processedData: outputData.buffer,
       width: originalImageData.width,
       height: originalImageData.height,
       processingTime
-    }, [outputData.buffer]);
+    };
+    
+    // Correctly specify transferables as the third parameter (or in options object)
+    self.postMessage(messageData, [outputData.buffer]);
   }
 };
 
