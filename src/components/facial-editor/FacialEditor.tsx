@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -6,6 +7,7 @@ import EditorTabs from './EditorTabs';
 import PresetSelector from './PresetSelector';
 import EditorToolbar from './EditorToolbar';
 import FaceMaskSelector from './FaceMaskSelector';
+import FacialRecognitionResources from './FacialRecognitionResources';
 
 // Import custom hooks
 import {
@@ -231,11 +233,14 @@ const FacialEditor = () => {
   // Hook for batch upload
   const { handleBatchUpload } = useBatchUpload(addToBatch);
 
+  // FIX: Handle the webcam capture function to return HTMLImageElement as required
   const handleCaptureFromWebcam = () => {
     const img = captureFromWebcam();
     if (img) {
       setOriginalImage(img);
+      return img; // Make sure we return the img
     }
+    return null; // Return null when no image is captured
   };
 
   // Create the mask selector element
@@ -321,6 +326,8 @@ const FacialEditor = () => {
           />
         }
       />
+      
+      <FacialRecognitionResources />
     </div>
   );
 };
