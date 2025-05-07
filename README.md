@@ -24,8 +24,8 @@ Face Veil Disguise is an open-source tool designed to anonymize images by applyi
 
 1. Clone the repository:
 ```
-git clone https://github.com/misterpinks/face-veil-disguise.git
-cd face-veil-disguise
+git clone https://github.com/misterpinks/Obscurial.git
+cd Obscurial
 ```
 
 2. Open `index.html` in your browser or set up a local server:
@@ -40,8 +40,7 @@ python -m http.server
 1. Open the application in your browser
 2. Upload an image using the "Choose File" button or drag and drop
 3. Adjust settings as needed
-4. Click "Process Image" to apply the disguise
-5. Download the processed image using the "Save" button
+4. Download the processed image using the "Save" button
 
 ## Example
 ![App screenshot](screenshot.png)
@@ -80,7 +79,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-Project Link: [https://github.com/misterpinks/face-veil-disguise](https://github.com/misterpinks/face-veil-disguise)
+Project Link: [https://github.com/misterpinks/face-veil-disguise](https://github.com/misterpinks/Obscurial)
 
 ---
 
