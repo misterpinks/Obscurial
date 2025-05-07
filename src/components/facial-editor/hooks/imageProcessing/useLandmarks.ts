@@ -1,6 +1,4 @@
 
-// Note: This is a new file we're creating based on the existing logic in the codebase
-
 import { useCallback } from 'react';
 
 interface UseLandmarksDrawingProps {
