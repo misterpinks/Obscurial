@@ -31,7 +31,7 @@ const Slider = React.forwardRef<
     
     // Call the onValueCommit prop if provided
     if (props.onValueCommit) {
-      props.onValueCommit();
+      props.onValueCommit(e);
     }
   }, [isDragging, props, handleDocumentMouseMove]);
 
@@ -56,7 +56,7 @@ const Slider = React.forwardRef<
     
     // Call the onValueCommit prop if provided
     if (props.onValueCommit) {
-      props.onValueCommit();
+      props.onValueCommit(e);
     }
   }, [isDragging, props, handleDocumentTouchMove]);
   

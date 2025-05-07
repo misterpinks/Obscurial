@@ -39,10 +39,19 @@ export const useFileUpload = ({
     setInitialProcessingDone(false);
     setHasShownNoFaceToast(false);
     
-    // Force image refresh by setting to null first
+    // Force complete image refresh by setting to null first
     setOriginalImage(null);
     
-    // Use timeout to ensure the UI updates before loading the new image
+    // Ensure any Canvas references are reset
+    const canvases = document.querySelectorAll('canvas');
+    canvases.forEach(canvas => {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    });
+    
+    // Use a slightly longer timeout to ensure the UI updates before loading the new image
     setTimeout(() => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -55,7 +64,7 @@ export const useFileUpload = ({
         img.src = event.target?.result as string;
       };
       reader.readAsDataURL(file);
-    }, 100);
+    }, 200);
   }, [setOriginalImage, setActiveTab, setFaceDetection, setInitialProcessingDone, setHasShownNoFaceToast, toast]);
 
   const triggerFileInput = useCallback(() => {

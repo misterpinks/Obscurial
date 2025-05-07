@@ -15,21 +15,26 @@ export const useLandmarksDrawing = ({
   
   // Draw landmarks on the processed canvas with updated colors and better scaling
   const drawFaceLandmarks = useCallback(() => {
-    if (!faceDetection?.landmarks || !processedCanvasRef.current || !originalImage) return;
+    if (!faceDetection?.landmarks || !processedCanvasRef.current || !originalImage) {
+      console.log("Cannot draw landmarks: missing detection, canvas or image");
+      return;
+    }
+    
+    console.log("Drawing landmarks on canvas");
     
     const canvas = processedCanvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     
     // Calculate a scaling factor based on image dimensions
     // This ensures landmarks are visible regardless of image size
     const imageDimension = Math.max(originalImage.width, originalImage.height);
-    let pointSize = Math.max(2, Math.floor(imageDimension / 200)); // Minimum size of 2
-    let lineWidth = Math.max(1, Math.floor(imageDimension / 400)); // Minimum line width of 1
+    let pointSize = Math.max(3, Math.floor(imageDimension / 200)); // Minimum size of 3
+    let lineWidth = Math.max(2, Math.floor(imageDimension / 400)); // Minimum line width of 2
     
     // Cap sizes for very large images
-    pointSize = Math.min(pointSize, 7); 
-    lineWidth = Math.min(lineWidth, 3);
+    pointSize = Math.min(pointSize, 8); 
+    lineWidth = Math.min(lineWidth, 4);
     
     console.log(`Using landmark point size: ${pointSize}, line width: ${lineWidth} for image dimension: ${imageDimension}`);
     
@@ -41,8 +46,8 @@ export const useLandmarksDrawing = ({
       face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#F97316' }
     };
     
-    // Draw face bounding box - light green
-    ctx.strokeStyle = '#F2FCE2';
+    // Draw face bounding box with higher visibility
+    ctx.strokeStyle = '#00FF00';
     ctx.lineWidth = lineWidth * 2;
     const box = faceDetection.detection.box;
     ctx.strokeRect(box.x, box.y, box.width, box.height);
@@ -73,13 +78,16 @@ export const useLandmarksDrawing = ({
         ctx.stroke();
       }
       
-      // Draw points with scaled size
+      // Draw points with scaled size and ensure they're visible
       group.points.forEach(pointIdx => {
         ctx.beginPath();
         ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, pointSize, 0, 2 * Math.PI);
         ctx.fill();
+        ctx.stroke();
       });
     });
+    
+    console.log("Landmarks drawn successfully");
   }, [faceDetection, processedCanvasRef, originalImage]);
 
   return { drawFaceLandmarks };

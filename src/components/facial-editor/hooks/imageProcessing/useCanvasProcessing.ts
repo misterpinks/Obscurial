@@ -36,54 +36,59 @@ export const useCanvasProcessing = ({
     
     console.log("Starting image processing");
     
-    // First process the clean canvas (without landmarks)
-    const cleanCanvas = cleanProcessedCanvasRef.current;
-    const cleanCtx = cleanCanvas.getContext("2d", { willReadFrequently: true });
-    if (!cleanCtx) return;
-    
-    // Set canvas dimensions to match image
-    cleanCanvas.width = originalImage.width;
-    cleanCanvas.height = originalImage.height;
-    
-    // Clear the canvas first to ensure no remnants of previous images
-    cleanCtx.clearRect(0, 0, cleanCanvas.width, cleanCanvas.height);
-    
-    // Apply feature transformations directly to the clean canvas
-    applyFeatureTransformations({
-      ctx: cleanCtx,
-      originalImage,
-      width: cleanCanvas.width,
-      height: cleanCanvas.height,
-      faceDetection,
-      sliderValues,
-      faceEffectOptions
-    });
-    
-    // Now process the canvas with landmarks
-    const canvas = processedCanvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    
-    // Set canvas dimensions to match image
-    canvas.width = originalImage.width;
-    canvas.height = originalImage.height;
-    
-    // Clear the canvas first to ensure no remnants of previous images
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Copy the clean processed image to the display canvas
-    ctx.drawImage(cleanCanvas, 0, 0);
-    
-    // Draw landmarks on top of the processed image
-    if (faceDetection && showLandmarks) {
-      // Make sure landmarks are drawn on top with proper z-index
-      setTimeout(() => {
-        drawFaceLandmarks();
-      }, 0);
+    try {
+      // First process the clean canvas (without landmarks)
+      const cleanCanvas = cleanProcessedCanvasRef.current;
+      const cleanCtx = cleanCanvas.getContext("2d", { willReadFrequently: true });
+      if (!cleanCtx) return;
+      
+      // Set canvas dimensions to match image
+      cleanCanvas.width = originalImage.width;
+      cleanCanvas.height = originalImage.height;
+      
+      // Clear the canvas first to ensure no remnants of previous images
+      cleanCtx.clearRect(0, 0, cleanCanvas.width, cleanCanvas.height);
+      
+      // Apply feature transformations directly to the clean canvas
+      applyFeatureTransformations({
+        ctx: cleanCtx,
+        originalImage,
+        width: cleanCanvas.width,
+        height: cleanCanvas.height,
+        faceDetection,
+        sliderValues,
+        faceEffectOptions
+      });
+      
+      // Now process the canvas with landmarks
+      const canvas = processedCanvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      
+      // Set canvas dimensions to match image
+      canvas.width = originalImage.width;
+      canvas.height = originalImage.height;
+      
+      // Clear the canvas first to ensure no remnants of previous images
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Copy the clean processed image to the display canvas
+      ctx.drawImage(cleanCanvas, 0, 0);
+      
+      // Draw landmarks on top of the processed image
+      if (faceDetection && showLandmarks) {
+        // We need to ensure this happens after the image is drawn
+        requestAnimationFrame(() => {
+          drawFaceLandmarks();
+        });
+      }
+      
+      // Return the processed canvas for potential further usage
+      return cleanCanvas;
+    } catch (error) {
+      console.error("Error processing image:", error);
+      return null;
     }
-    
-    // Return the processed canvas for potential further usage
-    return cleanCanvas;
   }, [
     originalImage, 
     processedCanvasRef, 
