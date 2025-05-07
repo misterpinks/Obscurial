@@ -4,8 +4,12 @@
  * This runs in a separate thread to prevent UI blocking
  */
 
-// Type definitions for Web Worker context
-declare const self: DedicatedWorkerGlobalScope;
+// Import our worker interface type
+import { WorkerGlobalScopeInterface } from './workerManager';
+
+// Define proper self type for this context
+type WorkerSelf = WorkerGlobalScopeInterface;
+declare const self: WorkerSelf;
 
 // Let main thread know worker is ready
 self.postMessage({ status: 'ready' });
@@ -82,16 +86,16 @@ const processImageData = (
     const processingTime = performance.now() - startTime;
     
     // Transfer processed data back to main thread
-    // Fix: Correct usage of postMessage with transferable objects
-    const messageData = {
-      processedData: outputData.buffer,
-      width: originalImageData.width,
-      height: originalImageData.height,
-      processingTime
-    };
-    
-    // Correctly specify transferables as an array of Transferable objects
-    self.postMessage(messageData, [outputData.buffer as Transferable]);
+    // Correctly use postMessage with transferable objects
+    self.postMessage(
+      {
+        processedData: outputData.buffer,
+        width: originalImageData.width,
+        height: originalImageData.height,
+        processingTime
+      }, 
+      [outputData.buffer as Transferable]
+    );
   } catch (error) {
     // Report errors back to main thread
     self.postMessage({

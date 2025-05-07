@@ -10,8 +10,9 @@ declare global {
   // Use our interface instead of the undefined DedicatedWorkerGlobalScope
   interface Window extends WorkerGlobalScopeInterface {}
   
-  // Make self refer to our interface when in worker context
-  var self: WorkerGlobalScopeInterface;
+  // Override the type for self in worker context, but only in worker files
+  // Using 'declare var' instead of 'var' prevents TypeScript from thinking we're redefining it
+  declare var self: WorkerGlobalScopeInterface;
 }
 
 // Face effect options interface
