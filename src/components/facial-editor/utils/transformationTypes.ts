@@ -6,13 +6,7 @@ export interface TransformationParams {
   height: number;
   faceDetection: any;
   sliderValues: Record<string, number>;
-  faceEffectOptions?: {
-    effectType: 'blur' | 'pixelate' | 'mask' | 'none';
-    effectIntensity: number;
-    maskImage?: HTMLImageElement | null;
-    maskPosition?: { x: number, y: number };
-    maskScale?: number;
-  };
+  faceEffectOptions?: FaceEffectOptions;
 }
 
 // Define the FacialRegion interface for facial transformation regions
@@ -22,4 +16,13 @@ export interface FacialRegion {
     displacementX: number;
     displacementY: number;
   };
+}
+
+// Add the FaceEffectOptions interface
+export interface FaceEffectOptions {
+  effectType: 'blur' | 'pixelate' | 'mask' | 'none';
+  effectIntensity: number;
+  maskImage?: HTMLImageElement | null;
+  maskPosition?: { x: number, y: number };
+  maskScale?: number;
 }
