@@ -31,7 +31,8 @@ const Slider = React.forwardRef<
     
     // Call the onValueCommit prop if provided, passing the current value
     if (props.onValueCommit) {
-      props.onValueCommit(props.value ?? [0]);
+      // Make sure we're passing the array value expected by the function
+      props.onValueCommit(props.value || [0]);
     }
   }, [isDragging, props, handleDocumentMouseMove]);
 
@@ -56,7 +57,8 @@ const Slider = React.forwardRef<
     
     // Call the onValueCommit prop if provided, passing the current value
     if (props.onValueCommit) {
-      props.onValueCommit(props.value ?? [0]);
+      // Make sure we're passing the array value expected by the function
+      props.onValueCommit(props.value || [0]);
     }
   }, [isDragging, props, handleDocumentTouchMove]);
   
