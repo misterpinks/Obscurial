@@ -23,3 +23,12 @@ export interface TransformationParams {
   faceEffectOptions?: FaceEffectOptions;
   worker?: Worker; // Optional Web Worker for improved performance
 }
+
+// Facial Region interface for region-based transformations
+export interface FacialRegion {
+  condition: (normX: number, normY: number, distFromCenter?: number) => boolean;
+  transform: (normX: number, normY: number, sliderValues: Record<string, number>, amplificationFactor: number) => {
+    displacementX: number;
+    displacementY: number;
+  };
+}

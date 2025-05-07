@@ -17,7 +17,7 @@ export const useFaceAnalysis = (
   const [initialProcessingDone, setInitialProcessingDone] = useState(false);
   const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
   const [autoAnalyze, setAutoAnalyze] = useState(false);
-  const [lastProcessedValues, setLastProcessedValues] = useState<Record<string, number> | null>(null);
+  const [lastProcessedValues, setLastProcessedValues] = useState<string>('');
   
   // Use the extracted face detection hook
   const {
