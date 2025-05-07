@@ -1,3 +1,4 @@
+
 /**
  * Web Worker for image processing operations
  * This runs in a separate thread to prevent UI blocking
@@ -14,7 +15,7 @@ const workerSelf = self as unknown as WorkerGlobalScopeInterface;
 workerSelf.postMessage({ status: 'ready' });
 
 // Process messages from main thread
-workerSelf.addEventListener('message', (event) => {
+workerSelf.addEventListener('message', (event: MessageEvent) => {
   const { command, originalImageData, params } = event.data;
   
   if (command === 'process') {
@@ -25,7 +26,7 @@ workerSelf.addEventListener('message', (event) => {
 /**
  * Process image data with facial transformations
  */
-function processImageData(originalImageData, params) {
+function processImageData(originalImageData: any, params: any) {
   try {
     const { width, height } = originalImageData;
     const {
@@ -155,13 +156,13 @@ function processImageData(originalImageData, params) {
     workerSelf.postMessage(
       {
         processedData: outputData.buffer,
-        width: originalImageData.width,
-        height: originalImageData.height,
+        width,
+        height,
         processingTime
       }, 
-      [outputData.buffer as Transferable]
+      [outputData.buffer]
     );
-  } catch (error) {
+  } catch (error: any) {
     // Report errors back to main thread
     workerSelf.postMessage({
       error: error.message || 'Unknown error in worker'
