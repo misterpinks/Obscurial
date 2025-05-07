@@ -65,9 +65,10 @@ export const useImageProcessing = ({
       (!lastProcessedValues || 
        JSON.stringify(sliderValues) !== JSON.stringify(lastProcessedValues))
     ) {
+      console.log('Processing image due to slider value changes');
       processImage();
     }
-  }, [sliderValues, initialProcessingDone]);
+  }, [sliderValues, initialProcessingDone, originalImage, lastProcessedValues]);
   
   // Redraw landmarks when showLandmarks changes
   useEffect(() => {
@@ -86,12 +87,16 @@ export const useImageProcessing = ({
         }
       }
     }
-  }, [showLandmarks, faceDetection]);
+  }, [showLandmarks, faceDetection, originalImage, initialProcessingDone]);
 
   const processImage = useCallback(() => {
-    if (!originalImage || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) return;
+    if (!originalImage || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) {
+      console.log('Missing required elements for image processing');
+      return;
+    }
     
     setIsProcessing(true);
+    console.log('Starting image processing');
     
     try {
       // Import the transformationEngine module
@@ -125,6 +130,7 @@ export const useImageProcessing = ({
       
       // Update clean processed image URL for download
       setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
+      console.log('Clean canvas processed and URL updated');
       
       // Now process the canvas with landmarks
       const canvas = processedCanvasRef.current;
@@ -158,6 +164,7 @@ export const useImageProcessing = ({
       console.error("Error processing image:", error);
     } finally {
       setIsProcessing(false);
+      console.log('Image processing complete');
     }
   }, [
     originalImage, 

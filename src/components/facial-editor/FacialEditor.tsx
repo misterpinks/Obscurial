@@ -7,7 +7,6 @@ import EditorTabs from './EditorTabs';
 import PresetSelector from './PresetSelector';
 import EditorToolbar from './EditorToolbar';
 import FaceMaskSelector from './FaceMaskSelector';
-import FacialRecognitionResources from './FacialRecognitionResources';
 
 // Import custom hooks
 import {
@@ -238,9 +237,9 @@ const FacialEditor = () => {
     const img = captureFromWebcam();
     if (img) {
       setOriginalImage(img);
-      return img; // Make sure we return the img
+      return img;
     }
-    return null; // Return null when no image is captured
+    return null;
   };
 
   // Create the mask selector element
