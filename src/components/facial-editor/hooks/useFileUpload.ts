@@ -37,6 +37,8 @@ export const useFileUpload = ({
       return;
     }
     
+    console.log("Image upload started:", file.name);
+    
     // Reset states completely before loading new image
     setFaceDetection(null);
     setInitialProcessingDone(false);
@@ -58,6 +60,7 @@ export const useFileUpload = ({
     // Use a slightly longer timeout to ensure the UI updates before loading the new image
     setTimeout(() => {
       const reader = new FileReader();
+      
       reader.onload = (event) => {
         const dataUrl = event.target?.result as string;
         
@@ -80,11 +83,23 @@ export const useFileUpload = ({
           }
         };
         
-        // Use the unique URL to prevent caching
+        // Set the source to start loading the image
         img.src = uniqueUrl;
       };
+      
+      reader.onerror = (error) => {
+        console.error("FileReader error:", error);
+        toast({
+          variant: "destructive",
+          title: "Error Loading Image",
+          description: "Failed to read the selected image file."
+        });
+      };
+      
+      // Start reading the file as data URL
       reader.readAsDataURL(file);
     }, 300); // Increased timeout for better UI updating
+    
   }, [setOriginalImage, setActiveTab, setFaceDetection, setInitialProcessingDone, setHasShownNoFaceToast, toast]);
 
   const triggerFileInput = useCallback(() => {
