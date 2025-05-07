@@ -17,7 +17,17 @@ export const useLandmarksDrawing = ({
   
   // Draw landmarks on the processed canvas with updated colors and better scaling
   const drawFaceLandmarks = useCallback(() => {
-    if (!faceDetection?.landmarks || !processedCanvasRef.current || !originalImage) return;
+    if (!faceDetection?.landmarks || !processedCanvasRef.current || !originalImage) {
+      console.log("Missing data for drawing landmarks:", {
+        hasFaceDetection: !!faceDetection,
+        hasLandmarks: !!faceDetection?.landmarks,
+        hasCanvas: !!processedCanvasRef.current,
+        hasImage: !!originalImage
+      });
+      return;
+    }
+    
+    console.log("Drawing landmarks on processed image");
     
     const canvas = processedCanvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -82,6 +92,8 @@ export const useLandmarksDrawing = ({
         ctx.fill();
       });
     });
+    
+    console.log("Landmarks drawing completed");
   }, [faceDetection, processedCanvasRef, originalImage]);
 
   return { drawFaceLandmarks };

@@ -24,6 +24,8 @@ export const useLandmarks = (setFaceDetection: (detection: any) => void) => {
           updatedFaceDetection.landmarks.positions[pointIndex]) {
         updatedFaceDetection.landmarks.positions[pointIndex].x = x;
         updatedFaceDetection.landmarks.positions[pointIndex].y = y;
+        
+        console.log(`Moved landmark ${pointIndex} to (${x}, ${y})`);
       }
       
       return updatedFaceDetection;

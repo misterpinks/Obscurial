@@ -63,6 +63,7 @@ const ImageDisplay = ({
     };
     
     // Set source to trigger loading
+    img.crossOrigin = "anonymous"; // Add this to handle cross-origin images
     img.src = imageSource;
     
     return () => {

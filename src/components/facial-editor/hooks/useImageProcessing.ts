@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState, RefObject } from 'react';
 import { FaceEffectOptions } from '../utils/transformationTypes';
 import { applyFeatureTransformations } from '../utils/transformationEngine';
-import { drawFaceLandmarks } from '../utils/landmarkVisualization';
+import { useLandmarksDrawing } from './imageProcessing/useLandmarks';
 
 interface UseImageProcessingProps {
   originalImage: HTMLImageElement | null;
@@ -45,6 +45,13 @@ export const useImageProcessing = ({
 }: UseImageProcessingProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>('');
+  
+  // Use the landmarks drawing hook
+  const { drawFaceLandmarks } = useLandmarksDrawing({
+    faceDetection,
+    processedCanvasRef,
+    originalImage
+  });
 
   // Preserve original image on canvas whenever it changes
   useEffect(() => {
@@ -57,6 +64,7 @@ export const useImageProcessing = ({
         
         // Draw the image to canvas
         origCtx.drawImage(originalImage, 0, 0);
+        console.log("Original image drawn to canvas:", originalImage.width, "x", originalImage.height);
       }
     }
   }, [originalImage]);
@@ -87,11 +95,11 @@ export const useImageProcessing = ({
         
         // If landmarks should be shown, draw them
         if (showLandmarks && faceDetection) {
-          drawFaceLandmarks(processedCtx as any, faceDetection, processedCanvasRef.current.height);
+          drawFaceLandmarks();
         }
       }
     }
-  }, [showLandmarks, faceDetection, originalImage, initialProcessingDone]);
+  }, [showLandmarks, faceDetection, originalImage, initialProcessingDone, drawFaceLandmarks]);
 
   const processImage = useCallback(async () => {
     if (!originalImage || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) {
@@ -151,7 +159,7 @@ export const useImageProcessing = ({
       
       // Draw landmarks on top of the processed image
       if (faceDetection && showLandmarks) {
-        drawFaceLandmarks(ctx as any, faceDetection, canvas.height);
+        drawFaceLandmarks();
       }
       
       // Store last processed values to prevent unnecessary reprocessing
@@ -178,7 +186,8 @@ export const useImageProcessing = ({
     setLastProcessedValues,
     faceEffectOptions,
     worker,
-    isWorkerReady
+    isWorkerReady,
+    drawFaceLandmarks
   ]);
 
   const downloadImage = useCallback(() => {

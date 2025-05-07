@@ -21,14 +21,29 @@ export const applyFeatureTransformations = async ({
   faceEffectOptions,
   worker
 }: TransformationParams & { worker?: Worker }) => {
-  if (!ctx || !originalImage) return;
+  if (!ctx || !originalImage) {
+    console.error("Missing context or original image in transformation");
+    return;
+  }
+  
+  console.log("Starting transformation with options:", {
+    width, 
+    height, 
+    hasFaceDetection: !!faceDetection,
+    hasSliderValues: !!sliderValues,
+    hasEffectOptions: !!faceEffectOptions,
+    hasWorker: !!worker
+  });
   
   // Quick check if any transformations or effects are actually needed
   const needsTransformations = hasTransformations(sliderValues);
   const needsEffects = hasEffects(faceEffectOptions);
   
+  console.log("Needs transformations:", needsTransformations, "Needs effects:", needsEffects);
+  
   if (!needsTransformations && !needsEffects) {
     // Just copy the original image if no transformations needed
+    console.log("No transformations or effects needed, copying original");
     ctx.drawImage(originalImage, 0, 0);
     return;
   }
@@ -36,6 +51,7 @@ export const applyFeatureTransformations = async ({
   // Skip expensive pixel-by-pixel operations if only effects are needed
   if (!needsTransformations && needsEffects && faceEffectOptions) {
     // Draw original image first
+    console.log("Only applying face effects, skipping transformations");
     ctx.drawImage(originalImage, 0, 0);
     
     // Then apply face effects only
@@ -49,11 +65,15 @@ export const applyFeatureTransformations = async ({
   }
   
   // For actual transformations, use off-screen canvas for processing
+  console.log("Setting up off-screen canvas for transformations");
   const offCanvas = document.createElement("canvas");
   offCanvas.width = width;
   offCanvas.height = height;
   const offCtx = offCanvas.getContext("2d", { alpha: false, willReadFrequently: true });
-  if (!offCtx) return;
+  if (!offCtx) {
+    console.error("Failed to get off-screen canvas context");
+    return;
+  }
   
   // Draw original to off-screen canvas
   offCtx.drawImage(originalImage, 0, 0);
@@ -78,6 +98,7 @@ export const applyFeatureTransformations = async ({
     // Make face area larger than detected to avoid edge artifacts
     faceWidth = box.width * 1.5;
     faceHeight = box.height * 1.5;
+    console.log("Using detected face box for transformation:", {centerX, centerY, faceWidth, faceHeight});
   }
   
   // Calculate dynamic amplification factor based on image dimensions
@@ -88,11 +109,13 @@ export const applyFeatureTransformations = async ({
   
   // Combine base amplification with size factor
   const amplificationFactor = baseAmplificationFactor * sizeFactor * 1.5;
+  console.log(`Using amplification factor: ${amplificationFactor} (base: ${baseAmplificationFactor}, size factor: ${sizeFactor})`);
   
   // Safety check for extreme values - automatically clamp them
   const clampedSliderValues = adjustSliderValues(sliderValues);
   
   // Use chunked processing with Web Worker support for better UI responsiveness
+  console.log("Starting chunked image processing");
   await processImageInChunks(
     ctx,
     originalData,
@@ -110,4 +133,17 @@ export const applyFeatureTransformations = async ({
     faceEffectOptions,
     worker // Pass the worker if available
   );
+  
+  // After all transformations, apply any face effects if needed
+  if (needsEffects && faceEffectOptions) {
+    console.log("Applying face effects after transformations");
+    applyFaceEffect({
+      ctx,
+      originalImage: null, // Don't need original image here as we're working on already transformed data
+      faceDetection,
+      ...faceEffectOptions
+    });
+  }
+  
+  console.log("Image transformation complete");
 };
