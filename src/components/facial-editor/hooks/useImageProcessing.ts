@@ -20,8 +20,8 @@ interface UseImageProcessingProps {
   lastProcessedValues: string;
   setLastProcessedValues: (values: string) => void;
   faceEffectOptions: FaceEffectOptions;
-  worker?: Worker; // Add worker parameter
-  isWorkerReady?: boolean; // Add worker ready state
+  worker?: Worker;
+  isWorkerReady?: boolean;
 }
 
 export const useImageProcessing = ({
@@ -45,6 +45,7 @@ export const useImageProcessing = ({
 }: UseImageProcessingProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>('');
+  const [imageDrawnToOriginalCanvas, setImageDrawnToOriginalCanvas] = useState(false);
   
   // Use the landmarks drawing hook
   const { drawFaceLandmarks } = useLandmarksDrawing({
@@ -55,55 +56,114 @@ export const useImageProcessing = ({
 
   // Preserve original image on canvas whenever it changes
   useEffect(() => {
-    if (originalImage && originalCanvasRef.current) {
-      const origCtx = originalCanvasRef.current.getContext("2d");
-      if (origCtx) {
+    if (!originalImage) {
+      console.log('No original image available to draw to canvas');
+      setImageDrawnToOriginalCanvas(false);
+      return;
+    }
+    
+    if (!originalCanvasRef.current) {
+      console.log('Original canvas reference not available');
+      return;
+    }
+    
+    console.log('Drawing original image to canvas:', originalImage.width, 'x', originalImage.height);
+    
+    const origCtx = originalCanvasRef.current.getContext("2d");
+    if (!origCtx) {
+      console.error('Failed to get canvas context for original image');
+      return;
+    }
+    
+    // Wait for the image to be fully loaded
+    const drawImage = () => {
+      try {
         // Set canvas dimensions to match image
-        originalCanvasRef.current.width = originalImage.width;
-        originalCanvasRef.current.height = originalImage.height;
+        originalCanvasRef.current!.width = originalImage.width;
+        originalCanvasRef.current!.height = originalImage.height;
+        
+        // Clear any previous content
+        origCtx.clearRect(0, 0, originalImage.width, originalImage.height);
         
         // Draw the image to canvas
         origCtx.drawImage(originalImage, 0, 0);
-        console.log("Original image drawn to canvas:", originalImage.width, "x", originalImage.height);
+        
+        console.log("Original image successfully drawn to canvas");
+        setImageDrawnToOriginalCanvas(true);
+        
+        // Once the original image is drawn, initiate face detection
+        if (isFaceApiLoaded) {
+          console.log("Triggering face detection after drawing image to canvas");
+          detectFaces();
+        }
+      } catch (error) {
+        console.error("Error drawing original image to canvas:", error);
       }
+    };
+    
+    if (originalImage.complete) {
+      drawImage();
+    } else {
+      originalImage.onload = drawImage;
     }
-  }, [originalImage]);
+  }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces]);
 
   // Process image when sliders change or when initial processing is done
   useEffect(() => {
-    if (
-      originalImage && 
-      initialProcessingDone && 
-      sliderValues && 
-      // Only process if values actually changed or we haven't processed yet
-      (!lastProcessedValues || 
-       JSON.stringify(sliderValues) !== lastProcessedValues)
-    ) {
-      console.log('Processing image due to slider value changes');
-      processImage();
+    // Only proceed if we have an image and initial processing is complete
+    if (!originalImage || !initialProcessingDone) {
+      console.log('Skipping processing - missing image or initial processing not done');
+      return;
     }
-  }, [sliderValues, initialProcessingDone, originalImage, lastProcessedValues]);
+    
+    // Only process if values actually changed or we haven't processed yet
+    const currentValuesString = JSON.stringify({ sliders: sliderValues, effects: faceEffectOptions });
+    if (lastProcessedValues && currentValuesString === lastProcessedValues) {
+      console.log('Skipping processing - values have not changed');
+      return;
+    }
+    
+    console.log('Processing image due to slider/effect value changes or initial loading');
+    processImage();
+  }, [sliderValues, faceEffectOptions, initialProcessingDone, originalImage, lastProcessedValues]);
   
   // Redraw landmarks when showLandmarks changes
   useEffect(() => {
-    if (originalImage && initialProcessingDone && processedCanvasRef.current && cleanProcessedCanvasRef.current) {
-      // Just redraw from the clean canvas instead of full reprocessing
-      const processedCtx = processedCanvasRef.current.getContext('2d');
-      if (processedCtx && cleanProcessedCanvasRef.current) {
-        processedCtx.clearRect(0, 0, processedCanvasRef.current.width, processedCanvasRef.current.height);
-        processedCtx.drawImage(cleanProcessedCanvasRef.current, 0, 0);
-        
-        // If landmarks should be shown, draw them
-        if (showLandmarks && faceDetection) {
-          drawFaceLandmarks();
-        }
+    if (!originalImage || !initialProcessingDone || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) {
+      console.log('Cannot redraw landmarks - missing prerequisites');
+      return;
+    }
+    
+    // Just redraw from the clean canvas instead of full reprocessing
+    const processedCtx = processedCanvasRef.current.getContext('2d');
+    if (!processedCtx || !cleanProcessedCanvasRef.current) {
+      console.error("Failed to get processed canvas context for redrawing landmarks");
+      return;
+    }
+    
+    try {
+      console.log(`Redrawing canvas with landmarks ${showLandmarks ? 'enabled' : 'disabled'}`);
+      processedCtx.clearRect(0, 0, processedCanvasRef.current.width, processedCanvasRef.current.height);
+      processedCtx.drawImage(cleanProcessedCanvasRef.current, 0, 0);
+      
+      // If landmarks should be shown, draw them
+      if (showLandmarks && faceDetection) {
+        drawFaceLandmarks();
       }
+    } catch (error) {
+      console.error("Error redrawing landmarks:", error);
     }
   }, [showLandmarks, faceDetection, originalImage, initialProcessingDone, drawFaceLandmarks]);
 
+  // Process the image and apply transformations
   const processImage = useCallback(async () => {
-    if (!originalImage || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) {
-      console.log('Missing required elements for image processing');
+    if (!originalImage) {
+      console.log('Missing original image for processing');
+      return;
+    }
+    
+    if (!processedCanvasRef.current || !cleanProcessedCanvasRef.current) {
+      console.log('Missing canvas references for processing');
       return;
     }
     
@@ -163,7 +223,8 @@ export const useImageProcessing = ({
       }
       
       // Store last processed values to prevent unnecessary reprocessing
-      setLastProcessedValues(JSON.stringify(sliderValues));
+      const currentValuesString = JSON.stringify({ sliders: sliderValues, effects: faceEffectOptions });
+      setLastProcessedValues(currentValuesString);
       
       // If we have face data and auto analyze is on, analyze the modified image
       if (faceDetection && isFaceApiLoaded && autoAnalyze) {
@@ -190,9 +251,14 @@ export const useImageProcessing = ({
     drawFaceLandmarks
   ]);
 
+  // Helper function to download the processed image
   const downloadImage = useCallback(() => {
-    if (!cleanProcessedImageURL) return;
+    if (!cleanProcessedImageURL) {
+      console.log("No processed image available to download");
+      return;
+    }
     
+    console.log("Downloading processed image");
     const link = document.createElement("a");
     link.href = cleanProcessedImageURL;
     link.download = "privacy-protected-image.png";
@@ -205,6 +271,7 @@ export const useImageProcessing = ({
     isProcessing,
     cleanProcessedImageURL,
     processImage,
-    downloadImage
+    downloadImage,
+    imageDrawnToOriginalCanvas
   };
 };

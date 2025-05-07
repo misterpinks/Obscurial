@@ -91,7 +91,7 @@ export const applyFeatureTransformations = async ({
   let faceHeight = height * 0.9;
   
   // Use detected face box if available
-  if (faceDetection && faceDetection.detection) {
+  if (faceDetection && faceDetection.detection && faceDetection.detection.box) {
     const box = faceDetection.detection.box;
     centerX = box.x + box.width / 2;
     centerY = box.y + box.height / 2;
@@ -99,6 +99,8 @@ export const applyFeatureTransformations = async ({
     faceWidth = box.width * 1.5;
     faceHeight = box.height * 1.5;
     console.log("Using detected face box for transformation:", {centerX, centerY, faceWidth, faceHeight});
+  } else {
+    console.log("No face detection available, using estimated face area");
   }
   
   // Calculate dynamic amplification factor based on image dimensions

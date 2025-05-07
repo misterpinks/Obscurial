@@ -15,13 +15,14 @@ export const useLandmarksDrawing = ({
   
   // Draw landmarks on the processed canvas with updated colors and better scaling
   const drawFaceLandmarks = useCallback(() => {
-    if (!faceDetection?.landmarks || !processedCanvasRef.current || !originalImage) {
-      console.log("Missing data for drawing landmarks:", {
-        hasFaceDetection: !!faceDetection,
-        hasLandmarks: !!faceDetection?.landmarks,
-        hasCanvas: !!processedCanvasRef.current,
-        hasImage: !!originalImage
-      });
+    if (!processedCanvasRef.current || !originalImage) {
+      console.log("Missing canvas or image for drawing landmarks");
+      return;
+    }
+    
+    // Check if we have landmarks to draw
+    if (!faceDetection?.landmarks) {
+      console.log("No landmarks available to draw");
       return;
     }
     
@@ -29,7 +30,10 @@ export const useLandmarksDrawing = ({
     
     const canvas = processedCanvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error("Could not get canvas context for landmarks");
+      return;
+    }
     
     // Calculate a scaling factor based on image dimensions
     // This ensures landmarks are visible regardless of image size
@@ -51,47 +55,63 @@ export const useLandmarksDrawing = ({
       face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#F97316' }
     };
     
-    // Draw face bounding box - light green
-    ctx.strokeStyle = '#F2FCE2';
-    ctx.lineWidth = lineWidth * 2;
-    const box = faceDetection.detection.box;
-    ctx.strokeRect(box.x, box.y, box.width, box.height);
-    
-    // Draw all landmarks by feature group
-    const landmarks = faceDetection.landmarks.positions;
-    
-    // Draw points for each feature group
-    Object.entries(featureGroups).forEach(([groupName, group]) => {
-      ctx.fillStyle = group.color;
-      ctx.strokeStyle = group.color;
-      ctx.lineWidth = lineWidth;
-      
-      // Connect points for better visualization
-      if (group.points.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(landmarks[group.points[0]].x, landmarks[group.points[0]].y);
-        
-        for (let i = 1; i < group.points.length; i++) {
-          ctx.lineTo(landmarks[group.points[i]].x, landmarks[group.points[i]].y);
-        }
-        
-        // Close the path for face
-        if (groupName === 'face') {
-          ctx.closePath();
-        }
-        
-        ctx.stroke();
+    try {
+      // Draw face bounding box - light green
+      if (faceDetection.detection && faceDetection.detection.box) {
+        ctx.strokeStyle = '#F2FCE2';
+        ctx.lineWidth = lineWidth * 2;
+        const box = faceDetection.detection.box;
+        ctx.strokeRect(box.x, box.y, box.width, box.height);
       }
       
-      // Draw points with scaled size
-      group.points.forEach(pointIdx => {
-        ctx.beginPath();
-        ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, pointSize, 0, 2 * Math.PI);
-        ctx.fill();
-      });
-    });
-    
-    console.log("Landmarks drawing completed");
+      // Draw all landmarks by feature group
+      if (faceDetection.landmarks && faceDetection.landmarks.positions) {
+        const landmarks = faceDetection.landmarks.positions;
+        
+        // Draw points for each feature group
+        Object.entries(featureGroups).forEach(([groupName, group]) => {
+          ctx.fillStyle = group.color;
+          ctx.strokeStyle = group.color;
+          ctx.lineWidth = lineWidth;
+          
+          // Connect points for better visualization
+          if (group.points.length > 1) {
+            ctx.beginPath();
+            
+            // Ensure the first point exists
+            if (landmarks[group.points[0]]) {
+              ctx.moveTo(landmarks[group.points[0]].x, landmarks[group.points[0]].y);
+              
+              for (let i = 1; i < group.points.length; i++) {
+                if (landmarks[group.points[i]]) {
+                  ctx.lineTo(landmarks[group.points[i]].x, landmarks[group.points[i]].y);
+                }
+              }
+              
+              // Close the path for face
+              if (groupName === 'face') {
+                ctx.closePath();
+              }
+              
+              ctx.stroke();
+            }
+          }
+          
+          // Draw points with scaled size
+          group.points.forEach(pointIdx => {
+            if (landmarks[pointIdx]) {
+              ctx.beginPath();
+              ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, pointSize, 0, 2 * Math.PI);
+              ctx.fill();
+            }
+          });
+        });
+      }
+      
+      console.log("Landmarks drawing completed successfully");
+    } catch (error) {
+      console.error("Error drawing landmarks:", error);
+    }
   }, [faceDetection, processedCanvasRef, originalImage]);
 
   return { drawFaceLandmarks };
