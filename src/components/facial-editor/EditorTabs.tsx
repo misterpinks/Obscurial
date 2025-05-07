@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Upload, ImageIcon } from "lucide-react";
@@ -106,7 +107,8 @@ const EditorTabs = ({
       <TabsContent value="upload" className="flex flex-col items-center justify-center">
         <ImageUploader
           onImageUpload={handleImageUpload}
-          fileInputRef={fileInputRef}
+          inputRef={fileInputRef}
+          triggerFileInput={triggerFileInput}
         />
       </TabsContent>
 
@@ -130,6 +132,8 @@ const EditorTabs = ({
             facialDifference={facialDifference}
             imageDimensions={imageDimensions}
             triggerFileInput={triggerFileInput}
+            fileInputRef={fileInputRef}
+            handleImageUpload={handleImageUpload}
             downloadImage={downloadImage}
             hasProcessedImage={hasProcessedImage}
             handleRunAnalysis={handleRunAnalysis}
@@ -138,18 +142,18 @@ const EditorTabs = ({
             handleLandmarkMove={handleLandmarkMove}
             autoAnalyze={autoAnalyze}
             onToggleAutoAnalyze={onToggleAutoAnalyze}
-            sliders={{
-              featureSliders,
-              sliderValues,
-              onSliderChange,
-              onSliderChangeComplete,
-              onResetSliders,
-              onRandomizeSliders
-            }}
+            featureSliders={featureSliders}
+            sliderValues={sliderValues}
+            onSliderChange={onSliderChange}
+            onSliderChangeComplete={onSliderChangeComplete}
+            onResetSliders={onResetSliders}
+            onRandomizeSliders={onRandomizeSliders}
             maskPosition={maskPosition}
             maskScale={maskScale}
             onMaskPositionChange={onMaskPositionChange}
             onMaskScaleChange={onMaskScaleChange}
+            faceMaskSelector={faceMaskSelector}
+            originalImage={originalImage}
           />
           
           {/* Presets section */}

@@ -34,8 +34,8 @@ export const useTabs = ({
     }
   };
 
-  const captureFromWebcam = () => {
-    if (!videoRef.current || !streamRef.current) return;
+  const captureFromWebcam = (): HTMLImageElement | null => {
+    if (!videoRef.current || !streamRef.current) return null;
     
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;

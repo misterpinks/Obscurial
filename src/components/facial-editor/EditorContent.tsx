@@ -17,7 +17,7 @@ interface EditorContentProps {
   isAnalyzing: boolean;
   faceDetection: any;
   facialDifference: number | null;
-  imageDimensions: { width: number; height: number; };
+  imageDimensions: { width: number; height: number } | null;
   triggerFileInput: () => void;
   fileInputRef: RefObject<HTMLInputElement>;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;

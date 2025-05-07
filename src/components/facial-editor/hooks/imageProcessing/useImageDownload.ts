@@ -2,13 +2,11 @@
 import { useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 
-interface UseImageDownloadProps {
+export interface UseImageDownloadProps {
   cleanProcessedImageURL: string;
 }
 
-export const useImageDownload = ({ 
-  cleanProcessedImageURL 
-}: UseImageDownloadProps) => {
+export const useImageDownload = (cleanProcessedImageURL: string) => {
   const { toast } = useToast();
 
   const downloadImage = useCallback(() => {

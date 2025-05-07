@@ -1,96 +1,102 @@
 
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink } from "lucide-react";
+
+interface ResourceItem {
+  name: string;
+  url: string;
+  description: string;
+}
 
 const FacialRecognitionResources: React.FC = () => {
-  const resources = [
+  const resources: ResourceItem[] = [
     { 
-      name: "FaceCheck.ID", 
-      url: "https://facecheck.id/", 
-      description: "Reverse image search engine specifically for faces. Can scan for face photos across social media."
+      name: "ClarityCheck",
+      url: "https://claritycheck.com/",
+      description: "Facial recognition service that performs identity verification and background checks."
     },
     { 
-      name: "PimEyes", 
-      url: "https://pimeyes.com/", 
-      description: "Advanced facial recognition search engine that can find faces across millions of websites."
+      name: "Clearview AI",
+      url: "https://www.clearview.ai/",
+      description: "Facial recognition technology company that provides tools to law enforcement agencies."
     },
     { 
-      name: "ClearviewAI", 
-      url: "https://www.clearview.ai/", 
-      description: "Powerful facial recognition platform used by law enforcement with an extensive database of faces."
+      name: "PimEyes",
+      url: "https://pimeyes.com",
+      description: "Online face search engine that uses facial recognition to search for images."
     },
     { 
-      name: "FindClone", 
-      url: "https://findclone.ru/", 
-      description: "Russian face search service that can identify people from photographs with high accuracy."
+      name: "Lenso.ai",
+      url: "https://lenso.ai",
+      description: "AI-powered image recognition platform with facial search capabilities."
     },
     { 
-      name: "ProFaceFinder", 
-      url: "https://profacefinder.com/", 
-      description: "Specialized search engine for finding faces across multiple platforms and databases."
+      name: "Pixsy",
+      url: "https://pixsy.com",
+      description: "Image monitoring and legal service that helps protect your online content."
     },
     { 
-      name: "ClarityCheck", 
-      url: "https://claritycheck.com/", 
-      description: "Face analysis and verification service that can match identities across different images."
+      name: "SauceNAO",
+      url: "https://saucenao.com",
+      description: "Reverse image search engine focused on finding the source of anime/manga images."
     },
     { 
-      name: "Lenso.ai", 
-      url: "https://lenso.ai/", 
-      description: "AI-powered image search specializing in facial recognition and visual similarity."
+      name: "TinEye",
+      url: "https://tineye.com",
+      description: "Reverse image search engine specialized in finding where images appear online."
     },
     { 
-      name: "Pixsy", 
-      url: "https://www.pixsy.com/", 
-      description: "Image monitoring service that helps track unauthorized use of photos online."
+      name: "Yandex Images",
+      url: "https://yandex.com/images/",
+      description: "Reverse image search by Russian search engine Yandex with powerful facial recognition."
     },
     { 
-      name: "SauceNAO", 
-      url: "https://saucenao.com/", 
-      description: "Multi-source image search engine that can identify people in anime, art, and photographs."
+      name: "Google Lens",
+      url: "https://lens.google.com",
+      description: "Google's image recognition technology that can identify objects in images."
     },
     { 
-      name: "TinEye", 
-      url: "https://tineye.com/", 
-      description: "Reverse image search engine that can find exact matches and modified versions of images."
+      name: "ProFaceFinder",
+      url: "https://profacefinder.com/",
+      description: "Advanced facial recognition search engine for finding people across the web."
     },
     { 
-      name: "Yandex Images", 
-      url: "https://yandex.com/images/", 
-      description: "Russian search engine with powerful face recognition capabilities in its image search."
-    },
-    { 
-      name: "Google Lens", 
-      url: "https://lens.google/", 
-      description: "Google's visual search tool that can identify people, places, and things in images."
-    },
+      name: "FaceCheck.ID",
+      url: "https://facecheck.id/",
+      description: "Facial recognition service that can help identify people from uploaded photos."
+    }
   ];
 
   return (
-    <Card className="mb-6">
-      <CardContent className="p-4">
-        <h3 className="text-lg font-medium mb-2">Facial Recognition Resources</h3>
-        <p className="text-sm text-muted-foreground mb-3">
-          These services can identify people from face photos. Test your privacy-protected images against them to verify effectiveness.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <Card className="border-blue-100">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-semibold text-blue-800">
+          Facial Recognition Resources
+        </CardTitle>
+        <CardDescription>
+          Popular platforms that use facial recognition technology to find images across the web.
+          Understanding these tools can help protect your privacy online.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {resources.map((resource) => (
-            <div key={resource.name} className="border rounded-md p-3 bg-slate-50 shadow-sm">
-              <h4 className="font-medium text-sm mb-1">{resource.name}</h4>
-              <p className="text-xs text-muted-foreground mb-2 h-12 overflow-y-auto">
-                {resource.description}
-              </p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full flex items-center justify-center"
-                onClick={() => window.open(resource.url, '_blank')}
-              >
-                <ExternalLink size={14} className="mr-1" />
-                Visit Site
-              </Button>
+            <div key={resource.name} className="border rounded-lg p-3 hover:bg-blue-50 transition-colors">
+              <div className="flex justify-between items-start mb-1">
+                <h3 className="font-medium text-blue-700">{resource.name}</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="h-6 px-2 text-blue-600 hover:text-blue-800"
+                  onClick={() => window.open(resource.url, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  Visit
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">{resource.description}</p>
             </div>
           ))}
         </div>
