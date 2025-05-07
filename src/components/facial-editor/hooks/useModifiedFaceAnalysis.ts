@@ -15,7 +15,14 @@ export const useModifiedFaceAnalysis = (
   const [facialDifference, setFacialDifference] = useState<number | null>(null);
 
   const analyzeModifiedImage = async () => {
-    if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded) return;
+    if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded) {
+      toast({
+        variant: "destructive",
+        title: "Analysis Error",
+        description: "Required resources are not available."
+      });
+      return;
+    }
     
     try {
       const processedImage = await createImageFromCanvas(cleanProcessedCanvasRef.current);
@@ -55,6 +62,11 @@ export const useModifiedFaceAnalysis = (
           console.log("Raw facial difference:", distance);
           console.log("Enhanced facial difference:", clampedDistance);
           setFacialDifference(clampedDistance);
+          
+          toast({
+            title: "Analysis Complete",
+            description: `Facial difference: ${clampedDistance.toFixed(2)}`
+          });
         }
       } else {
         console.log("No face detected in modified image - this is good for anti-recognition");

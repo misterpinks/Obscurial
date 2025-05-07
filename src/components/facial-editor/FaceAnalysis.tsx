@@ -89,7 +89,7 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
                 <span>Eyes/Eyebrows</span>
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#222222'}}></div>
+                <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#FEF7CD'}}></div>
                 <span>Nose</span>
               </div>
               <div className="flex items-center">

@@ -7,7 +7,7 @@ import { FacialRegion } from './transformationTypes';
 
 // Base amplification factor for transformations
 export const getAmplificationFactor = (): number => {
-  return 2.0; // Default base amplification factor
+  return 4.0; // Increased from 2.0 for more dramatic effects
 };
 
 // Define regions of the face that can be transformed
@@ -33,7 +33,7 @@ export const facialRegions: FacialRegion[] = [
     transform: (normX, normY, sliderValues, amplification) => {
       return {
         displacementX: 0,
-        displacementY: -(sliderValues.eyebrowHeight || 0) / 100 * amplification
+        displacementY: -(sliderValues.eyebrowHeight || 0) / 100 * amplification * 1.5 // Increased effect
       };
     }
   },
@@ -43,8 +43,8 @@ export const facialRegions: FacialRegion[] = [
     condition: (normX, normY) => Math.abs(normX) < 0.2 && normY > -0.3 && normY < 0.2,
     transform: (normX, normY, sliderValues, amplification) => {
       return {
-        displacementX: (sliderValues.noseWidth || 0) / 100 * normX * amplification,
-        displacementY: (sliderValues.noseLength || 0) / 100 * (normY > 0 ? 1 : -1) * amplification
+        displacementX: (sliderValues.noseWidth || 0) / 100 * normX * amplification * 1.3, // Increased effect
+        displacementY: (sliderValues.noseLength || 0) / 100 * (normY > 0 ? 1 : -1) * amplification * 1.3 // Increased effect
       };
     }
   },
@@ -54,8 +54,8 @@ export const facialRegions: FacialRegion[] = [
     condition: (normX, normY) => Math.abs(normX) < 0.3 && normY > 0.1 && normY < 0.4,
     transform: (normX, normY, sliderValues, amplification) => {
       return {
-        displacementX: (sliderValues.mouthWidth || 0) / 100 * normX * amplification,
-        displacementY: (sliderValues.mouthHeight || 0) / 100 * (normY - 0.25) * amplification
+        displacementX: (sliderValues.mouthWidth || 0) / 100 * normX * amplification * 1.4, // Increased effect
+        displacementY: (sliderValues.mouthHeight || 0) / 100 * (normY - 0.25) * amplification * 1.4 // Increased effect
       };
     }
   },
@@ -67,7 +67,7 @@ export const facialRegions: FacialRegion[] = [
     },
     transform: (normX, normY, sliderValues, amplification) => {
       return {
-        displacementX: (sliderValues.faceWidth || 0) / 100 * normX * amplification,
+        displacementX: (sliderValues.faceWidth || 0) / 100 * normX * amplification * 1.3, // Increased effect
         displacementY: 0
       };
     }
@@ -79,7 +79,7 @@ export const facialRegions: FacialRegion[] = [
     transform: (normX, normY, sliderValues, amplification) => {
       return {
         displacementX: 0,
-        displacementY: (sliderValues.chinShape || 0) / 100 * (normY - 0.4) * amplification
+        displacementY: (sliderValues.chinShape || 0) / 100 * (normY - 0.4) * amplification * 1.5 // Increased effect
       };
     }
   },
@@ -89,7 +89,7 @@ export const facialRegions: FacialRegion[] = [
     condition: (normX, normY) => normY > 0.15 && Math.abs(normX) > 0.2 && Math.abs(normX) < 0.6,
     transform: (normX, normY, sliderValues, amplification) => {
       return {
-        displacementX: (sliderValues.jawline || 0) / 100 * (normX > 0 ? 1 : -1) * amplification,
+        displacementX: (sliderValues.jawline || 0) / 100 * (normX > 0 ? 1 : -1) * amplification * 1.3, // Increased effect
         displacementY: 0
       };
     }

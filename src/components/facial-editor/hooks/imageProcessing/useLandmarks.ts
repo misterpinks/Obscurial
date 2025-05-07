@@ -38,12 +38,14 @@ export const useLandmarksDrawing = ({
     // Calculate a scaling factor based on image dimensions
     // This ensures landmarks are visible regardless of image size
     const imageDimension = Math.max(originalImage.width, originalImage.height);
-    let pointSize = Math.max(2, Math.floor(imageDimension / 200)); // Minimum size of 2
-    let lineWidth = Math.max(1, Math.floor(imageDimension / 400)); // Minimum line width of 1
     
-    // Cap sizes for very large images
-    pointSize = Math.min(pointSize, 7); 
-    lineWidth = Math.min(lineWidth, 3);
+    // Improved scaling formula for better visibility on large images
+    let pointSize = Math.max(3, Math.floor(imageDimension / 150)); // More aggressive scaling
+    let lineWidth = Math.max(1.5, Math.floor(imageDimension / 300)); // Thicker lines
+    
+    // Cap sizes for very large images - increased caps
+    pointSize = Math.min(pointSize, 20); // Increased from 7
+    lineWidth = Math.min(lineWidth, 6); // Increased from 3
     
     console.log(`Using landmark point size: ${pointSize}, line width: ${lineWidth} for image dimension: ${imageDimension}`);
     

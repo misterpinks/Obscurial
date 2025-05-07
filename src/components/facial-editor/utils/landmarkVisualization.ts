@@ -18,6 +18,28 @@ export const drawFaceLandmarks = (
   try {
     console.log("Drawing landmarks");
     
+    // Calculate a scaling factor based on image dimensions
+    // This ensures landmarks are visible regardless of image size
+    const canvas = ctx.canvas;
+    const imageDimension = Math.max(canvas.width, canvas.height);
+    
+    // Improved scaling formula for better visibility on large images
+    let calculatedPointSize = Math.max(3, Math.floor(imageDimension / 150)); // More aggressive scaling
+    let calculatedLineWidth = Math.max(1.5, Math.floor(imageDimension / 300)); // Thicker lines
+    
+    // Use provided sizes if explicitly passed, otherwise use calculated ones
+    const finalPointSize = pointSize !== 3 ? pointSize : calculatedPointSize;
+    const finalLineWidth = lineWidth !== 1 ? lineWidth : calculatedLineWidth;
+    
+    // Cap sizes for very large images - increased caps
+    const maxPointSize = 20; // Increased from 7
+    const maxLineWidth = 6; // Increased from 3
+    
+    const effectivePointSize = Math.min(finalPointSize, maxPointSize);
+    const effectiveLineWidth = Math.min(finalLineWidth, maxLineWidth);
+    
+    console.log(`Using landmark point size: ${effectivePointSize}, line width: ${effectiveLineWidth} for image dimension: ${imageDimension}`);
+    
     // Color coding by feature groups with updated colors
     const featureGroups = {
       eyes: { points: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47], color: '#1EAEDB' },
@@ -29,7 +51,7 @@ export const drawFaceLandmarks = (
     // Draw face bounding box - light green
     if (faceDetection.detection && faceDetection.detection.box) {
       ctx.strokeStyle = '#F2FCE2';
-      ctx.lineWidth = lineWidth * 2;
+      ctx.lineWidth = effectiveLineWidth * 2;
       const box = faceDetection.detection.box;
       ctx.strokeRect(box.x, box.y, box.width, box.height);
     }
@@ -42,7 +64,7 @@ export const drawFaceLandmarks = (
       Object.entries(featureGroups).forEach(([groupName, group]) => {
         ctx.fillStyle = group.color;
         ctx.strokeStyle = group.color;
-        ctx.lineWidth = lineWidth;
+        ctx.lineWidth = effectiveLineWidth;
         
         // Connect points for better visualization
         if (group.points.length > 1) {
@@ -71,7 +93,7 @@ export const drawFaceLandmarks = (
         group.points.forEach(pointIdx => {
           if (landmarks[pointIdx]) {
             ctx.beginPath();
-            ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, pointSize, 0, 2 * Math.PI);
+            ctx.arc(landmarks[pointIdx].x, landmarks[pointIdx].y, effectivePointSize, 0, 2 * Math.PI);
             ctx.fill();
           }
         });

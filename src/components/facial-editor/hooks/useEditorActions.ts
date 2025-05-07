@@ -6,7 +6,8 @@ export const useEditorActions = (
   resetEffects: () => void,
   resetSliders: () => void,
   toggleAutoAnalyze: () => void,
-  autoAnalyze: boolean
+  autoAnalyze: boolean,
+  analyzeModifiedImage?: () => void
 ) => {
   const { toast } = useToast();
 
@@ -24,7 +25,16 @@ export const useEditorActions = (
       title: "Analysis Started",
       description: "Analyzing facial changes..."
     });
-  }, [toast]);
+    
+    // Actually run the analysis if the function is provided
+    if (analyzeModifiedImage) {
+      setTimeout(() => {
+        analyzeModifiedImage();
+      }, 100); // Small delay to allow toast to render first
+    } else {
+      console.error("analyzeModifiedImage function not provided to useEditorActions");
+    }
+  }, [toast, analyzeModifiedImage]);
 
   const handleToggleAutoAnalyze = useCallback(() => {
     toggleAutoAnalyze();

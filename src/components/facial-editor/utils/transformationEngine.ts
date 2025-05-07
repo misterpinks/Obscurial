@@ -109,7 +109,7 @@ export const applyFeatureTransformations = async ({
   // Normalize based on a standard size of 500x500
   const sizeFactor = Math.sqrt((width * height) / (500 * 500));
   
-  // Combine base amplification with size factor
+  // Combine base amplification with size factor - increased multiplier for more dramatic effects
   const amplificationFactor = baseAmplificationFactor * sizeFactor * 1.5;
   console.log(`Using amplification factor: ${amplificationFactor} (base: ${baseAmplificationFactor}, size factor: ${sizeFactor})`);
   

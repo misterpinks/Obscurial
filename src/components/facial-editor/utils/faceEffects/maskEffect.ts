@@ -13,6 +13,12 @@ export const applyFaceMask = (
   scale: number = 1,
   opacity: number = 0.9
 ) => {
+  // If no mask image is provided, do nothing
+  if (!maskImage) {
+    console.log("No mask image provided for applying mask effect");
+    return;
+  }
+  
   // Save current canvas state
   ctx.save();
   
@@ -28,6 +34,10 @@ export const applyFaceMask = (
     
     // Draw the mask image with position and scale adjustments
     ctx.drawImage(maskImage, adjustedX, adjustedY, adjustedWidth, adjustedHeight);
+    
+    console.log("Applied mask effect with position:", position, "and scale:", scale);
+  } catch (error) {
+    console.error("Error applying face mask:", error);
   } finally {
     // Restore canvas state
     ctx.restore();

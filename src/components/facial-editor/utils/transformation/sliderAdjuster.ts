@@ -28,28 +28,28 @@ export const adjustSliderValues = (sliderValues: Record<string, number>): Record
   // Create a copy to avoid modifying the original
   const adjusted = { ...sliderValues };
   
-  // Define maximum safe values for different slider categories
+  // Define maximum safe values for different slider categories - increased for more dramatic effects
   const maxValues = {
     // Eyes and eyebrows - more sensitive, use lower max values
-    eyeSize: 75,
-    eyeSpacing: 50,
-    eyebrowHeight: 50,
+    eyeSize: 85, // Increased from 75
+    eyeSpacing: 65, // Increased from 50
+    eyebrowHeight: 65, // Increased from 50
     
     // Nose - moderate sensitivity
-    noseWidth: 75,
-    noseLength: 60,
+    noseWidth: 85, // Increased from 75
+    noseLength: 75, // Increased from 60
     
     // Mouth - moderate sensitivity
-    mouthWidth: 75,
-    mouthHeight: 60,
+    mouthWidth: 85, // Increased from 75
+    mouthHeight: 75, // Increased from 60
     
     // Face shape - less sensitive, can have higher values
-    faceWidth: 80,
-    chinShape: 70,
-    jawline: 70,
+    faceWidth: 90, // Increased from 80
+    chinShape: 85, // Increased from 70
+    jawline: 85, // Increased from 70
     
     // Default for any other sliders
-    default: 75
+    default: 85 // Increased from 75
   };
   
   // Apply clamping to each slider value
