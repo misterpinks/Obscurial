@@ -326,8 +326,6 @@ const FacialEditor = () => {
           />
         }
       />
-      
-      <FacialRecognitionResources />
     </div>
   );
 };
