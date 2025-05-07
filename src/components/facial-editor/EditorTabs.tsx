@@ -5,7 +5,6 @@ import { Camera, Upload, ImageIcon } from "lucide-react";
 import EditorContent from './EditorContent';
 import ImageUploader from './ImageUploader';
 import WebcamCapture from './WebcamCapture';
-import FacialRecognitionResources from './FacialRecognitionResources';
 
 interface EditorTabsProps {
   activeTab: string;
@@ -159,7 +158,6 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
             maskScale={maskScale}
             onMaskPositionChange={onMaskPositionChange}
             onMaskScaleChange={onMaskScaleChange}
-            faceMaskSelector={faceMaskSelector}
           />
           
           {/* Presets section */}
@@ -168,11 +166,6 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
               {presetsComponent}
             </div>
           )}
-          
-          {/* Facial Recognition Resources section - now in its own box below presets */}
-          <div className="mb-4">
-            <FacialRecognitionResources />
-          </div>
         </div>
       </TabsContent>
     </Tabs>

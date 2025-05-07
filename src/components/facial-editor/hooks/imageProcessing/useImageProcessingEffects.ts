@@ -1,5 +1,5 @@
 
-import { useEffect, RefObject, useRef } from 'react';
+import { useEffect, RefObject, useCallback } from 'react';
 
 interface UseImageProcessingEffectsProps {
   originalImage: HTMLImageElement | null;
@@ -40,16 +40,8 @@ export const useImageProcessingEffects = ({
   isFaceApiLoaded,
   faceDetection
 }: UseImageProcessingEffectsProps) => {
-  // Use a ref to track if we've already rendered this image
-  const hasProcessedImage = useRef(false);
-  // Use a ref to track if detectFaces has been called
-  const faceDetectionCalled = useRef(false);
-  // Use a debounce timer ref to prevent too many updates
-  const processingTimerRef = useRef<number | null>(null);
-  // Track the current image for proper refresh
-  const currentImageRef = useRef<HTMLImageElement | null>(null);
 
-  // Process the image whenever slider values change - optimized to reduce redundancy
+  // Process the image whenever slider values change
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       // Check if values actually changed
@@ -62,56 +54,30 @@ export const useImageProcessingEffects = ({
       if (currentValuesString !== lastProcessedValues) {
         console.log("Slider values changed, processing image");
         
-        // Clear any existing processing timer
-        if (processingTimerRef.current) {
-          window.clearTimeout(processingTimerRef.current);
-        }
-        
-        // Debounce the processing to reduce strain
-        processingTimerRef.current = window.setTimeout(() => {
-          // Use requestAnimationFrame for smooth UI updates
-          requestAnimationFrame(() => {
-            console.log("Processing image due to value change");
-            processImage();
-            setLastProcessedValues(currentValuesString);
-            processingTimerRef.current = null;
-          });
-        }, 100);
+        // Use requestAnimationFrame for smooth UI updates
+        requestAnimationFrame(() => {
+          console.log("Processing image due to value change");
+          processImage();
+          setLastProcessedValues(currentValuesString);
+        });
       }
     }
-    
-    return () => {
-      if (processingTimerRef.current) {
-        window.clearTimeout(processingTimerRef.current);
-      }
-    };
   }, [sliderValues, faceEffectOptions, originalImage, initialProcessingDone, lastProcessedValues, processImage, setLastProcessedValues]);
 
-  // Display the original image on canvas after loading - with proper refresh handling
+  // Display the original image on canvas after loading
   useEffect(() => {
-    // Check if this is a new image or first load
-    const isNewImage = originalImage !== currentImageRef.current;
-    
     if (originalImage && originalCanvasRef.current) {
       console.log("Original image provided, rendering to canvas");
-      
-      // Update our reference to current image
-      currentImageRef.current = originalImage;
-      
-      // Reset processing flags when a new image is loaded
-      if (isNewImage) {
-        console.log("New image detected - resetting processing state");
-        hasProcessedImage.current = false;
-        faceDetectionCalled.current = false;
-      }
       
       const origCtx = originalCanvasRef.current.getContext("2d");
       if (origCtx) {
         console.log("Drawing original image to canvas");
         
-        // Clear previous content first
+        // Set canvas dimensions to match image
         originalCanvasRef.current.width = originalImage.width;
         originalCanvasRef.current.height = originalImage.height;
+        
+        // Clear any previous content
         origCtx.clearRect(0, 0, originalCanvasRef.current.width, originalCanvasRef.current.height);
         
         // Draw the image to canvas
@@ -119,23 +85,17 @@ export const useImageProcessingEffects = ({
       }
       
       // After displaying original image, detect faces if needed
-      if (isFaceApiLoaded && !faceDetectionCalled.current) {
+      if (isFaceApiLoaded && !initialProcessingDone) {
         console.log("Detecting faces after image loaded");
-        faceDetectionCalled.current = true;
-        // Give a small delay to ensure the UI is updated first
-        setTimeout(() => {
-          detectFaces();
-        }, 50);
+        detectFaces();
       }
     }
-  }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces]);
+  }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
   // Process image after face detection completes
   useEffect(() => {
-    if (originalImage && initialProcessingDone && !hasProcessedImage.current) {
+    if (originalImage && initialProcessingDone) {
       console.log("Processing image after face detection or initialProcessingDone changed");
-      
-      hasProcessedImage.current = true;
       
       // Use requestAnimationFrame for smooth UI
       requestAnimationFrame(() => {
@@ -152,12 +112,27 @@ export const useImageProcessingEffects = ({
     }
   }, [faceDetection, initialProcessingDone, originalImage, processImage, setLastProcessedValues, sliderValues, faceEffectOptions]);
   
-  // Reset processing state when image changes
+  // Force process image when initially loaded
   useEffect(() => {
-    return () => {
-      // Cleanup function to reset state when component unmounts or deps change
-      hasProcessedImage.current = false;
-      faceDetectionCalled.current = false;
-    };
-  }, [originalImage]);
+    if (originalImage && initialProcessingDone) {
+      console.log("Initial processing - forcing image display");
+      
+      requestAnimationFrame(() => {
+        console.log("Force processing image on initial load");
+        processImage();
+      });
+    }
+  }, [initialProcessingDone, originalImage, processImage]);
+
+  // Ensure image is processed even if no face is detected
+  useEffect(() => {
+    if (originalImage && initialProcessingDone && !faceDetection) {
+      console.log("No face detected but still processing image");
+      
+      requestAnimationFrame(() => {
+        console.log("Processing image without face detection");
+        processImage();
+      });
+    }
+  }, [originalImage, initialProcessingDone, faceDetection, processImage]);
 };

@@ -1,5 +1,5 @@
 
-import { useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 
 interface UseFileUploadProps {
@@ -19,9 +19,19 @@ export const useFileUpload = ({
 }: UseFileUploadProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Track current image URL for proper refreshing
-  const currentImageUrlRef = useRef<string | null>(null);
+
+  const clearCanvases = useCallback(() => {
+    // Find all canvas elements and clear them
+    // This ensures we don't have stale image data persisting
+    const canvases = document.querySelectorAll('canvas');
+    canvases.forEach(canvas => {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        console.log("Clearing canvas:", canvas.id || "unnamed canvas");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    });
+  }, []);
 
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,72 +47,68 @@ export const useFileUpload = ({
       return;
     }
     
-    console.log("Image upload started:", file.name);
+    console.log("Loading new image file:", file.name);
     
-    // Reset states completely before loading new image
+    // Reset all state to ensure a clean slate
+    setOriginalImage(null);
     setFaceDetection(null);
     setInitialProcessingDone(false);
     setHasShownNoFaceToast(false);
     
-    // Force complete image refresh by setting to null first
-    setOriginalImage(null);
+    // Clear canvases before loading new image
+    clearCanvases();
     
-    // Create a FileReader
     const reader = new FileReader();
-    
     reader.onload = (event) => {
-      if (!event.target || typeof event.target.result !== 'string') {
-        console.error("Failed to read file");
-        toast({
-          variant: "destructive",
-          title: "Error Loading Image",
-          description: "Failed to read the selected image file."
-        });
-        return;
-      }
-      
-      const dataUrl = event.target.result;
+      console.log("File loaded into memory, creating image object");
       
       const img = new Image();
-      img.crossOrigin = "Anonymous"; // Handle CORS if needed
-      
       img.onload = () => {
-        console.log("New image loaded:", img.width, "x", img.height);
+        console.log("Image loaded successfully, dimensions:", img.width, "x", img.height);
+        
+        // Clear canvases again to be safe
+        clearCanvases();
+        
+        // Set the image in state
         setOriginalImage(img);
+        
+        // After a short delay, trigger initial processing
+        // This ensures the image is rendered before face detection starts
+        setTimeout(() => {
+          console.log("Setting initialProcessingDone to true to trigger processing");
+          setInitialProcessingDone(true);
+        }, 100);
+        
+        // Switch to edit tab
         setActiveTab("edit");
       };
       
-      img.onerror = () => {
-        console.error("Failed to load image");
+      // Handle image loading errors
+      img.onerror = (error) => {
+        console.error("Failed to load image:", error);
         toast({
           variant: "destructive",
-          title: "Image Load Failed",
-          description: "Could not load the selected image file."
+          title: "Image Loading Failed",
+          description: "Could not load the selected image."
         });
       };
       
-      // Set the source to start loading the image
-      img.src = dataUrl;
+      // Set the image source from the file reader result
+      img.src = event.target?.result as string;
     };
     
-    reader.onerror = (error) => {
-      console.error("FileReader error:", error);
+    // Handle file reading errors
+    reader.onerror = () => {
       toast({
         variant: "destructive",
-        title: "Error Loading Image",
-        description: "Failed to read the selected image file."
+        title: "File Reading Error",
+        description: "Failed to read the selected file."
       });
     };
     
-    // Start reading the file as data URL
+    // Start reading the file
     reader.readAsDataURL(file);
-    
-    // Reset file input to allow selecting the same file again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    
-  }, [setOriginalImage, setActiveTab, setFaceDetection, setInitialProcessingDone, setHasShownNoFaceToast, toast]);
+  }, [toast, setOriginalImage, setFaceDetection, setInitialProcessingDone, setHasShownNoFaceToast, clearCanvases, setActiveTab]);
 
   const triggerFileInput = useCallback(() => {
     // Reset the input value first to allow selecting the same file again
@@ -115,6 +121,7 @@ export const useFileUpload = ({
   return {
     fileInputRef,
     handleImageUpload,
-    triggerFileInput
+    triggerFileInput,
+    clearCanvases
   };
 };

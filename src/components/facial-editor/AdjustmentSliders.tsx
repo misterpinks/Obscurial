@@ -42,15 +42,12 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
   const handleSliderValueChange = useCallback((id: string, value: number) => {
     console.log(`Slider ${id} changed to:`, value);
     onSliderChange(id, value);
-  }, [onSliderChange]);
-
-  // Handle slider change complete event
-  const handleSliderChangeComplete = useCallback(() => {
-    console.log(`Slider change completed`);
+    
+    // If we need to notify when a change is complete
     if (onSliderChangeComplete) {
       onSliderChangeComplete();
     }
-  }, [onSliderChangeComplete]);
+  }, [onSliderChange, onSliderChangeComplete]);
 
   // Handle reset with feedback
   const handleReset = useCallback(() => {
@@ -95,14 +92,13 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
           <div key={category} className="mb-6">
             <h4 className="font-medium text-sm text-muted-foreground mb-2">{category}</h4>
             <Separator className="mb-4" />
-            <div className="space-y-4">
+            <div className="space-y-2">
               {sliders.map((slider) => (
                 <SimpleSlider
                   key={slider.id}
                   label={slider.name}
                   initialValue={sliderValues[slider.id]}
                   onChange={(value) => handleSliderValueChange(slider.id, value)}
-                  onChangeComplete={handleSliderChangeComplete}
                   min={slider.min}
                   max={slider.max}
                   step={slider.step}
