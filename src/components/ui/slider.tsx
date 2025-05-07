@@ -12,14 +12,14 @@ const Slider = React.forwardRef<
   const [isDragging, setIsDragging] = React.useState(false);
   
   // Create stable function references with useCallback
-  const handleDocumentMouseMove = React.useCallback((e: MouseEvent) => {
+  const handleDocumentMouseMove = React.useCallback(() => {
     if (!isDragging || !trackRef.current) return;
     
     console.log("Mouse moving while dragging slider");
     // The actual value update is handled by Radix UI through its own event system
   }, [isDragging]);
 
-  const handleDocumentMouseUp = React.useCallback((e: MouseEvent) => {
+  const handleDocumentMouseUp = React.useCallback(() => {
     if (!isDragging) return;
     
     console.log("Mouse up - ending drag");
@@ -31,7 +31,7 @@ const Slider = React.forwardRef<
     
     // Call the onValueCommit prop if provided
     if (props.onValueCommit) {
-      props.onValueCommit(e);
+      props.onValueCommit();
     }
   }, [isDragging, props, handleDocumentMouseMove]);
 
@@ -44,7 +44,7 @@ const Slider = React.forwardRef<
     // The actual value update is handled by Radix UI
   }, [isDragging]);
 
-  const handleDocumentTouchEnd = React.useCallback((e: TouchEvent) => {
+  const handleDocumentTouchEnd = React.useCallback(() => {
     if (!isDragging) return;
     
     console.log("Touch end - ending drag");
@@ -56,12 +56,12 @@ const Slider = React.forwardRef<
     
     // Call the onValueCommit prop if provided
     if (props.onValueCommit) {
-      props.onValueCommit(e);
+      props.onValueCommit();
     }
   }, [isDragging, props, handleDocumentTouchMove]);
   
   // Handle mouse down to initiate dragging
-  const handleMouseDown = React.useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = React.useCallback(() => {
     console.log("Mouse down on slider track - starting drag");
     setIsDragging(true);
     
@@ -71,7 +71,7 @@ const Slider = React.forwardRef<
   }, [handleDocumentMouseMove, handleDocumentMouseUp]);
 
   // Handle touch start to initiate dragging
-  const handleTouchStart = React.useCallback((e: React.TouchEvent) => {
+  const handleTouchStart = React.useCallback(() => {
     console.log("Touch start on slider track - starting drag");
     setIsDragging(true);
     

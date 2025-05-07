@@ -78,9 +78,7 @@ export const useCanvasProcessing = ({
       // Draw landmarks on top of the processed image
       if (faceDetection && showLandmarks) {
         // We need to ensure this happens after the image is drawn
-        requestAnimationFrame(() => {
-          drawFaceLandmarks();
-        });
+        drawFaceLandmarks();
       }
       
       // Return the processed canvas for potential further usage

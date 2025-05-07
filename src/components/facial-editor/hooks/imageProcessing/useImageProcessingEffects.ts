@@ -46,6 +46,8 @@ export const useImageProcessingEffects = ({
   const faceDetectionCalled = useRef(false);
   // Use a debounce timer ref to prevent too many updates
   const processingTimerRef = useRef<number | null>(null);
+  // Track the current image for proper refresh
+  const currentImageRef = useRef<HTMLImageElement | null>(null);
 
   // Process the image whenever slider values change - optimized to reduce redundancy
   useEffect(() => {
@@ -85,14 +87,23 @@ export const useImageProcessingEffects = ({
     };
   }, [sliderValues, faceEffectOptions, originalImage, initialProcessingDone, lastProcessedValues, processImage, setLastProcessedValues]);
 
-  // Display the original image on canvas after loading
+  // Display the original image on canvas after loading - with proper refresh handling
   useEffect(() => {
+    // Check if this is a new image or first load
+    const isNewImage = originalImage !== currentImageRef.current;
+    
     if (originalImage && originalCanvasRef.current) {
       console.log("Original image provided, rendering to canvas");
       
+      // Update our reference to current image
+      currentImageRef.current = originalImage;
+      
       // Reset processing flags when a new image is loaded
-      hasProcessedImage.current = false;
-      faceDetectionCalled.current = false;
+      if (isNewImage) {
+        console.log("New image detected - resetting processing state");
+        hasProcessedImage.current = false;
+        faceDetectionCalled.current = false;
+      }
       
       const origCtx = originalCanvasRef.current.getContext("2d");
       if (origCtx) {
@@ -140,4 +151,13 @@ export const useImageProcessingEffects = ({
       });
     }
   }, [faceDetection, initialProcessingDone, originalImage, processImage, setLastProcessedValues, sliderValues, faceEffectOptions]);
+  
+  // Reset processing state when image changes
+  useEffect(() => {
+    return () => {
+      // Cleanup function to reset state when component unmounts or deps change
+      hasProcessedImage.current = false;
+      faceDetectionCalled.current = false;
+    };
+  }, [originalImage]);
 };

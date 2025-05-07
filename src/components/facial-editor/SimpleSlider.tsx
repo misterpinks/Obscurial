@@ -28,8 +28,8 @@ const SimpleSlider: React.FC<SimpleSliderProps> = ({
     onChange(values[0]);
   };
 
-  // Handle completion of slider movement
-  const handleValueCommit = (event: Event) => {
+  // Handle completion of slider movement with correct typing
+  const handleValueCommit = () => {
     if (onChangeComplete) {
       onChangeComplete();
     }

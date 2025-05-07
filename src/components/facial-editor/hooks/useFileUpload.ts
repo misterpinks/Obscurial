@@ -19,6 +19,9 @@ export const useFileUpload = ({
 }: UseFileUploadProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Track current image URL for proper refreshing
+  const currentImageUrlRef = useRef<string | null>(null);
 
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,7 +37,7 @@ export const useFileUpload = ({
       return;
     }
     
-    // Reset states when loading a new image
+    // Reset states completely before loading new image
     setFaceDetection(null);
     setInitialProcessingDone(false);
     setHasShownNoFaceToast(false);
@@ -47,6 +50,7 @@ export const useFileUpload = ({
     canvases.forEach(canvas => {
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        // Clear the entire canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
     });
@@ -55,16 +59,32 @@ export const useFileUpload = ({
     setTimeout(() => {
       const reader = new FileReader();
       reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        
+        // Generate unique URL to force browser to treat as new image
+        const uniqueUrl = dataUrl + (dataUrl.includes('?') ? '&' : '?') + 'ts=' + new Date().getTime();
+        
+        // Store current URL for future comparison
+        currentImageUrlRef.current = uniqueUrl;
+        
         const img = new Image();
+        img.crossOrigin = "Anonymous"; // Handle CORS if needed
+        
         img.onload = () => {
           console.log("New image loaded:", img.width, "x", img.height);
-          setOriginalImage(img);
-          setActiveTab("edit");
+          
+          // Only set the image if this is still the current operation
+          if (currentImageUrlRef.current === uniqueUrl) {
+            setOriginalImage(img);
+            setActiveTab("edit");
+          }
         };
-        img.src = event.target?.result as string;
+        
+        // Use the unique URL to prevent caching
+        img.src = uniqueUrl;
       };
       reader.readAsDataURL(file);
-    }, 200);
+    }, 300); // Increased timeout for better UI updating
   }, [setOriginalImage, setActiveTab, setFaceDetection, setInitialProcessingDone, setHasShownNoFaceToast, toast]);
 
   const triggerFileInput = useCallback(() => {
