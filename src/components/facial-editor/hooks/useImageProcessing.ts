@@ -1,6 +1,8 @@
 
 import { useCallback, useEffect, useState, RefObject } from 'react';
 import { FaceEffectOptions } from '../utils/transformationTypes';
+import { applyFeatureTransformations } from '../utils/transformationEngine';
+import { drawFaceLandmarks } from '../utils/landmarkVisualization';
 
 interface UseImageProcessingProps {
   originalImage: HTMLImageElement | null;
@@ -85,9 +87,7 @@ export const useImageProcessing = ({
         
         // If landmarks should be shown, draw them
         if (showLandmarks && faceDetection) {
-          // Import and use the drawFaceLandmarks function
-          const { drawFaceLandmarks } = require('../utils/landmarkVisualization');
-          drawFaceLandmarks(processedCtx, faceDetection, processedCanvasRef.current.height);
+          drawFaceLandmarks(processedCtx as any, faceDetection, processedCanvasRef.current.height);
         }
       }
     }
@@ -103,9 +103,6 @@ export const useImageProcessing = ({
     console.log('Starting image processing with worker status:', isWorkerReady ? 'worker available' : 'using main thread');
     
     try {
-      // Import the transformationEngine module
-      const { applyFeatureTransformations } = require('../utils/transformationEngine');
-      
       // First process the clean canvas (without landmarks)
       const cleanCanvas = cleanProcessedCanvasRef.current;
       const cleanCtx = cleanCanvas.getContext('2d');
@@ -154,8 +151,7 @@ export const useImageProcessing = ({
       
       // Draw landmarks on top of the processed image
       if (faceDetection && showLandmarks) {
-        const { drawFaceLandmarks } = require('../utils/landmarkVisualization');
-        drawFaceLandmarks(ctx, faceDetection, canvas.height);
+        drawFaceLandmarks(ctx as any, faceDetection, canvas.height);
       }
       
       // Store last processed values to prevent unnecessary reprocessing

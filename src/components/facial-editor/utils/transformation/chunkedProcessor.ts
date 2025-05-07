@@ -91,6 +91,11 @@ export const processImageInChunks = async (
     // If worker is not available or failed, use main thread processing
     console.log("Using main thread for image processing");
     
+    // Create a new output ImageData if needed
+    if (!outputData || outputData.width !== width || outputData.height !== height) {
+      outputData = ctx.createImageData(width, height);
+    }
+    
     // Determine how many rows to process per chunk
     const rowsPerChunk = 20; // Process 20 rows at a time
     

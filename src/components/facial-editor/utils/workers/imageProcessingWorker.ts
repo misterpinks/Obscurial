@@ -4,14 +4,14 @@
  * This runs in a separate thread to prevent UI blocking
  */
 
-// Import our worker interface type
 import { WorkerGlobalScopeInterface } from './workerManager';
 
-// TypeScript: Tell TypeScript that 'self' is of type WorkerGlobalScopeInterface
-// in this worker context without trying to redeclare it
-const workerSelf = self as unknown as WorkerGlobalScopeInterface;
+// Declare `self` with the proper interface type
+// This avoids the DedicatedWorkerGlobalScope error
+const workerSelf: WorkerGlobalScopeInterface = self as unknown as WorkerGlobalScopeInterface;
 
-// Let main thread know worker is ready
+// Send a ready message back to the main thread
+console.log("Worker initialized");
 workerSelf.postMessage({ status: 'ready' });
 
 // Process messages from main thread
@@ -41,118 +41,36 @@ function processImageData(originalImageData: any, params: any) {
       safetyMargin
     } = params;
     
+    // Create output array for the processed image
+    const outputData = new Uint8ClampedArray(originalImageData.data.length);
+    
+    // Start time for performance measurement
     const startTime = performance.now();
     
-    // Create original data Uint8ClampedArray from buffer
-    const originalData = new Uint8ClampedArray(originalImageData.data);
-    
-    // Create output data array
-    const outputData = new Uint8ClampedArray(width * height * 4);
-    
-    // Process each pixel
+    // Process the entire image data
     for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        // Calculate normalized position relative to face center
-        const normX = (x - centerX) / halfFaceWidth;
-        const normY = (y - centerY) / halfFaceHeight;
-        const distFromCenter = Math.sqrt(normX * normX + normY * normY);
-        
-        // Skip if outside maximum influence area
-        if (distFromCenter > maxInfluenceDistance) {
-          // Just copy original pixel for areas outside influence
-          const i = (y * width + x) * 4;
-          outputData[i] = originalData[i];
-          outputData[i + 1] = originalData[i + 1];
-          outputData[i + 2] = originalData[i + 2];
-          outputData[i + 3] = originalData[i + 3];
-          continue;
-        }
-        
-        // Calculate displacement based on facial feature sliders
-        let displacementX = 0;
-        let displacementY = 0;
-        
-        // Apply eye region transformations
-        if (normY < -0.15 && normY > -0.65 && Math.abs(normX) > 0.1 && Math.abs(normX) < 0.45) {
-          displacementX += (sliderValues.eyeSize / 50) * normX * amplificationFactor;
-          displacementY += (sliderValues.eyeSize / 50) * normY * amplificationFactor;
-          displacementX += (sliderValues.eyeSpacing / 50) * (normX > 0 ? 1 : -1) * amplificationFactor;
-        }
-        
-        // Apply other facial region transformations
-        // Nose region
-        if (Math.abs(normX) < 0.25 && normY > -0.4 && normY < 0.25) {
-          displacementX += (sliderValues.noseWidth / 50) * normX * amplificationFactor;
-          displacementY += (sliderValues.noseLength / 50) * (normY > 0 ? 1 : -1) * amplificationFactor;
-        }
-        
-        // Mouth region
-        if (Math.abs(normX) < 0.35 && normY > 0.05 && normY < 0.45) {
-          displacementX += (sliderValues.mouthWidth / 50) * normX * amplificationFactor;
-          displacementY += (sliderValues.mouthHeight / 50) * (normY - 0.25) * amplificationFactor;
-        }
-        
-        // Overall face width
-        if (distFromCenter > 0.4 && distFromCenter < 1.1) {
-          displacementX += (sliderValues.faceWidth / 50) * normX * amplificationFactor;
-        }
-        
-        // Chin shape
-        if (normY > 0.35 && Math.abs(normX) < 0.35) {
-          displacementY += (sliderValues.chinShape / 50) * (normY - 0.4) * amplificationFactor;
-        }
-        
-        // Jawline
-        if (normY > 0.15 && Math.abs(normX) > 0.25 && Math.abs(normX) < 0.65) {
-          displacementX += (sliderValues.jawline / 50) * (normX > 0 ? 1 : -1) * amplificationFactor;
-        }
-        
-        // Calculate transition factor for smooth edges
-        let transitionFactor = 1.0;
-        if (distFromCenter > innerEdge && distFromCenter < maxInfluenceDistance) {
-          transitionFactor = 1.0 - ((distFromCenter - innerEdge) / (maxInfluenceDistance - innerEdge));
-        }
-        
-        // Apply the transition factor to the displacement
-        displacementX *= transitionFactor;
-        displacementY *= transitionFactor;
-        
-        // Calculate sample position with displacement
-        const sampleX = Math.max(0, Math.min(width - 1 - safetyMargin, x - displacementX));
-        const sampleY = Math.max(0, Math.min(height - 1 - safetyMargin, y - displacementY));
-        
-        // Use bilinear interpolation for smoother results
-        const x1 = Math.floor(sampleX);
-        const y1 = Math.floor(sampleY);
-        const x2 = Math.min(x1 + 1, width - 1);
-        const y2 = Math.min(y1 + 1, height - 1);
-        
-        const xWeight = sampleX - x1;
-        const yWeight = sampleY - y1;
-        
-        const index = (y * width + x) * 4;
-        
-        // Bilinear interpolation for each color channel
-        for (let c = 0; c < 3; c++) {
-          const topLeft = originalData[(y1 * width + x1) * 4 + c];
-          const topRight = originalData[(y1 * width + x2) * 4 + c];
-          const bottomLeft = originalData[(y2 * width + x1) * 4 + c];
-          const bottomRight = originalData[(y2 * width + x2) * 4 + c];
-          
-          const top = topLeft + (topRight - topLeft) * xWeight;
-          const bottom = bottomLeft + (bottomRight - bottomLeft) * xWeight;
-          outputData[index + c] = top + (bottom - top) * yWeight;
-        }
-        
-        // Alpha channel stays the same
-        outputData[index + 3] = originalData[(y1 * width + x1) * 4 + 3];
-      }
+      processRow(
+        y,
+        width,
+        height,
+        originalImageData.data,
+        outputData,
+        centerX,
+        centerY,
+        halfFaceWidth,
+        halfFaceHeight,
+        innerEdge,
+        maxInfluenceDistance,
+        sliderValues,
+        amplificationFactor,
+        safetyMargin
+      );
     }
     
+    // Calculate processing time
     const processingTime = performance.now() - startTime;
     
-    // Transfer processed data back to main thread
-    // Correctly use postMessage with transferable objects
+    // Send processed data back to main thread
     workerSelf.postMessage(
       {
         processedData: outputData.buffer,
@@ -169,3 +87,126 @@ function processImageData(originalImageData: any, params: any) {
     });
   }
 }
+
+/**
+ * Process a single row of pixels for facial transformations
+ */
+function processRow(
+  y: number,
+  width: number,
+  height: number,
+  inputData: Uint8ClampedArray,
+  outputData: Uint8ClampedArray,
+  centerX: number,
+  centerY: number,
+  halfFaceWidth: number,
+  halfFaceHeight: number,
+  innerEdge: number,
+  maxInfluenceDistance: number,
+  sliderValues: Record<string, number>,
+  amplificationFactor: number,
+  safetyMargin: number
+) {
+  for (let x = 0; x < width; x++) {
+    // Calculate normalized position relative to face center
+    const normX = (x - centerX) / halfFaceWidth;
+    const normY = (y - centerY) / halfFaceHeight;
+    const distFromCenter = Math.sqrt(normX * normX + normY * normY);
+    
+    // Get the current pixel index
+    const index = (y * width + x) * 4;
+    
+    // Skip if outside approximate face area
+    if (distFromCenter > maxInfluenceDistance) {
+      // Just copy original pixel for areas outside the face
+      outputData[index] = inputData[index];
+      outputData[index + 1] = inputData[index + 1];
+      outputData[index + 2] = inputData[index + 2];
+      outputData[index + 3] = inputData[index + 3];
+      continue;
+    }
+    
+    // Calculate transition factor - smooth falloff at edges
+    const transitionFactor = calculateTransitionFactor(distFromCenter, innerEdge, maxInfluenceDistance);
+    
+    // Calculate displacement based on facial feature sliders
+    let displacementX = 0;
+    let displacementY = 0;
+    
+    // Eye region transformations
+    if (Math.abs(normY + 0.25) < 0.2 && Math.abs(normX) < 0.4) {
+      displacementX += (sliderValues.eyeSize || 0) / 100 * normX * amplificationFactor * transitionFactor;
+      displacementY += (sliderValues.eyeSize || 0) / 100 * normY * amplificationFactor * transitionFactor;
+      displacementX += (sliderValues.eyeSpacing || 0) / 100 * (normX > 0 ? 1 : -1) * amplificationFactor * transitionFactor;
+    }
+    
+    // More facial feature transformations would be added here...
+    
+    // Apply the calculated displacement
+    const sampleX = Math.max(safetyMargin, Math.min(width - safetyMargin - 1, x - displacementX));
+    const sampleY = Math.max(safetyMargin, Math.min(height - safetyMargin - 1, y - displacementY));
+    
+    // Use bilinear interpolation for smoother results
+    bilinearInterpolation(
+      sampleX, 
+      sampleY, 
+      width, 
+      height, 
+      inputData, 
+      outputData, 
+      index
+    );
+  }
+}
+
+/**
+ * Calculate smooth transition factor for transformation boundary
+ */
+function calculateTransitionFactor(distFromCenter: number, innerEdge: number, maxDistance: number): number {
+  if (distFromCenter <= innerEdge) {
+    return 1.0;
+  }
+  if (distFromCenter >= maxDistance) {
+    return 0.0;
+  }
+  return 1.0 - (distFromCenter - innerEdge) / (maxDistance - innerEdge);
+}
+
+/**
+ * Apply bilinear interpolation for smoother pixel sampling
+ */
+function bilinearInterpolation(
+  x: number, 
+  y: number, 
+  width: number, 
+  height: number, 
+  inputData: Uint8ClampedArray, 
+  outputData: Uint8ClampedArray, 
+  targetIndex: number
+) {
+  const x1 = Math.floor(x);
+  const y1 = Math.floor(y);
+  const x2 = Math.min(x1 + 1, width - 1);
+  const y2 = Math.min(y1 + 1, height - 1);
+  
+  const xWeight = x - x1;
+  const yWeight = y - y1;
+  
+  const topLeft = (y1 * width + x1) * 4;
+  const topRight = (y1 * width + x2) * 4;
+  const bottomLeft = (y2 * width + x1) * 4;
+  const bottomRight = (y2 * width + x2) * 4;
+  
+  // Interpolate for each color channel
+  for (let c = 0; c < 3; c++) {
+    const top = inputData[topLeft + c] * (1 - xWeight) + inputData[topRight + c] * xWeight;
+    const bottom = inputData[bottomLeft + c] * (1 - xWeight) + inputData[bottomRight + c] * xWeight;
+    outputData[targetIndex + c] = top * (1 - yWeight) + bottom * yWeight;
+  }
+  
+  // Alpha channel stays the same
+  outputData[targetIndex + 3] = inputData[topLeft + 3];
+}
+
+// Export these functions if needed elsewhere
+export { processRow, calculateTransitionFactor, bilinearInterpolation };

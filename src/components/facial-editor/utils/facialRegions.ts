@@ -1,107 +1,123 @@
 
-import { FacialRegion } from './transformationTypes';
-
 /**
- * Definitions of facial regions and their transformation logic
+ * Configuration for facial regions and transformation parameters
  */
 
-// Amplification factor for transformations - significantly increased for more dramatic effects
-const AMPLIFICATION_FACTOR = 3.5;
+import { FacialRegion } from './transformationTypes';
 
-// Max influence distance - controls how far transformations extend
-const MAX_INFLUENCE_DISTANCE = 2.0; // Increased from 1.5 for wider effect area
+// Base amplification factor for transformations
+export const getAmplificationFactor = (): number => {
+  return 2.0; // Default base amplification factor
+};
 
-export const getFacialRegions = (): FacialRegion[] => [
-  // Eye region - expanded with better blending
+// Define regions of the face that can be transformed
+export const facialRegions: FacialRegion[] = [
+  // Eye region
   {
-    condition: (normX, normY) => 
-      normY < -0.05 && normY > -0.75 && Math.abs(normX) > 0.05 && Math.abs(normX) < 0.6,
-    transform: (normX, normY, sliderValues, amplificationFactor) => {
-      let displacementX = 0;
-      let displacementY = 0;
+    condition: (normX, normY) => Math.abs(normY + 0.25) < 0.2 && Math.abs(normX) < 0.4,
+    transform: (normX, normY, sliderValues, amplification) => {
+      const eyeSizeX = (sliderValues.eyeSize || 0) / 100 * normX * amplification;
+      const eyeSizeY = (sliderValues.eyeSize || 0) / 100 * normY * amplification;
+      const eyeSpacingX = (sliderValues.eyeSpacing || 0) / 100 * (normX > 0 ? 1 : -1) * amplification;
       
-      // Apply eye size transformation with increased effect
-      displacementX += (sliderValues.eyeSize / 100) * normX * amplificationFactor;
-      displacementY += (sliderValues.eyeSize / 100) * normY * amplificationFactor;
-      
-      // Apply eye spacing transformation with increased effect
-      displacementX += (sliderValues.eyeSpacing / 100) * (normX > 0 ? 1 : -1) * amplificationFactor;
-      
-      return { displacementX, displacementY };
+      return {
+        displacementX: eyeSizeX + eyeSpacingX,
+        displacementY: eyeSizeY
+      };
     }
   },
   
-  // Eyebrow region - expanded and intensified
+  // Eyebrow region
   {
-    condition: (normX, normY) => 
-      normY < -0.15 && normY > -0.85 && Math.abs(normX) > 0.05 && Math.abs(normX) < 0.6,
-    transform: (normX, normY, sliderValues, amplificationFactor) => {
-      // Increased effect for eyebrow height
-      const displacementY = -(sliderValues.eyebrowHeight / 100) * amplificationFactor * 1.25;
-      return { displacementX: 0, displacementY };
+    condition: (normX, normY) => Math.abs(normY + 0.4) < 0.1 && Math.abs(normX) < 0.4,
+    transform: (normX, normY, sliderValues, amplification) => {
+      return {
+        displacementX: 0,
+        displacementY: -(sliderValues.eyebrowHeight || 0) / 100 * amplification
+      };
     }
   },
   
-  // Nose region - expanded with more dramatic effects and better blending
+  // Nose region
   {
-    condition: (normX, normY) => 
-      Math.abs(normX) < 0.4 && normY > -0.5 && normY < 0.35,
-    transform: (normX, normY, sliderValues, amplificationFactor) => {
-      // Intensified nose transformations
-      const displacementX = (sliderValues.noseWidth / 100) * normX * amplificationFactor * 1.5;
-      const displacementY = (sliderValues.noseLength / 100) * (normY > 0 ? 1 : -1) * amplificationFactor * 1.2;
-      return { displacementX, displacementY };
+    condition: (normX, normY) => Math.abs(normX) < 0.2 && normY > -0.3 && normY < 0.2,
+    transform: (normX, normY, sliderValues, amplification) => {
+      return {
+        displacementX: (sliderValues.noseWidth || 0) / 100 * normX * amplification,
+        displacementY: (sliderValues.noseLength || 0) / 100 * (normY > 0 ? 1 : -1) * amplification
+      };
     }
   },
   
-  // Mouth region - expanded with more dramatic effects
+  // Mouth region
   {
-    condition: (normX, normY) => 
-      Math.abs(normX) < 0.45 && normY > -0.05 && normY < 0.55,
-    transform: (normX, normY, sliderValues, amplificationFactor) => {
-      // Intensified mouth transformations
-      const displacementX = (sliderValues.mouthWidth / 100) * normX * amplificationFactor * 1.5;
-      const displacementY = (sliderValues.mouthHeight / 100) * (normY - 0.25) * amplificationFactor * 1.3;
-      return { displacementX, displacementY };
+    condition: (normX, normY) => Math.abs(normX) < 0.3 && normY > 0.1 && normY < 0.4,
+    transform: (normX, normY, sliderValues, amplification) => {
+      return {
+        displacementX: (sliderValues.mouthWidth || 0) / 100 * normX * amplification,
+        displacementY: (sliderValues.mouthHeight || 0) / 100 * (normY - 0.25) * amplification
+      };
     }
   },
   
-  // Overall face width - expanded with more dramatic effect
+  // Face width
   {
-    condition: (normX, normY, distFromCenter) => 
-      distFromCenter > 0.3 && distFromCenter < 1.8,
-    transform: (normX, normY, sliderValues, amplificationFactor) => {
-      // More dramatic face width transformation
-      const displacementX = (sliderValues.faceWidth / 100) * normX * amplificationFactor * 1.4;
-      return { displacementX, displacementY: 0 };
+    condition: (normX, normY, distFromCenter) => {
+      return distFromCenter !== undefined && distFromCenter > 0.4 && distFromCenter < 1.0;
+    },
+    transform: (normX, normY, sliderValues, amplification) => {
+      return {
+        displacementX: (sliderValues.faceWidth || 0) / 100 * normX * amplification,
+        displacementY: 0
+      };
     }
   },
   
-  // Chin shape - expanded with more dramatic effect
+  // Chin shape
   {
-    condition: (normX, normY) => 
-      normY > 0.25 && Math.abs(normX) < 0.5,
-    transform: (normX, normY, sliderValues, amplificationFactor) => {
-      // More dramatic chin shape transformation
-      const displacementY = (sliderValues.chinShape / 100) * (normY - 0.4) * amplificationFactor * 1.6;
-      return { displacementX: 0, displacementY };
+    condition: (normX, normY) => normY > 0.3 && Math.abs(normX) < 0.3,
+    transform: (normX, normY, sliderValues, amplification) => {
+      return {
+        displacementX: 0,
+        displacementY: (sliderValues.chinShape || 0) / 100 * (normY - 0.4) * amplification
+      };
     }
   },
   
-  // Jawline - expanded with more dramatic effect
+  // Jawline
   {
-    condition: (normX, normY) => 
-      normY > 0.05 && Math.abs(normX) > 0.15 && Math.abs(normX) < 0.8,
-    transform: (normX, normY, sliderValues, amplificationFactor) => {
-      // More dramatic jawline transformation
-      const displacementX = (sliderValues.jawline / 100) * (normX > 0 ? 1 : -1) * amplificationFactor * 1.5;
-      return { displacementX, displacementY: 0 };
+    condition: (normX, normY) => normY > 0.15 && Math.abs(normX) > 0.2 && Math.abs(normX) < 0.6,
+    transform: (normX, normY, sliderValues, amplification) => {
+      return {
+        displacementX: (sliderValues.jawline || 0) / 100 * (normX > 0 ? 1 : -1) * amplification,
+        displacementY: 0
+      };
     }
   }
 ];
 
-// Helper function to get amplification factor
-export const getAmplificationFactor = () => AMPLIFICATION_FACTOR;
-
-// Helper function to get maximum influence distance
-export const getMaxInfluenceDistance = () => MAX_INFLUENCE_DISTANCE;
+// Get displacements for a specific point on the face
+export const getDisplacement = (
+  normX: number, 
+  normY: number,
+  distFromCenter: number,
+  sliderValues: Record<string, number>,
+  amplificationFactor: number
+) => {
+  let totalDisplacementX = 0;
+  let totalDisplacementY = 0;
+  
+  // Apply transformations from all regions that match the current point
+  facialRegions.forEach(region => {
+    if (region.condition(normX, normY, distFromCenter)) {
+      const { displacementX, displacementY } = region.transform(
+        normX, normY, sliderValues, amplificationFactor
+      );
+      
+      totalDisplacementX += displacementX;
+      totalDisplacementY += displacementY;
+    }
+  });
+  
+  return { displacementX: totalDisplacementX, displacementY: totalDisplacementY };
+};

@@ -7,7 +7,7 @@ import { WorkerGlobalScopeInterface } from './workers/workerManager';
 
 // Declare global worker scope for TypeScript recognition in worker files
 declare global {
-  // Use our interface instead of the undefined DedicatedWorkerGlobalScope
+  // Extend the Window interface instead of redefining self
   interface Window extends WorkerGlobalScopeInterface {}
 }
 
