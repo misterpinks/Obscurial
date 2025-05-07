@@ -1,16 +1,13 @@
 
-import { RefObject } from 'react';
-import { useLandmarksDrawing } from './imageProcessing/useLandmarks';
+import { useState, useCallback, useEffect } from 'react';
 import { useCanvasProcessing } from './imageProcessing/useCanvasProcessing';
 import { useImageDownload } from './imageProcessing/useImageDownload';
-import { useImageProcessingCore } from './imageProcessing/useImageProcessingCore';
-import { useImageProcessingEffects } from './imageProcessing/useImageProcessingEffects';
 
 interface UseImageProcessingProps {
   originalImage: HTMLImageElement | null;
-  originalCanvasRef: RefObject<HTMLCanvasElement>;
-  processedCanvasRef: RefObject<HTMLCanvasElement>;
-  cleanProcessedCanvasRef: RefObject<HTMLCanvasElement>;
+  originalCanvasRef: React.RefObject<HTMLCanvasElement>;
+  processedCanvasRef: React.RefObject<HTMLCanvasElement>;
+  cleanProcessedCanvasRef: React.RefObject<HTMLCanvasElement>;
   faceDetection: any;
   sliderValues: Record<string, number>;
   initialProcessingDone: boolean;
@@ -19,15 +16,9 @@ interface UseImageProcessingProps {
   detectFaces: () => void;
   analyzeModifiedImage: () => void;
   autoAnalyze: boolean;
-  lastProcessedValues: string;
-  setLastProcessedValues: (values: string) => void;
-  faceEffectOptions?: {
-    effectType: 'blur' | 'pixelate' | 'mask' | 'none';
-    effectIntensity: number;
-    maskImage?: HTMLImageElement | null;
-    maskPosition?: { x: number, y: number };
-    maskScale?: number;
-  };
+  lastProcessedValues: Record<string, number> | null;
+  setLastProcessedValues: React.Dispatch<React.SetStateAction<Record<string, number> | null>>;
+  faceEffectOptions?: any;
 }
 
 export const useImageProcessing = ({
@@ -47,75 +38,92 @@ export const useImageProcessing = ({
   setLastProcessedValues,
   faceEffectOptions
 }: UseImageProcessingProps) => {
-  // Use extracted landmark drawing functionality
-  const { drawFaceLandmarks } = useLandmarksDrawing({
-    faceDetection,
-    processedCanvasRef,
-    originalImage
-  });
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>('');
+  const [processedImageURL, setProcessedImageURL] = useState<string>('');
 
-  // Use extracted canvas processing functionality
-  const { processImage: processImageImpl } = useCanvasProcessing({
+  // Use the canvas processing hook
+  const { processImage } = useCanvasProcessing({
     originalImage,
     processedCanvasRef,
     cleanProcessedCanvasRef,
     faceDetection,
     sliderValues,
     showLandmarks,
-    drawFaceLandmarks,
     faceEffectOptions
   });
 
-  // Use core image processing functionality
-  const {
-    isProcessing,
-    cleanProcessedImageURL,
-    processImage,
-    debouncedProcess,
-    processingQueued,
-    setProcessingQueued
-  } = useImageProcessingCore({
-    originalImage,
-    initialProcessingDone,
-    autoAnalyze,
-    lastProcessedValues,
-    setLastProcessedValues,
-    processImageImpl,
-    analyzeModifiedImage,
-    isFaceApiLoaded,
-    faceDetection
-  });
+  // Use the image download hook
+  const { downloadImage } = useImageDownload(cleanProcessedImageURL);
 
-  // Use extracted image download functionality
-  const { downloadImage } = useImageDownload({
-    cleanProcessedImageURL
-  });
+  // Display the original image when it's loaded
+  useEffect(() => {
+    if (originalImage && originalCanvasRef.current) {
+      const origCtx = originalCanvasRef.current.getContext('2d');
+      if (origCtx) {
+        // Set canvas dimensions to match image
+        originalCanvasRef.current.width = originalImage.width;
+        originalCanvasRef.current.height = originalImage.height;
+        
+        // Draw the image to canvas
+        origCtx.drawImage(originalImage, 0, 0);
+      }
+    }
+  }, [originalImage, originalCanvasRef]);
 
-  // Set up effects for image processing
-  useImageProcessingEffects({
-    originalImage,
-    originalCanvasRef,
-    initialProcessingDone,
-    sliderValues,
-    faceEffectOptions,
-    lastProcessedValues,
-    setProcessingQueued,
-    setLastProcessedValues,
-    detectFaces,
-    processImage,
-    debouncedProcess,
-    processingQueued,
-    isFaceApiLoaded,
-    faceDetection
-  });
+  // Process the image when needed
+  const processImageWithState = useCallback(() => {
+    if (!originalImage) return;
+    
+    setIsProcessing(true);
+    
+    try {
+      // Process the image and get the clean data URL
+      const dataURL = processImage();
+      
+      if (dataURL) {
+        setCleanProcessedImageURL(dataURL);
+        
+        // If we have face data and auto-analyze is enabled, analyze the modified image
+        if (faceDetection && isFaceApiLoaded && autoAnalyze) {
+          setTimeout(analyzeModifiedImage, 300);
+        }
+        
+        // Save the slider values that were used for processing
+        setLastProcessedValues({...sliderValues});
+      }
+    } catch (error) {
+      console.error('Error processing image:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [originalImage, processImage, faceDetection, isFaceApiLoaded, autoAnalyze, analyzeModifiedImage, sliderValues, setLastProcessedValues]);
+
+  // Process the image whenever original image changes or slider values change
+  useEffect(() => {
+    if (originalImage && initialProcessingDone) {
+      // Check if we actually need to process
+      const needsProcessing = !lastProcessedValues || 
+        Object.keys(sliderValues).some(key => sliderValues[key] !== lastProcessedValues[key]);
+      
+      if (needsProcessing) {
+        processImageWithState();
+      }
+    }
+  }, [originalImage, initialProcessingDone, sliderValues, lastProcessedValues, processImageWithState]);
+
+  // Initially detect faces
+  useEffect(() => {
+    if (isFaceApiLoaded && originalImage && !initialProcessingDone) {
+      detectFaces();
+    }
+  }, [isFaceApiLoaded, originalImage, initialProcessingDone, detectFaces]);
 
   return {
     isProcessing,
     cleanProcessedImageURL,
-    processImage,
-    debouncedProcess,
-    downloadImage,
-    processingQueued,
-    setProcessingQueued
+    processedImageURL,
+    processImage: processImageWithState,
+    downloadImage
   };
 };

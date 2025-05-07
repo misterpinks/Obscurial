@@ -13,9 +13,9 @@ interface UseCanvasProcessingProps {
   faceEffectOptions?: {
     effectType: 'blur' | 'pixelate' | 'mask' | 'none';
     effectIntensity: number;
-    maskImage?: HTMLImageElement | null;
-    maskPosition?: { x: number, y: number };
-    maskScale?: number;
+    maskImage: HTMLImageElement | null;
+    maskPosition: { x: number; y: number };
+    maskScale: number;
   };
 }
 
@@ -41,14 +41,14 @@ export const useCanvasProcessing = ({
     
     // First process the clean canvas (without landmarks)
     const cleanCanvas = cleanProcessedCanvasRef.current;
-    const cleanCtx = cleanCanvas.getContext("2d", { willReadFrequently: true });
+    const cleanCtx = cleanCanvas.getContext("2d");
     if (!cleanCtx) return;
     
     // Set canvas dimensions to match image
     cleanCanvas.width = originalImage.width;
     cleanCanvas.height = originalImage.height;
     
-    // Apply feature transformations directly to the clean canvas
+    // Apply feature transformations to the clean canvas
     applyFeatureTransformations({
       ctx: cleanCtx,
       originalImage,
@@ -71,23 +71,13 @@ export const useCanvasProcessing = ({
     // Copy the clean processed image to the display canvas
     ctx.drawImage(cleanCanvas, 0, 0);
     
-    // Draw landmarks on top of the processed image
+    // Draw landmarks on top of the processed image if enabled
     if (faceDetection && showLandmarks) {
       drawFaceLandmarks();
     }
     
-    // Return the processed canvas for potential further usage
-    return cleanCanvas;
-  }, [
-    originalImage, 
-    processedCanvasRef, 
-    cleanProcessedCanvasRef, 
-    faceDetection, 
-    sliderValues, 
-    showLandmarks,
-    drawFaceLandmarks,
-    faceEffectOptions
-  ]);
+    return cleanCanvas.toDataURL("image/png");
+  }, [originalImage, processedCanvasRef, cleanProcessedCanvasRef, faceDetection, sliderValues, showLandmarks, faceEffectOptions, drawFaceLandmarks]);
 
   return { processImage };
 };
