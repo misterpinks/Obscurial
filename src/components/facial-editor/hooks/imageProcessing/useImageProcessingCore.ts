@@ -1,5 +1,6 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { debounce } from 'lodash';
 
 interface UseImageProcessingCoreProps {
   originalImage: HTMLImageElement | null;
@@ -26,7 +27,24 @@ export const useImageProcessingCore = ({
 }: UseImageProcessingCoreProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
-  const [processingQueued, setProcessingQueued] = useState(false);
+  const processingQueuedRef = useRef(false);
+  
+  // Use requestAnimationFrame for smoother UI updates
+  const scheduleProcessing = useCallback((callback: () => void) => {
+    return window.requestAnimationFrame(() => {
+      try {
+        callback();
+      } catch (error) {
+        console.error("Error in scheduled processing:", error);
+      }
+    });
+  }, []);
+
+  // Throttled version for frequent updates (like slider dragging)
+  const debouncedProcess = useCallback(
+    debounce(() => processImage(), 50),
+    [/* dependencies will be added by the real debounce */]
+  );
   
   // Wrapper for process image that handles state updates
   const processImage = useCallback(() => {
@@ -38,7 +56,7 @@ export const useImageProcessingCore = ({
     // Don't allow overlapping processing operations
     if (isProcessing) {
       console.log("Already processing, queuing request");
-      setProcessingQueued(true);
+      processingQueuedRef.current = true;
       return;
     }
     
@@ -47,7 +65,7 @@ export const useImageProcessingCore = ({
     console.log("Starting image processing");
     
     // Use requestAnimationFrame to prevent UI blocking
-    requestAnimationFrame(() => {
+    scheduleProcessing(() => {
       try {
         // Process the image using our implementation
         const cleanCanvas = processImageImpl();
@@ -56,6 +74,7 @@ export const useImageProcessingCore = ({
         if (cleanCanvas) {
           try {
             setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
+            console.log("Generated clean processed image URL");
           } catch (e) {
             console.error("Failed to generate data URL:", e);
           }
@@ -70,8 +89,8 @@ export const useImageProcessingCore = ({
       } finally {
         setIsProcessing(false);
         // If there was another process requested while this one was running, run it now
-        if (processingQueued) {
-          setProcessingQueued(false);
+        if (processingQueuedRef.current) {
+          processingQueuedRef.current = false;
           setTimeout(processImage, 0);
         }
       }
@@ -84,18 +103,15 @@ export const useImageProcessingCore = ({
     autoAnalyze,
     analyzeModifiedImage,
     isProcessing,
-    processingQueued
+    scheduleProcessing
   ]);
-
-  // Reference the same function for consistency
-  const debouncedProcess = processImage;
 
   return {
     isProcessing,
     cleanProcessedImageURL,
     processImage,
     debouncedProcess,
-    processingQueued,
-    setProcessingQueued
+    processingQueued: processingQueuedRef.current,
+    setProcessingQueued: (queued: boolean) => { processingQueuedRef.current = queued; }
   };
 };

@@ -35,7 +35,12 @@ const ImageDisplay = ({
   
   // Load image and draw it to canvas
   useEffect(() => {
-    if (!imageSource) return;
+    if (!imageSource) {
+      console.log('No image source provided');
+      return;
+    }
+    
+    console.log('Loading image from source:', imageSource);
     
     // Create a new image
     const img = new Image();
@@ -43,6 +48,7 @@ const ImageDisplay = ({
     
     // Handle successful load
     img.onload = () => {
+      console.log('Image loaded successfully, dimensions:', img.width, 'x', img.height);
       setImageLoaded(true);
       setImageError(false);
       renderImage();
@@ -50,17 +56,14 @@ const ImageDisplay = ({
     };
     
     // Handle error
-    img.onerror = () => {
-      console.error('Failed to load image:', imageSource);
+    img.onerror = (error) => {
+      console.error('Failed to load image:', imageSource, error);
       setImageError(true);
       setImageLoaded(false);
     };
     
     // Set source to trigger loading
     img.src = imageSource;
-    
-    // Log for debugging
-    console.log('Trying to load image from:', imageSource);
     
     return () => {
       // Cleanup
@@ -72,6 +75,7 @@ const ImageDisplay = ({
   // Re-render when filters change
   useEffect(() => {
     if (imageLoaded) {
+      console.log('Filters changed, re-rendering image');
       renderImage();
     }
   }, [filters, imageLoaded]);
@@ -79,10 +83,16 @@ const ImageDisplay = ({
   // Render image with filters to canvas
   const renderImage = () => {
     const canvas = canvasRef.current;
-    if (!canvas || !imageRef.current) return;
+    if (!canvas || !imageRef.current) {
+      console.log('Canvas or image reference not available');
+      return;
+    }
     
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error('Could not get canvas context');
+      return;
+    }
     
     // Set canvas dimensions to match image while considering device pixel ratio
     const pixelRatio = window.devicePixelRatio || 1;
@@ -105,6 +115,7 @@ const ImageDisplay = ({
     `;
     
     // Draw image
+    console.log('Drawing image to canvas with filters');
     ctx.drawImage(imageRef.current, 0, 0);
     
     // Reset filter
@@ -115,6 +126,7 @@ const ImageDisplay = ({
     <div className={`image-display ${className}`}>
       {!imageLoaded && !imageError && (
         <div className="flex items-center justify-center p-4 text-sm text-gray-500">
+          <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-blue-500 rounded-full mr-2"></div>
           Loading image...
         </div>
       )}
