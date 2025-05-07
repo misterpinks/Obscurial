@@ -9,7 +9,7 @@ const EditorHeader = () => {
         Subtly modify facial features to help defeat facial recognition while maintaining visual similarity
       </p>
       <p className="text-xs text-muted-foreground">
-        <span className="font-medium">Tip:</span> Use zoom controls to see details and directly drag facial landmarks to customize the effect
+        <span className="font-medium">Tip:</span> Use slider controls to adjust facial features and apply privacy filters
       </p>
     </div>
   );

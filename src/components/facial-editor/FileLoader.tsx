@@ -120,8 +120,8 @@ const FileLoader: React.FC<FileLoaderProps> = ({ onImageLoad, className = '' }) 
   
   return (
     <div 
-      className={`file-loader rounded-lg border-2 border-dashed border-gray-300 p-6 text-center transition-colors ${
-        dragActive ? 'bg-gray-100' : 'bg-transparent'
+      className={`file-loader rounded-lg border-2 border-dashed border-gray-300 p-6 text-center transition-colors bg-white bg-opacity-95 shadow-md ${
+        dragActive ? 'bg-gray-100' : ''
       } ${className}`}
       onDragEnter={handleDrag}
       onDragOver={handleDrag}

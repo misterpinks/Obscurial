@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import FileLoader from './FileLoader';
+import { Card, CardContent } from "@/components/ui/card";
 
 interface ImageUploaderProps {
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -55,37 +56,39 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-8">
-      <div className="text-center">
-        <h2 className="text-2xl font-semibold mb-4">Upload Your Image</h2>
-        <p className="text-muted-foreground mb-8">
-          Upload an image to start editing. We'll protect your privacy by making your face unrecognizable to AI systems.
-        </p>
-      </div>
+    <Card className="max-w-xl mx-auto">
+      <CardContent className="p-8">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold mb-4">Upload Your Image</h2>
+          <p className="text-muted-foreground mb-8">
+            Upload an image to start editing. We'll protect your privacy by making your face unrecognizable to AI systems.
+          </p>
+        </div>
 
-      {/* New FileLoader component */}
-      <FileLoader onImageLoad={handleImageLoad} className="mb-6" />
-      
-      {/* Keep the original file input for compatibility */}
-      <input 
-        type="file" 
-        ref={inputRef}
-        onChange={onImageUpload}
-        accept="image/*"
-        className="hidden"
-      />
+        {/* New FileLoader component */}
+        <FileLoader onImageLoad={handleImageLoad} className="mb-6" />
+        
+        {/* Keep the original file input for compatibility */}
+        <input 
+          type="file" 
+          ref={inputRef}
+          onChange={onImageUpload}
+          accept="image/*"
+          className="hidden"
+        />
 
-      <div className="text-center">
-        <Button 
-          onClick={triggerFileInput}
-          variant="outline"
-          className="mt-4"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          Select a different file
-        </Button>
-      </div>
-    </div>
+        <div className="text-center">
+          <Button 
+            onClick={triggerFileInput}
+            variant="outline"
+            className="mt-4"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Select a different file
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
