@@ -1,31 +1,220 @@
 
 /**
- * Image Processing Worker
- * 
- * This worker handles processor-intensive image transformations off the main thread
- * to prevent UI freezing during complex operations.
+ * Web Worker for offloading image processing tasks
+ * This runs in a separate thread to prevent UI blocking
  */
 
-// Send ready message when worker initializes
-self.postMessage({ status: 'ready', message: 'Image processing worker initialized' });
+// Type definitions for Web Worker context
+declare const self: DedicatedWorkerGlobalScope;
 
-// Helper function: Calculate transition factor (copied from transformCore for worker independence)
-function calculateTransitionFactor(
+// Let main thread know worker is ready
+self.postMessage({ status: 'ready' });
+
+// Handle messages from main thread
+self.onmessage = (event) => {
+  const { command, originalImageData, params } = event.data;
+  
+  if (command === 'process') {
+    processImageData(originalImageData, params);
+  }
+};
+
+// Process image data in the worker thread
+const processImageData = (
+  originalImageData: { 
+    data: ArrayBufferLike; 
+    width: number; 
+    height: number; 
+  }, 
+  params: {
+    centerX: number;
+    centerY: number;
+    halfFaceWidth: number;
+    halfFaceHeight: number;
+    innerEdge: number;
+    maxInfluenceDistance: number;
+    sliderValues: Record<string, number>;
+    amplificationFactor: number;
+    safetyMargin: number;
+  }
+) => {
+  const startTime = performance.now();
+  
+  try {
+    // Create data views for original and output data
+    const originalData = new Uint8ClampedArray(originalImageData.data);
+    const outputData = new Uint8ClampedArray(originalData.length);
+    
+    // Extract parameters
+    const { width, height } = originalImageData;
+    const { 
+      centerX, 
+      centerY, 
+      halfFaceWidth, 
+      halfFaceHeight,
+      innerEdge,
+      maxInfluenceDistance,
+      sliderValues,
+      amplificationFactor,
+      safetyMargin
+    } = params;
+    
+    // Process all rows
+    for (let y = 0; y < height; y++) {
+      processRow(
+        y,
+        width,
+        height,
+        originalData,
+        outputData,
+        centerX,
+        centerY,
+        halfFaceWidth,
+        halfFaceHeight,
+        innerEdge,
+        maxInfluenceDistance,
+        sliderValues,
+        amplificationFactor,
+        safetyMargin
+      );
+    }
+    
+    const processingTime = performance.now() - startTime;
+    
+    // Transfer processed data back to main thread
+    // Fix: Correct usage of postMessage with transferable objects
+    const messageData = {
+      processedData: outputData.buffer,
+      width: originalImageData.width,
+      height: originalImageData.height,
+      processingTime
+    };
+    
+    // Correctly specify transferables as an array of Transferable objects
+    self.postMessage(messageData, [outputData.buffer as Transferable]);
+  } catch (error) {
+    // Report errors back to main thread
+    self.postMessage({
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+
+// Process a single row of pixels (copypasta from pixelProcessor.ts for worker isolation)
+const processRow = (
+  y: number,
+  width: number,
+  height: number,
+  originalData: Uint8ClampedArray,
+  outputData: Uint8ClampedArray,
+  centerX: number,
+  centerY: number,
+  halfFaceWidth: number,
+  halfFaceHeight: number,
+  innerEdge: number,
+  maxInfluenceDistance: number,
+  sliderValues: Record<string, number>,
+  amplificationFactor: number,
+  safetyMargin: number
+): void => {
+  // Pre-calculate row offset for performance
+  const rowOffset = y * width;
+  
+  for (let x = 0; x < width; x++) {
+    // Calculate normalized position relative to face center
+    const normX = (x - centerX) / halfFaceWidth;
+    const normY = (y - centerY) / halfFaceHeight;
+    const distFromCenter = Math.sqrt(normX * normX + normY * normY);
+    
+    // Skip if outside approximate face area (fast path)
+    if (distFromCenter > maxInfluenceDistance) {
+      // Just copy original pixel for areas outside the face
+      const i = (rowOffset + x) * 4;
+      copyPixel(originalData, outputData, i, i);
+      continue;
+    }
+    
+    // Calculate displacement based on facial feature regions
+    let displacementX = 0;
+    let displacementY = 0;
+    
+    // Process each facial region
+    for (const region of facialRegions) {
+      if (region.condition(normX, normY, distFromCenter)) {
+        const displacement = region.transform(
+          normX, normY, sliderValues, amplificationFactor
+        );
+        displacementX += displacement.displacementX;
+        displacementY += displacement.displacementY;
+      }
+    }
+    
+    // Apply additional transition zone for smoother blending at edges
+    if (distFromCenter > innerEdge && distFromCenter < maxInfluenceDistance) {
+      const smoothFadeFactor = calculateTransitionFactor(distFromCenter, innerEdge, maxInfluenceDistance);
+      displacementX *= smoothFadeFactor;
+      displacementY *= smoothFadeFactor;
+    }
+    
+    // Calculate sample position with displacement
+    const sampleX = x - displacementX;
+    const sampleY = y - displacementY;
+    
+    // Pixel index calculation (optimized)
+    const index = (rowOffset + x) * 4;
+    
+    // Handle edge cases and perform bilinear interpolation
+    if (sampleX < safetyMargin || sampleY < safetyMargin || 
+        sampleX >= width - safetyMargin || sampleY >= height - safetyMargin) {
+      // For near-edge pixels, use clamped interpolation
+      let adjustedSampleX = Math.max(safetyMargin, Math.min(width - safetyMargin - 1, sampleX));
+      let adjustedSampleY = Math.max(safetyMargin, Math.min(height - safetyMargin - 1, sampleY));
+      
+      bilinearInterpolation(
+        originalData, 
+        adjustedSampleX, 
+        adjustedSampleY, 
+        width, 
+        height, 
+        outputData, 
+        index
+      );
+    } else {
+      // Use bilinear interpolation for interior pixels
+      bilinearInterpolation(
+        originalData, 
+        sampleX, 
+        sampleY, 
+        width, 
+        height, 
+        outputData, 
+        index
+      );
+    }
+  }
+};
+
+// Helper functions from transformCore.ts (duplicated for worker isolation)
+
+// Helper for calculating transition zones and edge effects
+const calculateTransitionFactor = (
   distFromCenter: number,
   innerEdge: number,
   maxInfluenceDistance: number
-): number {
+): number => {
   if (distFromCenter <= innerEdge) return 1.0;
   if (distFromCenter >= maxInfluenceDistance) return 0.0;
   
+  // Calculate fade factor (1.0 at inner edge, 0.0 at outer edge)
   const transitionZone = maxInfluenceDistance - innerEdge;
   const fadeFactor = 1.0 - ((distFromCenter - innerEdge) / transitionZone);
   
+  // Apply smoother quadratic easing
   return fadeFactor * fadeFactor;
-}
+};
 
-// Helper function: Bilinear interpolation (copied from transformCore)
-function bilinearInterpolation(
+// Helper for bilinear interpolation - optimized
+const bilinearInterpolation = (
   originalData: Uint8ClampedArray,
   x: number, 
   y: number, 
@@ -33,7 +222,8 @@ function bilinearInterpolation(
   height: number,
   outputData: Uint8ClampedArray,
   index: number
-): void {
+): void => {
+  // Ensure coordinates are within bounds
   const sampleX = Math.max(0, Math.min(width - 1.001, x));
   const sampleY = Math.max(0, Math.min(height - 1.001, y));
   
@@ -45,11 +235,13 @@ function bilinearInterpolation(
   const xWeight = sampleX - x1;
   const yWeight = sampleY - y1;
   
+  // Pre-calculate offsets for performance
   const topLeftOffset = (y1 * width + x1) * 4;
   const topRightOffset = (y1 * width + x2) * 4;
   const bottomLeftOffset = (y2 * width + x1) * 4;
   const bottomRightOffset = (y2 * width + x2) * 4;
   
+  // Unrolled loop for better performance
   // Red channel
   const topLeftR = originalData[topLeftOffset];
   const topRightR = originalData[topRightOffset];
@@ -82,193 +274,78 @@ function bilinearInterpolation(
   
   // Alpha channel
   outputData[index + 3] = originalData[topLeftOffset + 3];
-}
-
-// Process a single row of pixels
-function processRow(
-  y: number,
-  width: number,
-  height: number,
-  originalData: Uint8ClampedArray,
-  outputData: Uint8ClampedArray,
-  centerX: number,
-  centerY: number,
-  halfFaceWidth: number,
-  halfFaceHeight: number,
-  innerEdge: number,
-  maxInfluenceDistance: number,
-  sliderValues: Record<string, number>,
-  amplificationFactor: number,
-  safetyMargin: number
-): void {
-  // Pre-calculate row offset for performance
-  const rowOffset = y * width;
-  
-  for (let x = 0; x < width; x++) {
-    // Calculate normalized position relative to face center
-    const normX = (x - centerX) / halfFaceWidth;
-    const normY = (y - centerY) / halfFaceHeight;
-    const distFromCenter = Math.sqrt(normX * normX + normY * normY);
-    
-    // Skip if outside approximate face area (fast path)
-    if (distFromCenter > maxInfluenceDistance) {
-      // Copy original pixel for areas outside face
-      const i = (rowOffset + x) * 4;
-      for (let c = 0; c < 4; c++) {
-        outputData[i + c] = originalData[i + c];
-      }
-      continue;
-    }
-    
-    // Calculate displacement based on facial features
-    let displacementX = 0;
-    let displacementY = 0;
-    
-    // Eye region
-    if (normY < -0.15 && normY > -0.65 && Math.abs(normX) > 0.1 && Math.abs(normX) < 0.45) {
-      // Apply eye size transformation
-      displacementX += (sliderValues.eyeSize / 50) * normX * amplificationFactor;
-      displacementY += (sliderValues.eyeSize / 50) * normY * amplificationFactor;
-      
-      // Apply eye spacing transformation
-      displacementX += (sliderValues.eyeSpacing / 50) * (normX > 0 ? 1 : -1) * amplificationFactor;
-    }
-    
-    // Eyebrow region
-    if (normY < -0.25 && normY > -0.75 && Math.abs(normX) > 0.05 && Math.abs(normX) < 0.5) {
-      displacementY -= (sliderValues.eyebrowHeight / 50) * amplificationFactor;
-    }
-    
-    // Nose region
-    if (Math.abs(normX) < 0.25 && normY > -0.4 && normY < 0.25) {
-      displacementX += (sliderValues.noseWidth / 50) * normX * amplificationFactor;
-      displacementY += (sliderValues.noseLength / 50) * (normY > 0 ? 1 : -1) * amplificationFactor;
-    }
-    
-    // Mouth region
-    if (Math.abs(normX) < 0.35 && normY > 0.05 && normY < 0.45) {
-      displacementX += (sliderValues.mouthWidth / 50) * normX * amplificationFactor;
-      displacementY += (sliderValues.mouthHeight / 50) * (normY - 0.25) * amplificationFactor;
-    }
-    
-    // Overall face width
-    if (distFromCenter > 0.4 && distFromCenter < 1.1) {
-      displacementX += (sliderValues.faceWidth / 50) * normX * amplificationFactor;
-    }
-    
-    // Chin shape
-    if (normY > 0.35 && Math.abs(normX) < 0.35) {
-      displacementY += (sliderValues.chinShape / 50) * (normY - 0.4) * amplificationFactor;
-    }
-    
-    // Jawline
-    if (normY > 0.15 && Math.abs(normX) > 0.25 && Math.abs(normX) < 0.65) {
-      displacementX += (sliderValues.jawline / 50) * (normX > 0 ? 1 : -1) * amplificationFactor;
-    }
-    
-    // Apply transition zone
-    if (distFromCenter > innerEdge && distFromCenter < maxInfluenceDistance) {
-      const smoothFadeFactor = calculateTransitionFactor(distFromCenter, innerEdge, maxInfluenceDistance);
-      displacementX *= smoothFadeFactor;
-      displacementY *= smoothFadeFactor;
-    }
-    
-    // Calculate sample position with displacement
-    const sampleX = x - displacementX;
-    const sampleY = y - displacementY;
-    
-    // Pixel index calculation
-    const index = (rowOffset + x) * 4;
-    
-    // Handle edges and apply interpolation
-    if (sampleX < safetyMargin || sampleY < safetyMargin || 
-        sampleX >= width - safetyMargin || sampleY >= height - safetyMargin) {
-      let adjustedSampleX = Math.max(safetyMargin, Math.min(width - safetyMargin - 1, sampleX));
-      let adjustedSampleY = Math.max(safetyMargin, Math.min(height - safetyMargin - 1, sampleY));
-      
-      bilinearInterpolation(
-        originalData, 
-        adjustedSampleX, 
-        adjustedSampleY, 
-        width, 
-        height, 
-        outputData, 
-        index
-      );
-    } else {
-      bilinearInterpolation(
-        originalData, 
-        sampleX, 
-        sampleY, 
-        width, 
-        height, 
-        outputData, 
-        index
-      );
-    }
-  }
-}
-
-// Message handler for worker commands
-self.onmessage = function(e) {
-  const startTime = performance.now();
-  
-  // Check if this is a processing request
-  if (e.data.command === 'process') {
-    const { originalImageData, params } = e.data;
-    
-    // Create output data array
-    const outputData = new Uint8ClampedArray(originalImageData.data.length);
-    
-    // Extract processing parameters
-    const { 
-      centerX, 
-      centerY, 
-      halfFaceWidth, 
-      halfFaceHeight,
-      innerEdge,
-      maxInfluenceDistance,
-      sliderValues,
-      amplificationFactor,
-      safetyMargin
-    } = params;
-    
-    // Process each row
-    for (let y = 0; y < originalImageData.height; y++) {
-      processRow(
-        y,
-        originalImageData.width,
-        originalImageData.height,
-        originalImageData.data,
-        outputData,
-        centerX,
-        centerY,
-        halfFaceWidth,
-        halfFaceHeight,
-        innerEdge,
-        maxInfluenceDistance,
-        sliderValues,
-        amplificationFactor,
-        safetyMargin
-      );
-    }
-    
-    // Calculate processing time
-    const processingTime = performance.now() - startTime;
-    
-    // Transfer processed data back to main thread
-    // Fix: Correct usage of postMessage with transferable objects
-    const messageData = {
-      processedData: outputData.buffer,
-      width: originalImageData.width,
-      height: originalImageData.height,
-      processingTime
-    };
-    
-    // Correctly specify transferables as the third parameter (or in options object)
-    self.postMessage(messageData, [outputData.buffer]);
-  }
 };
 
-// Ensure TypeScript understands the worker context
-export {};
+// Helper to copy pixel directly from source to destination - optimized
+const copyPixel = (
+  originalData: Uint8ClampedArray,
+  outputData: Uint8ClampedArray,
+  sourceIndex: number,
+  destIndex: number
+): void => {
+  outputData[destIndex] = originalData[sourceIndex];
+  outputData[destIndex + 1] = originalData[sourceIndex + 1];
+  outputData[destIndex + 2] = originalData[sourceIndex + 2];
+  outputData[destIndex + 3] = originalData[sourceIndex + 3];
+};
+
+// Simplified facial region types for worker isolation
+interface FacialRegion {
+  condition: (normX: number, normY: number, distFromCenter?: number) => boolean;
+  transform: (normX: number, normY: number, sliderValues: Record<string, number>, amplificationFactor: number) => {
+    displacementX: number;
+    displacementY: number;
+  };
+}
+
+// Simplified facial regions implementation for worker isolation
+const facialRegions: FacialRegion[] = [
+  // Entire face region (global effect)
+  {
+    condition: (normX, normY, distFromCenter = 0) => distFromCenter <= 1.0,
+    transform: (normX, normY, sliderValues, amplificationFactor) => {
+      const widthFactor = (sliderValues.faceWidth || 0) * amplificationFactor * 0.01;
+      const heightFactor = (sliderValues.faceHeight || 0) * amplificationFactor * 0.01;
+      
+      return {
+        displacementX: normX * widthFactor,
+        displacementY: normY * heightFactor
+      };
+    }
+  },
+  
+  // Eyes region
+  {
+    condition: (normX, normY) => {
+      const eyeY = -0.2;
+      const eyeDistanceY = Math.abs(normY - eyeY);
+      return eyeDistanceY < 0.2 && Math.abs(normX) < 0.5;
+    },
+    transform: (normX, normY, sliderValues, amplificationFactor) => {
+      const eyesWidthFactor = (sliderValues.eyesWidth || 0) * amplificationFactor * 0.01;
+      const eyesHeightFactor = (sliderValues.eyesHeight || 0) * amplificationFactor * 0.01;
+      
+      // Only apply horizontal displacement in eye region
+      return {
+        displacementX: normX * eyesWidthFactor,
+        displacementY: normY * eyesHeightFactor
+      };
+    }
+  },
+  
+  // Jaw region
+  {
+    condition: (normX, normY) => {
+      return normY > 0.2 && Math.abs(normX) < 0.8;
+    },
+    transform: (normX, normY, sliderValues, amplificationFactor) => {
+      const jawWidthFactor = (sliderValues.jawWidth || 0) * amplificationFactor * 0.01;
+      
+      // Only apply horizontal displacement in jaw region
+      return {
+        displacementX: normX * jawWidthFactor, 
+        displacementY: 0
+      };
+    }
+  }
+];
