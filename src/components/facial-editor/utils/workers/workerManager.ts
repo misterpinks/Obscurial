@@ -34,6 +34,16 @@ export const createWorkerBlobUrl = (workerFunction: Function): string => {
   return URL.createObjectURL(blob);
 };
 
+// Define TypeScript type for Web Worker scope
+// This helps avoid the DedicatedWorkerGlobalScope error
+export interface WorkerGlobalScopeInterface extends EventTarget {
+  self: WorkerGlobalScopeInterface;
+  postMessage: (message: any, transfer?: Transferable[]) => void;
+  onmessage: ((this: WorkerGlobalScopeInterface, ev: MessageEvent) => any) | null;
+  addEventListener: (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => void;
+  removeEventListener: (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions) => void;
+}
+
 // Process image data using a worker with a timeout
 export const processImageWithWorker = async (
   worker: Worker | undefined,

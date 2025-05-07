@@ -3,6 +3,17 @@
  * Types for transformation parameters
  */
 
+import { WorkerGlobalScopeInterface } from './workers/workerManager';
+
+// Declare global worker scope for TypeScript recognition in worker files
+declare global {
+  // Use our interface instead of the undefined DedicatedWorkerGlobalScope
+  interface Window extends WorkerGlobalScopeInterface {}
+  
+  // Make self refer to our interface when in worker context
+  var self: WorkerGlobalScopeInterface;
+}
+
 // Face effect options interface
 export interface FaceEffectOptions {
   effectType: 'blur' | 'pixelate' | 'mask' | 'none';
