@@ -45,8 +45,8 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
   }, [onSliderChange]);
 
   // Handle slider change complete event
-  const handleSliderChangeComplete = useCallback((id: string) => {
-    console.log(`Slider ${id} change completed`);
+  const handleSliderChangeComplete = useCallback(() => {
+    console.log(`Slider change completed`);
     if (onSliderChangeComplete) {
       onSliderChangeComplete();
     }
@@ -102,7 +102,7 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
                   label={slider.name}
                   initialValue={sliderValues[slider.id]}
                   onChange={(value) => handleSliderValueChange(slider.id, value)}
-                  onChangeComplete={() => handleSliderChangeComplete(slider.id)}
+                  onChangeComplete={handleSliderChangeComplete}
                   min={slider.min}
                   max={slider.max}
                   step={slider.step}

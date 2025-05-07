@@ -1,11 +1,11 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Card } from "@/components/ui/card";
 
 interface SimpleSliderProps {
   label: string;
   initialValue: number;
   onChange: (value: number) => void;
+  onChangeComplete?: () => void;
   min: number;
   max: number;
   step?: number;
@@ -16,6 +16,7 @@ const SimpleSlider = ({
   label,
   initialValue,
   onChange,
+  onChangeComplete,
   min,
   max,
   step = 1,
@@ -64,10 +65,15 @@ const SimpleSlider = ({
   const handleDocumentMouseUp = useCallback(() => {
     setIsDragging(false);
     
+    // Call onChangeComplete if provided
+    if (onChangeComplete) {
+      onChangeComplete();
+    }
+    
     // Remove document event listeners
     document.removeEventListener('mousemove', handleDocumentMouseMove);
     document.removeEventListener('mouseup', handleDocumentMouseUp);
-  }, [handleDocumentMouseMove]);
+  }, [handleDocumentMouseMove, onChangeComplete]);
   
   // Touch event handlers
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -99,10 +105,15 @@ const SimpleSlider = ({
   const handleDocumentTouchEnd = useCallback(() => {
     setIsDragging(false);
     
+    // Call onChangeComplete if provided
+    if (onChangeComplete) {
+      onChangeComplete();
+    }
+    
     // Remove document event listeners
     document.removeEventListener('touchmove', handleDocumentTouchMove);
     document.removeEventListener('touchend', handleDocumentTouchEnd);
-  }, [handleDocumentTouchMove]);
+  }, [handleDocumentTouchMove, onChangeComplete]);
   
   // Sync with external value changes
   useEffect(() => {

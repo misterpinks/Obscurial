@@ -76,7 +76,10 @@ export const useCanvasProcessing = ({
     
     // Draw landmarks on top of the processed image
     if (faceDetection && showLandmarks) {
-      drawFaceLandmarks();
+      // Make sure landmarks are drawn on top with proper z-index
+      setTimeout(() => {
+        drawFaceLandmarks();
+      }, 0);
     }
     
     // Return the processed canvas for potential further usage

@@ -19,7 +19,7 @@ const Slider = React.forwardRef<
     // The actual value update is handled by Radix UI through its own event system
   }, [isDragging]);
 
-  const handleDocumentMouseUp = React.useCallback(() => {
+  const handleDocumentMouseUp = React.useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
     console.log("Mouse up - ending drag");
@@ -33,7 +33,7 @@ const Slider = React.forwardRef<
     if (props.onValueCommit) {
       props.onValueCommit();
     }
-  }, [isDragging, props]);
+  }, [isDragging, props, handleDocumentMouseMove]);
 
   const handleDocumentTouchMove = React.useCallback((e: TouchEvent) => {
     if (!isDragging || !trackRef.current) return;
@@ -44,7 +44,7 @@ const Slider = React.forwardRef<
     // The actual value update is handled by Radix UI
   }, [isDragging]);
 
-  const handleDocumentTouchEnd = React.useCallback(() => {
+  const handleDocumentTouchEnd = React.useCallback((e: TouchEvent) => {
     if (!isDragging) return;
     
     console.log("Touch end - ending drag");
@@ -58,7 +58,7 @@ const Slider = React.forwardRef<
     if (props.onValueCommit) {
       props.onValueCommit();
     }
-  }, [isDragging, props]);
+  }, [isDragging, props, handleDocumentTouchMove]);
   
   // Handle mouse down to initiate dragging
   const handleMouseDown = React.useCallback((e: React.MouseEvent) => {

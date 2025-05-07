@@ -38,19 +38,24 @@ export const useFileUpload = ({
     setFaceDetection(null);
     setInitialProcessingDone(false);
     setHasShownNoFaceToast(false);
-    setOriginalImage(null); // Clear the current image first to force refresh
     
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        console.log("New image loaded:", img.width, "x", img.height);
-        setOriginalImage(img);
-        setActiveTab("edit");
+    // Force image refresh by setting to null first
+    setOriginalImage(null);
+    
+    // Use timeout to ensure the UI updates before loading the new image
+    setTimeout(() => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          console.log("New image loaded:", img.width, "x", img.height);
+          setOriginalImage(img);
+          setActiveTab("edit");
+        };
+        img.src = event.target?.result as string;
       };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    }, 100);
   }, [setOriginalImage, setActiveTab, setFaceDetection, setInitialProcessingDone, setHasShownNoFaceToast, toast]);
 
   const triggerFileInput = useCallback(() => {
