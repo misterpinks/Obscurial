@@ -15,9 +15,11 @@ interface UseImageProcessingProps {
   detectFaces: () => void;
   analyzeModifiedImage: () => void;
   autoAnalyze: boolean;
-  lastProcessedValues: Record<string, number> | null;
-  setLastProcessedValues: (values: Record<string, number>) => void;
+  lastProcessedValues: string;
+  setLastProcessedValues: (values: string) => void;
   faceEffectOptions: FaceEffectOptions;
+  worker?: Worker; // Add worker parameter
+  isWorkerReady?: boolean; // Add worker ready state
 }
 
 export const useImageProcessing = ({
@@ -35,7 +37,9 @@ export const useImageProcessing = ({
   autoAnalyze,
   lastProcessedValues,
   setLastProcessedValues,
-  faceEffectOptions
+  faceEffectOptions,
+  worker,
+  isWorkerReady = false
 }: UseImageProcessingProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>('');
@@ -63,7 +67,7 @@ export const useImageProcessing = ({
       sliderValues && 
       // Only process if values actually changed or we haven't processed yet
       (!lastProcessedValues || 
-       JSON.stringify(sliderValues) !== JSON.stringify(lastProcessedValues))
+       JSON.stringify(sliderValues) !== lastProcessedValues)
     ) {
       console.log('Processing image due to slider value changes');
       processImage();
@@ -89,14 +93,14 @@ export const useImageProcessing = ({
     }
   }, [showLandmarks, faceDetection, originalImage, initialProcessingDone]);
 
-  const processImage = useCallback(() => {
+  const processImage = useCallback(async () => {
     if (!originalImage || !processedCanvasRef.current || !cleanProcessedCanvasRef.current) {
       console.log('Missing required elements for image processing');
       return;
     }
     
     setIsProcessing(true);
-    console.log('Starting image processing');
+    console.log('Starting image processing with worker status:', isWorkerReady ? 'worker available' : 'using main thread');
     
     try {
       // Import the transformationEngine module
@@ -118,14 +122,15 @@ export const useImageProcessing = ({
       cleanCtx.drawImage(originalImage, 0, 0);
       
       // Apply feature transformations to the clean canvas
-      applyFeatureTransformations({
+      await applyFeatureTransformations({
         ctx: cleanCtx,
         originalImage,
         width: cleanCanvas.width,
         height: cleanCanvas.height,
         faceDetection,
         sliderValues,
-        faceEffectOptions
+        faceEffectOptions,
+        worker: isWorkerReady ? worker : undefined
       });
       
       // Update clean processed image URL for download
@@ -154,7 +159,7 @@ export const useImageProcessing = ({
       }
       
       // Store last processed values to prevent unnecessary reprocessing
-      setLastProcessedValues(JSON.parse(JSON.stringify(sliderValues)));
+      setLastProcessedValues(JSON.stringify(sliderValues));
       
       // If we have face data and auto analyze is on, analyze the modified image
       if (faceDetection && isFaceApiLoaded && autoAnalyze) {
@@ -175,7 +180,9 @@ export const useImageProcessing = ({
     analyzeModifiedImage,
     autoAnalyze,
     setLastProcessedValues,
-    faceEffectOptions
+    faceEffectOptions,
+    worker,
+    isWorkerReady
   ]);
 
   const downloadImage = useCallback(() => {

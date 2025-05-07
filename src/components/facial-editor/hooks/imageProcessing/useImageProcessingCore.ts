@@ -1,6 +1,7 @@
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { debounce } from 'lodash';
+import { createWorker, processImageWithWorker, terminateWorker, isWorkerSupported } from '../../utils/workers/workerManager';
 
 interface UseImageProcessingCoreProps {
   originalImage: HTMLImageElement | null;
@@ -28,6 +29,42 @@ export const useImageProcessingCore = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
   const processingQueuedRef = useRef(false);
+  const workerRef = useRef<Worker | undefined>(undefined);
+  const [isWorkerReady, setIsWorkerReady] = useState(false);
+  
+  // Initialize the web worker
+  useEffect(() => {
+    if (isWorkerSupported) {
+      try {
+        // Create worker from the worker file URL
+        const workerUrl = new URL('../../utils/workers/imageProcessingWorker.ts', import.meta.url);
+        const worker = createWorker(workerUrl.href);
+        
+        if (worker) {
+          // Listen for the ready message
+          const readyHandler = (event: MessageEvent) => {
+            if (event.data?.status === 'ready') {
+              console.log('Image processing worker ready');
+              setIsWorkerReady(true);
+            }
+          };
+          
+          worker.addEventListener('message', readyHandler);
+          workerRef.current = worker;
+          
+          return () => {
+            worker.removeEventListener('message', readyHandler);
+            terminateWorker(worker);
+            workerRef.current = undefined;
+          };
+        }
+      } catch (error) {
+        console.error('Failed to initialize worker:', error);
+      }
+    } else {
+      console.log('Web Workers not supported, using main thread processing');
+    }
+  }, []);
   
   // Use requestAnimationFrame for smoother UI updates
   const scheduleProcessing = useCallback((callback: () => void) => {
@@ -112,6 +149,8 @@ export const useImageProcessingCore = ({
     processImage,
     debouncedProcess,
     processingQueued: processingQueuedRef.current,
-    setProcessingQueued: (queued: boolean) => { processingQueuedRef.current = queued; }
+    setProcessingQueued: (queued: boolean) => { processingQueuedRef.current = queued; },
+    worker: workerRef.current,
+    isWorkerReady
   };
 };

@@ -5,9 +5,10 @@
 
 import { applyFaceEffect } from '../faceEffects';
 import { processRow } from './pixelProcessor';
+import { processImageWithWorker, isWorkerSupported } from '../workers/workerManager';
 
 // Process image in small chunks with a yield to UI thread
-export const processImageInChunks = (
+export const processImageInChunks = async (
   ctx: CanvasRenderingContext2D,
   originalData: ImageData,
   outputData: ImageData,
@@ -27,7 +28,8 @@ export const processImageInChunks = (
     maskImage?: HTMLImageElement | null;
     maskPosition?: { x: number, y: number };
     maskScale?: number;
-  }
+  },
+  worker?: Worker
 ) => {
   // Calculate influence boundaries
   const halfFaceWidth = faceWidth / 2;
@@ -39,53 +41,107 @@ export const processImageInChunks = (
   
   // Safety margin for edge handling
   const safetyMargin = 3;
-  
-  // Determine how many rows to process per chunk
-  const rowsPerChunk = 20; // Process 20 rows at a time
-  
-  // Use requestAnimationFrame for better UI responsiveness
-  const processChunk = (startY: number) => {
-    // Process a chunk of rows
-    const endY = Math.min(startY + rowsPerChunk, height);
-    
-    for (let y = startY; y < endY; y++) {
-      processRow(
-        y,
-        width,
-        height, // Pass the height parameter to fix the error
-        originalData,
-        outputData,
+
+  try {
+    // Check if we can use Web Worker processing
+    if (worker && isWorkerSupported) {
+      console.log("Using Web Worker for image processing");
+      
+      const workerParams = {
         centerX,
         centerY,
         halfFaceWidth,
         halfFaceHeight,
         innerEdge,
         maxInfluenceDistance,
-        clampedSliderValues,
+        sliderValues: clampedSliderValues,
         amplificationFactor,
         safetyMargin
-      );
-    }
-    
-    // If there are more rows to process, schedule the next chunk
-    if (endY < height) {
-      requestAnimationFrame(() => processChunk(endY));
-    } else {
-      // All done, put the image data on the canvas
-      ctx.putImageData(outputData, 0, 0);
+      };
       
-      // Apply any face effects (blur, pixelate, mask) if needed
-      if (faceEffectOptions && faceDetection) {
-        applyFaceEffect({
-          ctx,
-          originalImage,
-          faceDetection,
-          ...faceEffectOptions
-        });
+      try {
+        // Use the worker to process the image
+        const processedImageData = await processImageWithWorker(
+          worker,
+          originalData,
+          workerParams,
+          10000 // 10 second timeout
+        );
+        
+        // Put the processed image data on the canvas
+        ctx.putImageData(processedImageData, 0, 0);
+        
+        // Apply any face effects if needed
+        if (faceEffectOptions && faceDetection) {
+          applyFaceEffect({
+            ctx,
+            originalImage,
+            faceDetection,
+            ...faceEffectOptions
+          });
+        }
+        
+        return;
+      } catch (error) {
+        console.warn("Worker processing failed, falling back to main thread:", error);
+        // Fall back to main thread processing if worker fails
       }
     }
-  };
-  
-  // Start processing from the first row
-  processChunk(0);
+    
+    // If worker is not available or failed, use main thread processing
+    console.log("Using main thread for image processing");
+    
+    // Determine how many rows to process per chunk
+    const rowsPerChunk = 20; // Process 20 rows at a time
+    
+    // Use requestAnimationFrame for better UI responsiveness
+    const processChunk = (startY: number) => {
+      // Process a chunk of rows
+      const endY = Math.min(startY + rowsPerChunk, height);
+      
+      for (let y = startY; y < endY; y++) {
+        processRow(
+          y,
+          width,
+          height,
+          originalData,
+          outputData,
+          centerX,
+          centerY,
+          halfFaceWidth,
+          halfFaceHeight,
+          innerEdge,
+          maxInfluenceDistance,
+          clampedSliderValues,
+          amplificationFactor,
+          safetyMargin
+        );
+      }
+      
+      // If there are more rows to process, schedule the next chunk
+      if (endY < height) {
+        requestAnimationFrame(() => processChunk(endY));
+      } else {
+        // All done, put the image data on the canvas
+        ctx.putImageData(outputData, 0, 0);
+        
+        // Apply any face effects if needed
+        if (faceEffectOptions && faceDetection) {
+          applyFaceEffect({
+            ctx,
+            originalImage,
+            faceDetection,
+            ...faceEffectOptions
+          });
+        }
+      }
+    };
+    
+    // Start processing from the first row
+    processChunk(0);
+  } catch (error) {
+    console.error("Error in image processing:", error);
+    // Fallback to direct canvas rendering in case of error
+    ctx.drawImage(originalImage, 0, 0);
+  }
 };

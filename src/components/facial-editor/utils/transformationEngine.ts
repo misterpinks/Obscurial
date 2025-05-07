@@ -1,7 +1,7 @@
 
 /**
  * Core transformation engine for applying facial feature modifications
- * Optimized for better performance with modular architecture
+ * Optimized for better performance with modular architecture and Web Worker support
  */
 
 import { TransformationParams } from './transformationTypes';
@@ -11,15 +11,16 @@ import { adjustSliderValues, hasTransformations, hasEffects } from './transforma
 import { processImageInChunks } from './transformation/chunkedProcessor';
 
 // Enhanced function to apply transformations with improved edge handling and performance
-export const applyFeatureTransformations = ({
+export const applyFeatureTransformations = async ({
   ctx,
   originalImage,
   width,
   height,
   faceDetection,
   sliderValues,
-  faceEffectOptions
-}: TransformationParams) => {
+  faceEffectOptions,
+  worker
+}: TransformationParams & { worker?: Worker }) => {
   if (!ctx || !originalImage) return;
   
   // Quick check if any transformations or effects are actually needed
@@ -91,8 +92,8 @@ export const applyFeatureTransformations = ({
   // Safety check for extreme values - automatically clamp them
   const clampedSliderValues = adjustSliderValues(sliderValues);
   
-  // Use chunked processing for better UI responsiveness
-  processImageInChunks(
+  // Use chunked processing with Web Worker support for better UI responsiveness
+  await processImageInChunks(
     ctx,
     originalData,
     outputData,
@@ -106,6 +107,7 @@ export const applyFeatureTransformations = ({
     amplificationFactor,
     originalImage,
     faceDetection,
-    faceEffectOptions
+    faceEffectOptions,
+    worker // Pass the worker if available
   );
 };

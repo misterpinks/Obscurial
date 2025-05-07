@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -25,6 +24,7 @@ import {
 } from './hooks';
 import { useEditorState } from './hooks/useEditorState';
 import { useEditorActions } from './hooks/useEditorActions';
+import { useImageProcessingCore } from './hooks/imageProcessing/useImageProcessingCore';
 
 // Import the transformation engine
 import { applyFeatureTransformations } from './utils/transformationEngine';
@@ -76,6 +76,67 @@ const FacialEditor = () => {
     setMaskScale,
     faceEffectOptions
   } = useFaceEffects();
+
+  const {
+    isAnalyzing,
+    faceDetection,
+    facialDifference,
+    initialProcessingDone,
+    detectFaces,
+    analyzeModifiedImage,
+    setInitialProcessingDone,
+    setFaceDetection,
+    imageDimensions,
+    hasShownNoFaceToast,
+    setHasShownNoFaceToast,
+    autoAnalyze,
+    toggleAutoAnalyze,
+    lastProcessedValues,
+    setLastProcessedValues
+  } = useFaceAnalysis(isFaceApiLoaded, originalImage, cleanProcessedCanvasRef);
+
+  // Custom hook for image processing core with Web Worker support
+  const {
+    isProcessing: isProcessingCore,
+    cleanProcessedImageURL: cleanProcessedImageURLCore,
+    processImage: processImageCore,
+    worker,
+    isWorkerReady
+  } = useImageProcessingCore({
+    originalImage,
+    initialProcessingDone,
+    autoAnalyze,
+    lastProcessedValues,
+    setLastProcessedValues,
+    processImageImpl: () => {
+      if (!cleanProcessedCanvasRef.current || !originalImage) return undefined;
+      
+      const cleanCanvas = cleanProcessedCanvasRef.current;
+      const cleanCtx = cleanCanvas.getContext('2d');
+      if (!cleanCtx) return undefined;
+      
+      // Set canvas dimensions to match image
+      cleanCanvas.width = originalImage.width;
+      cleanCanvas.height = originalImage.height;
+      
+      // Apply feature transformations to the clean canvas
+      applyFeatureTransformations({
+        ctx: cleanCtx,
+        originalImage,
+        width: cleanCanvas.width,
+        height: cleanCanvas.height,
+        faceDetection: null, // Just use approximate transformations
+        sliderValues,
+        faceEffectOptions,
+        worker: isWorkerReady ? worker : undefined
+      });
+      
+      return cleanCanvas;
+    },
+    analyzeModifiedImage,
+    isFaceApiLoaded,
+    faceDetection
+  });
   
   // Handle slider changes with history
   const handleSliderChange = (id: string, value: number) => {
@@ -99,24 +160,6 @@ const FacialEditor = () => {
     randomizeSliders();
     pushSliderState(currentSliderValues);
   };
-  
-  const {
-    isAnalyzing,
-    faceDetection,
-    facialDifference,
-    initialProcessingDone,
-    detectFaces,
-    analyzeModifiedImage,
-    setInitialProcessingDone,
-    setFaceDetection,
-    imageDimensions,
-    hasShownNoFaceToast,
-    setHasShownNoFaceToast,
-    autoAnalyze,
-    toggleAutoAnalyze,
-    lastProcessedValues,
-    setLastProcessedValues
-  } = useFaceAnalysis(isFaceApiLoaded, originalImage, cleanProcessedCanvasRef);
 
   // Custom hook for landmarks handling
   const { showLandmarks, toggleLandmarks, handleLandmarkMove } = useLandmarks(setFaceDetection);
@@ -161,7 +204,9 @@ const FacialEditor = () => {
     autoAnalyze,
     lastProcessedValues,
     setLastProcessedValues,
-    faceEffectOptions
+    faceEffectOptions,
+    worker,
+    isWorkerReady
   });
 
   // Hook for editor actions
@@ -207,7 +252,8 @@ const FacialEditor = () => {
           height: canvas.height,
           faceDetection: null, // Just use approximate transformations
           sliderValues,
-          faceEffectOptions
+          faceEffectOptions,
+          worker: isWorkerReady ? worker : undefined
         });
         
         // Return the data URL
@@ -258,6 +304,16 @@ const FacialEditor = () => {
       setMaskScale={setMaskScale}
     />
   );
+
+  // Display a toast when Web Worker is ready
+  React.useEffect(() => {
+    if (isWorkerReady) {
+      toast({
+        title: "Performance Boost Activated",
+        description: "Using Web Worker for faster image processing."
+      });
+    }
+  }, [isWorkerReady, toast]);
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
