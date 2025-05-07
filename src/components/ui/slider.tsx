@@ -30,9 +30,8 @@ const Slider = React.forwardRef<
     document.removeEventListener('mouseup', handleDocumentMouseUp);
     
     // Call the onValueCommit prop if provided, passing the current value
-    if (props.onValueCommit) {
-      // Make sure we're passing the array value expected by the function
-      props.onValueCommit(props.value || [0]);
+    if (props.onValueCommit && props.value) {
+      props.onValueCommit(props.value);
     }
   }, [isDragging, props, handleDocumentMouseMove]);
 
@@ -56,9 +55,8 @@ const Slider = React.forwardRef<
     document.removeEventListener('touchend', handleDocumentTouchEnd);
     
     // Call the onValueCommit prop if provided, passing the current value
-    if (props.onValueCommit) {
-      // Make sure we're passing the array value expected by the function
-      props.onValueCommit(props.value || [0]);
+    if (props.onValueCommit && props.value) {
+      props.onValueCommit(props.value);
     }
   }, [isDragging, props, handleDocumentTouchMove]);
   

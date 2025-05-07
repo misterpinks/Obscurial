@@ -47,45 +47,29 @@ export const useFileUpload = ({
     // Force complete image refresh by setting to null first
     setOriginalImage(null);
     
-    // Ensure any Canvas references are reset
-    const canvases = document.querySelectorAll('canvas');
-    canvases.forEach(canvas => {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Clear the entire canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    });
-    
     // Create a FileReader
     const reader = new FileReader();
     
     reader.onload = (event) => {
       if (!event.target || typeof event.target.result !== 'string') {
         console.error("Failed to read file");
+        toast({
+          variant: "destructive",
+          title: "Error Loading Image",
+          description: "Failed to read the selected image file."
+        });
         return;
       }
       
       const dataUrl = event.target.result;
-      
-      // Generate unique URL to force browser to treat as new image
-      const timestamp = new Date().getTime();
-      const uniqueUrl = `${dataUrl}${dataUrl.includes('?') ? '&' : '?'}timestamp=${timestamp}`;
-      
-      // Store current URL for future comparison
-      currentImageUrlRef.current = uniqueUrl;
       
       const img = new Image();
       img.crossOrigin = "Anonymous"; // Handle CORS if needed
       
       img.onload = () => {
         console.log("New image loaded:", img.width, "x", img.height);
-        
-        // Only set the image if this is still the current operation
-        if (currentImageUrlRef.current === uniqueUrl) {
-          setOriginalImage(img);
-          setActiveTab("edit");
-        }
+        setOriginalImage(img);
+        setActiveTab("edit");
       };
       
       img.onerror = () => {
@@ -98,7 +82,7 @@ export const useFileUpload = ({
       };
       
       // Set the source to start loading the image
-      img.src = uniqueUrl;
+      img.src = dataUrl;
     };
     
     reader.onerror = (error) => {

@@ -7,7 +7,6 @@ import { type FeatureSlider } from './hooks';
 import RandomizeButton from './RandomizeButton';
 import { useToast } from "@/components/ui/use-toast";
 import SimpleSlider from './SimpleSlider';
-import FacialRecognitionResources from './FacialRecognitionResources';
 
 interface AdjustmentSlidersProps {
   featureSliders: FeatureSlider[];
@@ -113,13 +112,6 @@ const AdjustmentSliders: React.FC<AdjustmentSlidersProps> = ({
             </div>
           </div>
         ))}
-        
-        {/* Add the Facial Recognition Resources component */}
-        <div className="mt-8">
-          <h4 className="font-medium text-sm text-muted-foreground mb-2">Resources</h4>
-          <Separator className="mb-4" />
-          <FacialRecognitionResources />
-        </div>
       </CardContent>
     </Card>
   );
