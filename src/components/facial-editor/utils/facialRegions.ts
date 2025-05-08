@@ -6,9 +6,9 @@
 import { FacialRegion } from './transformationTypes';
 
 // Base amplification factor for transformations
-export const getAmplificationFactor = (): number {
+export function getAmplificationFactor(): number {
   return 5.0; // Significantly increased for more dramatic effects (from 4.0)
-};
+}
 
 // Define regions of the face that can be transformed
 export const facialRegions: FacialRegion[] = [
