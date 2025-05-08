@@ -199,8 +199,13 @@ export const useImageProcessing = ({
       });
       
       // Update clean processed image URL for download
-      setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
-      console.log('Clean canvas processed and URL updated');
+      try {
+        const dataURL = cleanCanvas.toDataURL("image/png");
+        setCleanProcessedImageURL(dataURL);
+        console.log('Clean canvas processed and URL updated');
+      } catch (e) {
+        console.error("Failed to generate data URL from clean canvas:", e);
+      }
       
       // Now process the canvas with landmarks
       const canvas = processedCanvasRef.current;

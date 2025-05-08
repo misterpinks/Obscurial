@@ -4,13 +4,21 @@ import { useToast } from '@/components/ui/use-toast';
 
 export interface UseImageDownloadProps {
   cleanProcessedImageURL: string;
+  hasProcessedImage: boolean;
 }
 
-export const useImageDownload = (cleanProcessedImageURL: string) => {
+export const useImageDownload = ({ cleanProcessedImageURL, hasProcessedImage }: UseImageDownloadProps) => {
   const { toast } = useToast();
 
   const downloadImage = useCallback(() => {
-    if (!cleanProcessedImageURL) return;
+    if (!cleanProcessedImageURL || !hasProcessedImage) {
+      toast({
+        title: "No processed image",
+        description: "Please process an image before downloading.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     const link = document.createElement("a");
     link.href = cleanProcessedImageURL;
@@ -23,7 +31,7 @@ export const useImageDownload = (cleanProcessedImageURL: string) => {
       title: "Image Downloaded",
       description: "Your privacy-protected image has been saved."
     });
-  }, [cleanProcessedImageURL, toast]);
+  }, [cleanProcessedImageURL, hasProcessedImage, toast]);
 
   return { downloadImage };
 };

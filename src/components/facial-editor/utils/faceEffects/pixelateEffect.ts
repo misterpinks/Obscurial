@@ -29,63 +29,50 @@ export const applyPixelation = (
   if (safeWidth <= 0 || safeHeight <= 0) return;
   
   // Make pixel size more significant and ensure it's an integer
-  const effectivePixelSize = Math.max(2, Math.round(pixelSize * 3));
+  // Scale the pixel size linearly (1-100) to (2-25) for better control
+  const maxPixelSize = 25;
+  const effectivePixelSize = Math.max(2, Math.round((pixelSize / 100) * maxPixelSize));
   
   // Save the current canvas state
   ctx.save();
   
   try {
-    // Get the image data for the region to be pixelated
-    let imageData;
-    try {
-      imageData = ctx.getImageData(safeX, safeY, safeWidth, safeHeight);
-    } catch (error) {
-      console.warn("Error getting image data for pixelation:", error);
-      ctx.restore();
-      return;
-    }
-    
+    // Method 1: Using standard canvas operations (more compatible with Electron)
+    // Step down the resolution of the area by drawing it smaller then scaling back up
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = safeWidth;
-    tempCanvas.height = safeHeight;
-    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+    const scaleFactor = 1 / effectivePixelSize;
     
+    // Set the temporary canvas to a scaled-down size
+    tempCanvas.width = Math.max(1, Math.floor(safeWidth * scaleFactor));
+    tempCanvas.height = Math.max(1, Math.floor(safeHeight * scaleFactor));
+    
+    const tempCtx = tempCanvas.getContext('2d');
     if (!tempCtx) {
       console.warn("Could not create temporary context for pixelation");
       ctx.restore();
       return;
     }
     
-    // Draw the original image to the temporary canvas
-    tempCtx.putImageData(imageData, 0, 0);
+    // Draw the original image scaled down
+    tempCtx.drawImage(
+      ctx.canvas,
+      safeX, safeY, safeWidth, safeHeight,
+      0, 0, tempCanvas.width, tempCanvas.height
+    );
     
     // Clear the original area
     ctx.clearRect(safeX, safeY, safeWidth, safeHeight);
     
-    // Draw the pixelated version
-    for (let blockY = 0; blockY < safeHeight; blockY += effectivePixelSize) {
-      for (let blockX = 0; blockX < safeWidth; blockX += effectivePixelSize) {
-        // Calculate block size (handling edge cases)
-        const blockWidth = Math.min(effectivePixelSize, safeWidth - blockX);
-        const blockHeight = Math.min(effectivePixelSize, safeHeight - blockY);
-        
-        if (blockWidth <= 0 || blockHeight <= 0) continue;
-        
-        try {
-          // Get the average color of the block
-          const blockData = tempCtx.getImageData(blockX, blockY, blockWidth, blockHeight);
-          const rgba = getAverageColor(blockData.data);
-          
-          // Fill the block with the average color
-          ctx.fillStyle = `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${rgba.a / 255})`;
-          ctx.fillRect(safeX + blockX, safeY + blockY, blockWidth, blockHeight);
-        } catch (error) {
-          console.warn("Error processing pixel block:", error);
-          // Continue processing other blocks
-          continue;
-        }
-      }
-    }
+    // Draw the pixelated version back, scaled up
+    ctx.imageSmoothingEnabled = false; // Ensure pixelated look
+    ctx.drawImage(
+      tempCanvas,
+      0, 0, tempCanvas.width, tempCanvas.height,
+      safeX, safeY, safeWidth, safeHeight
+    );
+    ctx.imageSmoothingEnabled = true; // Reset to default
+    
+    console.log(`Applied pixelation with size: ${pixelSize}, effective size: ${effectivePixelSize}`);
   } catch (error) {
     console.error("Error in pixelation effect:", error);
     // In case of error, we'll just exit gracefully without applying the effect
@@ -94,27 +81,3 @@ export const applyPixelation = (
     ctx.restore();
   }
 };
-
-/**
- * Helper function to get the average color from an array of pixel data
- */
-function getAverageColor(data: Uint8ClampedArray) {
-  let r = 0, g = 0, b = 0, a = 0, count = 0;
-  
-  for (let i = 0; i < data.length; i += 4) {
-    r += data[i];
-    g += data[i + 1];
-    b += data[i + 2];
-    a += data[i + 3];
-    count++;
-  }
-  
-  if (count === 0) return { r: 0, g: 0, b: 0, a: 255 };
-  
-  return {
-    r: Math.round(r / count),
-    g: Math.round(g / count),
-    b: Math.round(b / count),
-    a: Math.round(a / count)
-  };
-}

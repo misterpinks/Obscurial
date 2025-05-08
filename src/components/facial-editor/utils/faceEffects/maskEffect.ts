@@ -19,6 +19,12 @@ export const applyFaceMask = (
     return;
   }
   
+  // Validate input parameters
+  if (width <= 0 || height <= 0) {
+    console.warn("Invalid dimensions for mask application");
+    return;
+  }
+  
   // Save current canvas state
   ctx.save();
   
@@ -27,6 +33,7 @@ export const applyFaceMask = (
     ctx.globalAlpha = opacity;
     
     // Calculate the adjusted position and size based on position and scale
+    // Use face dimensions and position parameters to place the mask correctly
     const adjustedX = x + (position.x * width);
     const adjustedY = y + (position.y * height);
     const adjustedWidth = width * scale;
@@ -35,7 +42,7 @@ export const applyFaceMask = (
     // Draw the mask image with position and scale adjustments
     ctx.drawImage(maskImage, adjustedX, adjustedY, adjustedWidth, adjustedHeight);
     
-    console.log("Applied mask effect with position:", position, "and scale:", scale);
+    console.log("Applied mask effect with position:", position, "scale:", scale);
   } catch (error) {
     console.error("Error applying face mask:", error);
   } finally {
