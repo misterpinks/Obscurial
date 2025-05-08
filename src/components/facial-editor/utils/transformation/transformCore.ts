@@ -1,9 +1,10 @@
 
 /**
  * Core transformation utilities for applying transformations to images
+ * Enhanced with superior transition handling
  */
 
-// Helper for calculating transition zones and edge effects with improved smoothing
+// Helper for calculating ultra-smooth transition zones with sigmoid-like curves
 export const calculateTransitionFactor = (
   distFromCenter: number,
   innerEdge: number,
@@ -12,14 +13,15 @@ export const calculateTransitionFactor = (
   if (distFromCenter <= innerEdge) return 1.0;
   if (distFromCenter >= maxInfluenceDistance) return 0.0;
   
-  // Enhanced smoothing - use cubic easing for more natural transition
+  // Calculate normalized position in transition zone
   const t = (distFromCenter - innerEdge) / (maxInfluenceDistance - innerEdge);
   
-  // Improved smoothstep function (cubic Hermite curve)
-  return 1.0 - (t * t * (3 - 2 * t));
+  // Use enhanced smoothstep function (quintic curve) for ultra-smooth transitions
+  // This creates a much more gradual transition with no visible boundaries
+  return 1.0 - (t*t*t * (t * (t * 6 - 15) + 10));
 };
 
-// Helper for bilinear interpolation - optimized
+// Helper for bilinear interpolation with improved edge handling
 export const bilinearInterpolation = (
   originalData: ImageData,
   x: number, 
@@ -29,9 +31,11 @@ export const bilinearInterpolation = (
   outputData: ImageData,
   index: number
 ): void => {
-  // Ensure coordinates are within bounds
-  const sampleX = Math.max(0, Math.min(width - 1.001, x));
-  const sampleY = Math.max(0, Math.min(height - 1.001, y));
+  // Calculate safe coordinates with extra boundary padding
+  // Ensure coordinates stay well within bounds with additional safety margin
+  const safetyMargin = 2;
+  const sampleX = Math.max(safetyMargin, Math.min(width - safetyMargin - 1, x));
+  const sampleY = Math.max(safetyMargin, Math.min(height - safetyMargin - 1, y));
   
   const x1 = Math.floor(sampleX);
   const y1 = Math.floor(sampleY);
@@ -47,42 +51,41 @@ export const bilinearInterpolation = (
   const bottomLeftOffset = (y2 * width + x1) * 4;
   const bottomRightOffset = (y2 * width + x2) * 4;
   
-  // Unrolled loop for better performance
-  // Red channel
-  const topLeftR = originalData.data[topLeftOffset];
-  const topRightR = originalData.data[topRightOffset];
-  const bottomLeftR = originalData.data[bottomLeftOffset];
-  const bottomRightR = originalData.data[bottomRightOffset];
+  // Use cubic interpolation for smoother results (enhanced from linear)
+  for (let i = 0; i < 3; i++) {
+    // Get corner values
+    const topLeft = originalData.data[topLeftOffset + i];
+    const topRight = originalData.data[topRightOffset + i];
+    const bottomLeft = originalData.data[bottomLeftOffset + i];
+    const bottomRight = originalData.data[bottomRightOffset + i];
+    
+    // Cubic interpolation for horizontal edges (improved from linear)
+    const xWeight2 = xWeight * xWeight;
+    const xWeight3 = xWeight2 * xWeight;
+    
+    // Improved cubic hermite interpolation
+    const hx1 = 2*xWeight3 - 3*xWeight2 + 1;
+    const hx2 = -2*xWeight3 + 3*xWeight2;
+    
+    const top = topLeft * hx1 + topRight * hx2;
+    const bottom = bottomLeft * hx1 + bottomRight * hx2;
+    
+    // Similar cubic interpolation for vertical direction
+    const yWeight2 = yWeight * yWeight;
+    const yWeight3 = yWeight2 * yWeight;
+    
+    const hy1 = 2*yWeight3 - 3*yWeight2 + 1;
+    const hy2 = -2*yWeight3 + 3*yWeight2;
+    
+    // Combine horizontal and vertical interpolations
+    outputData.data[index + i] = Math.round(top * hy1 + bottom * hy2);
+  }
   
-  const topR = topLeftR + (topRightR - topLeftR) * xWeight;
-  const bottomR = bottomLeftR + (bottomRightR - bottomLeftR) * xWeight;
-  outputData.data[index] = topR + (bottomR - topR) * yWeight;
-  
-  // Green channel
-  const topLeftG = originalData.data[topLeftOffset + 1];
-  const topRightG = originalData.data[topRightOffset + 1];
-  const bottomLeftG = originalData.data[bottomLeftOffset + 1];
-  const bottomRightG = originalData.data[bottomRightOffset + 1];
-  
-  const topG = topLeftG + (topRightG - topLeftG) * xWeight;
-  const bottomG = bottomLeftG + (bottomRightG - bottomLeftG) * xWeight;
-  outputData.data[index + 1] = topG + (bottomG - topG) * yWeight;
-  
-  // Blue channel
-  const topLeftB = originalData.data[topLeftOffset + 2];
-  const topRightB = originalData.data[topRightOffset + 2];
-  const bottomLeftB = originalData.data[bottomLeftOffset + 2];
-  const bottomRightB = originalData.data[bottomRightOffset + 2];
-  
-  const topB = topLeftB + (topRightB - topLeftB) * xWeight;
-  const bottomB = bottomLeftB + (bottomRightB - bottomLeftB) * xWeight;
-  outputData.data[index + 2] = topB + (bottomB - topB) * yWeight;
-  
-  // Alpha channel
+  // Alpha channel stays the same
   outputData.data[index + 3] = originalData.data[topLeftOffset + 3];
 };
 
-// Helper to copy pixel directly from source to destination - optimized
+// Helper to copy pixel directly from source to destination
 export const copyPixel = (
   originalData: ImageData,
   outputData: ImageData,
