@@ -20,6 +20,8 @@ export const useImageDownload = ({ cleanProcessedImageURL, hasProcessedImage }: 
       return;
     }
     
+    console.log("Downloading image from URL:", cleanProcessedImageURL.substring(0, 30) + "...");
+    
     const link = document.createElement("a");
     link.href = cleanProcessedImageURL;
     link.download = "privacy-protected-image.png";

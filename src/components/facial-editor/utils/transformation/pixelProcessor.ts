@@ -32,8 +32,11 @@ export const processRow = (
     // Get the current pixel index
     const index = (y * width + x) * 4;
     
-    // Skip if outside approximate face area
-    if (distFromCenter > maxInfluenceDistance) {
+    // Increased the max influence distance for wider effect area
+    const extendedMaxInfluence = maxInfluenceDistance * 1.2;
+    
+    // Skip if outside approximate face area with extended region
+    if (distFromCenter > extendedMaxInfluence) {
       // Just copy original pixel for areas outside the face
       for (let i = 0; i < 4; i++) {
         outputArray[index + i] = inputArray[index + i];
@@ -41,49 +44,59 @@ export const processRow = (
       continue;
     }
     
-    // Calculate transition factor - smooth falloff at edges
-    const transitionFactor = calculateTransitionFactor(distFromCenter, innerEdge, maxInfluenceDistance);
+    // Calculate transition factor - smooth falloff at edges using improved formula
+    // Use cubic easing for smoother edge transitions
+    let transitionFactor = 0;
+    if (distFromCenter <= innerEdge) {
+      transitionFactor = 1.0;
+    } else if (distFromCenter >= extendedMaxInfluence) {
+      transitionFactor = 0.0;
+    } else {
+      // Cubic smoothstep for natural transitions
+      const t = (distFromCenter - innerEdge) / (extendedMaxInfluence - innerEdge);
+      transitionFactor = 1.0 - (t * t * (3 - 2 * t));
+    }
     
     // Calculate displacement based on facial feature sliders
     let displacementX = 0;
     let displacementY = 0;
     
-    // Eye region transformations
-    if (Math.abs(normY + 0.25) < 0.2 && Math.abs(normX) < 0.4) {
+    // Eye region transformations - ENLARGED area
+    if (Math.abs(normY + 0.25) < 0.28 && Math.abs(normX) < 0.5) {
       displacementX += (sliderValues.eyeSize || 0) / 100 * normX * amplificationFactor * transitionFactor;
       displacementY += (sliderValues.eyeSize || 0) / 100 * normY * amplificationFactor * transitionFactor;
       displacementX += (sliderValues.eyeSpacing || 0) / 100 * (normX > 0 ? 1 : -1) * amplificationFactor * transitionFactor;
     }
     
-    // Eyebrow region transformations
-    if (Math.abs(normY + 0.4) < 0.1 && Math.abs(normX) < 0.4) {
+    // Eyebrow region transformations - ENLARGED
+    if (Math.abs(normY + 0.4) < 0.15 && Math.abs(normX) < 0.5) {
       displacementY -= (sliderValues.eyebrowHeight || 0) / 100 * amplificationFactor * transitionFactor;
     }
     
-    // Nose region transformations
-    if (Math.abs(normX) < 0.2 && normY > -0.3 && normY < 0.2) {
+    // Nose region transformations - ENLARGED
+    if (Math.abs(normX) < 0.25 && normY > -0.35 && normY < 0.25) {
       displacementX += (sliderValues.noseWidth || 0) / 100 * normX * amplificationFactor * transitionFactor;
       displacementY += (sliderValues.noseLength || 0) / 100 * (normY > 0 ? 1 : -1) * amplificationFactor * transitionFactor;
     }
     
-    // Mouth region transformations
-    if (Math.abs(normX) < 0.3 && normY > 0.1 && normY < 0.4) {
+    // Mouth region transformations - ENLARGED
+    if (Math.abs(normX) < 0.4 && normY > 0.05 && normY < 0.45) {
       displacementX += (sliderValues.mouthWidth || 0) / 100 * normX * amplificationFactor * transitionFactor;
       displacementY += (sliderValues.mouthHeight || 0) / 100 * (normY - 0.25) * amplificationFactor * transitionFactor;
     }
     
-    // Overall face width transformations
-    if (distFromCenter > 0.4 && distFromCenter < 1.0) {
+    // Overall face width transformations - expanded area
+    if (distFromCenter > 0.35 && distFromCenter < 1.2) {
       displacementX += (sliderValues.faceWidth || 0) / 100 * normX * amplificationFactor * transitionFactor;
     }
     
-    // Chin shape transformations
-    if (normY > 0.3 && Math.abs(normX) < 0.3) {
+    // Chin shape transformations - enlarged
+    if (normY > 0.25 && Math.abs(normX) < 0.4) {
       displacementY += (sliderValues.chinShape || 0) / 100 * (normY - 0.4) * amplificationFactor * transitionFactor;
     }
     
-    // Jawline transformations
-    if (normY > 0.15 && Math.abs(normX) > 0.2 && Math.abs(normX) < 0.6) {
+    // Jawline transformations - enlarged
+    if (normY > 0.1 && Math.abs(normX) > 0.15 && Math.abs(normX) < 0.7) {
       displacementX += (sliderValues.jawline || 0) / 100 * (normX > 0 ? 1 : -1) * amplificationFactor * transitionFactor;
     }
     
@@ -116,7 +129,7 @@ export const calculateTransitionFactor = (
   if (distFromCenter >= maxDistance) {
     return 0.0;
   }
-  // Smooth cubic interpolation for better transition
+  // Improved cubic interpolation for better transition
   const t = (distFromCenter - innerEdge) / (maxDistance - innerEdge);
   return 1.0 - (t * t * (3 - 2 * t));
 };

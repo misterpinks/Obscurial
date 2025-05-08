@@ -3,7 +3,7 @@
  * Core transformation utilities for applying transformations to images
  */
 
-// Helper for calculating transition zones and edge effects
+// Helper for calculating transition zones and edge effects with improved smoothing
 export const calculateTransitionFactor = (
   distFromCenter: number,
   innerEdge: number,
@@ -12,12 +12,11 @@ export const calculateTransitionFactor = (
   if (distFromCenter <= innerEdge) return 1.0;
   if (distFromCenter >= maxInfluenceDistance) return 0.0;
   
-  // Calculate fade factor (1.0 at inner edge, 0.0 at outer edge)
-  const transitionZone = maxInfluenceDistance - innerEdge;
-  const fadeFactor = 1.0 - ((distFromCenter - innerEdge) / transitionZone);
+  // Enhanced smoothing - use cubic easing for more natural transition
+  const t = (distFromCenter - innerEdge) / (maxInfluenceDistance - innerEdge);
   
-  // Apply smoother quadratic easing
-  return fadeFactor * fadeFactor;
+  // Improved smoothstep function (cubic Hermite curve)
+  return 1.0 - (t * t * (3 - 2 * t));
 };
 
 // Helper for bilinear interpolation - optimized

@@ -95,9 +95,9 @@ export const applyFeatureTransformations = async ({
     const box = faceDetection.detection.box;
     centerX = box.x + box.width / 2;
     centerY = box.y + box.height / 2;
-    // Make face area larger than detected to avoid edge artifacts
-    faceWidth = box.width * 1.5;
-    faceHeight = box.height * 1.5;
+    // Make face area MUCH larger than detected to avoid edge artifacts - increased from 1.5
+    faceWidth = box.width * 2.2;
+    faceHeight = box.height * 2.2;
     console.log("Using detected face box for transformation:", {centerX, centerY, faceWidth, faceHeight});
   } else {
     console.log("No face detection available, using estimated face area");
