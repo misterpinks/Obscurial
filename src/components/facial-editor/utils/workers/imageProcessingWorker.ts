@@ -1,12 +1,10 @@
-
 /**
  * Web Worker for image processing operations
  * This runs in a separate thread to prevent UI blocking
  */
 
 // Note: Using self directly since we're in a worker context
-// This is more compatible with both browser and Electron environments
-const workerSelf = self as any;
+const workerSelf = self as unknown as Worker;
 
 // Send a ready message back to the main thread
 console.log("Worker initialized");

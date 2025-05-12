@@ -1,4 +1,3 @@
-
 import React, { RefObject } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Eye, EyeOff } from "lucide-react";
@@ -7,6 +6,7 @@ import FaceAnalysis from './FaceAnalysis';
 import AdjustmentSliders from './AdjustmentSliders';
 import RandomizeButton from './RandomizeButton';
 import EditorImageControls from './EditorImageControls';
+import VectorFieldVisualization from './VectorFieldVisualization';
 
 interface EditorContentProps {
   originalCanvasRef: RefObject<HTMLCanvasElement>;
@@ -123,6 +123,16 @@ const EditorContent: React.FC<EditorContentProps> = ({
             faceDetection={faceDetection}
           />
         </div>
+        
+        {/* Vector Field Visualization */}
+        {originalImage && faceDetection && (
+          <VectorFieldVisualization
+            originalImage={originalImage}
+            faceDetection={faceDetection}
+            sliderValues={sliderValues}
+            imageDimensions={imageDimensions}
+          />
+        )}
         
         {/* Analysis information below images - always show if we have an image */}
         <FaceAnalysis 
