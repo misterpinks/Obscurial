@@ -11,25 +11,24 @@ const __dirname = path.dirname(__filename);
 const packageJsonPath = path.join(__dirname, 'package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
 
-// Fix: Move electron and electron-builder to devDependencies if they exist in dependencies
-if (packageJson.dependencies && packageJson.dependencies.electron) {
-  // Create devDependencies if it doesn't exist
-  if (!packageJson.devDependencies) {
-    packageJson.devDependencies = {};
-  }
-  
-  // Move electron to devDependencies
-  packageJson.devDependencies.electron = packageJson.dependencies.electron;
+// Fix: Ensure dependencies and devDependencies are initialized
+if (!packageJson.dependencies) {
+  packageJson.dependencies = {};
+}
+
+if (!packageJson.devDependencies) {
+  packageJson.devDependencies = {};
+}
+
+// Ensure electron is properly specified in devDependencies (not using git)
+packageJson.devDependencies.electron = "^36.1.0";
+
+// Move electron and electron-builder to devDependencies if they exist in dependencies
+if (packageJson.dependencies.electron) {
   delete packageJson.dependencies.electron;
 }
 
-if (packageJson.dependencies && packageJson.dependencies['electron-builder']) {
-  // Create devDependencies if it doesn't exist
-  if (!packageJson.devDependencies) {
-    packageJson.devDependencies = {};
-  }
-  
-  // Move electron-builder to devDependencies
+if (packageJson.dependencies['electron-builder']) {
   packageJson.devDependencies['electron-builder'] = packageJson.dependencies['electron-builder'];
   delete packageJson.dependencies['electron-builder'];
 }
@@ -67,6 +66,12 @@ if (!packageJson.author) {
     "email": "info@obscurial.app"
   };
 }
+
+// Add explicit engines to help with compatibility
+packageJson.engines = {
+  "node": ">=18.0.0",
+  "npm": ">=7.0.0"
+};
 
 // Explicitly set type to CommonJS to avoid ES module errors in Electron
 packageJson.type = "commonjs";

@@ -31,7 +31,7 @@
   "asar": true,
   "nodeGypRebuild": false,
   "npmRebuild": false,
-  "buildDependenciesFromSource": true,
+  "buildDependenciesFromSource": false,
   "win": {
     "target": [
       "portable",
