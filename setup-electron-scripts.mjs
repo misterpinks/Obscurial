@@ -20,8 +20,13 @@ if (!packageJson.devDependencies) {
   packageJson.devDependencies = {};
 }
 
-// Ensure electron is properly specified in devDependencies (not using git)
+// Ensure electron is properly specified in devDependencies (specific npm version)
 packageJson.devDependencies.electron = "^36.1.0";
+
+// Explicitly remove any git repository references
+if (packageJson.dependencies['@electron/node-gyp']) {
+  delete packageJson.dependencies['@electron/node-gyp'];
+}
 
 // Move electron and electron-builder to devDependencies if they exist in dependencies
 if (packageJson.dependencies.electron) {
@@ -49,10 +54,10 @@ packageJson.scripts = {
   ...packageJson.scripts,
   "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"npm run electron:start\"",
   "electron:start": "wait-on tcp:8080 && cross-env IS_DEV=true electron electron/main.js",
-  "electron:build": `${electronBuildScript} && electron-builder build -c electron-builder.json`,
-  "electron:build:win": `${electronBuildScript} && electron-builder build --win -c electron-builder.json`,
-  "electron:build:mac": `${electronBuildScript} && electron-builder build --mac -c electron-builder.json`,
-  "electron:build:linux": `${electronBuildScript} && electron-builder build --linux -c electron-builder.json`
+  "electron:build": `${electronBuildScript} && electron-builder build -c electron-builder.json --no-rebuild`,
+  "electron:build:win": `${electronBuildScript} && electron-builder build --win -c electron-builder.json --no-rebuild`,
+  "electron:build:mac": `${electronBuildScript} && electron-builder build --mac -c electron-builder.json --no-rebuild`,
+  "electron:build:linux": `${electronBuildScript} && electron-builder build --linux -c electron-builder.json --no-rebuild`
 };
 
 // Add basic package information if missing

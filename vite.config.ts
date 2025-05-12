@@ -42,8 +42,8 @@ export default defineConfig(({ mode }) => ({
   publicDir: 'public',
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'face-api.js'],
-    // Skip optimization of certain dependencies in Electron
-    exclude: process.env.ELECTRON_RUN ? ['fsevents'] : []
+    // Skip optimization of problematic dependencies in Electron
+    exclude: process.env.ELECTRON_RUN ? ['fsevents', '@electron/node-gyp'] : []
   },
   // Fix for Electron - provide Node.js polyfills for browser environment
   define: {
