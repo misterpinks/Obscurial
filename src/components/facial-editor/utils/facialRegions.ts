@@ -7,7 +7,7 @@
 import { FacialRegion } from './transformationTypes';
 
 // Significantly increased base amplification factor for more dramatic effects
-export function getAmplificationFactor(): number {
+export function getAmplificationFactor() {
   return 7.0; // Dramatically increased for more pronounced effects (from 5.0)
 }
 
