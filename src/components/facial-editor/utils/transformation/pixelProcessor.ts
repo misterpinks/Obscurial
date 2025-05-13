@@ -227,7 +227,7 @@ export const bilinearInterpolation = (
     
     // Add random noise if noise level is greater than 0
     if (noiseLevel > 0) {
-      const noise = (Math.random() - 0.5) * noiseLevel * 2;
+      const noise = (Math.random() - 0.5) * noiseLevel * 2.5;
       interpolated = Math.max(0, Math.min(255, Math.round(interpolated + noise)));
     }
     
