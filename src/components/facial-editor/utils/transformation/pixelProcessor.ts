@@ -1,9 +1,10 @@
+
 /**
  * Core pixel-level image processing functions
  * Enhanced with superior circular/elliptical transitions
  */
 
-// Process a single row of pixels for facial transformations with circular regions
+// Process a single row of pixels for facial transformations with continuous field
 export const processRow = (
   y: number,
   width: number,
@@ -32,22 +33,26 @@ export const processRow = (
     // Get the current pixel index
     const index = (y * width + x) * 4;
     
-    // Dramatically expanded influence distance for wider effect area
-    const extendedMaxInfluence = maxInfluenceDistance * 3.0; // Massive increase from 2.0
-    
-    // Instead of skipping points, we now process all pixels with appropriate falloff
-    // We now use the getDisplacement function directly from facialRegions
+    // Use global continuous field approach - process ALL pixels with appropriate transformations
+    // This eliminates any visible boundaries between regions
     let displacementX = 0;
     let displacementY = 0;
     
     // Import helper functions to calculate displacements based on facial regions
-    // This logic is now handled by the facialRegions module
-    const { displacementX: dX, displacementY: dY } = getDisplacementForPixel(
-      normX, normY, distFromCenter, sliderValues, amplificationFactor
-    );
-    
-    displacementX = dX;
-    displacementY = dY;
+    // This logic is handled by the facialRegions module
+    try {
+      const { displacementX: dX, displacementY: dY } = getDisplacementForPixel(
+        normX, normY, distFromCenter, sliderValues, amplificationFactor
+      );
+      
+      displacementX = dX;
+      displacementY = dY;
+    } catch (error) {
+      console.error("Error calculating displacement:", error);
+      // In case of error, skip this pixel
+      copyPixel(x, y, width, inputArray, outputArray, index);
+      continue;
+    }
     
     // Apply the calculated displacement with enhanced bounds checking
     // Increase safety margin for better edge handling
@@ -82,6 +87,22 @@ function getDisplacementForPixel(
   // In a production app, we'd refactor to avoid this pattern, but this works for our needs
   const { getDisplacement } = require('../facialRegions');
   return getDisplacement(normX, normY, distFromCenter, sliderValues, amplificationFactor);
+}
+
+// Helper function to copy pixel directly from source to destination
+function copyPixel(
+  x: number,
+  y: number,
+  width: number,
+  inputArray: Uint8ClampedArray,
+  outputArray: Uint8ClampedArray,
+  targetIndex: number
+) {
+  const sourceIndex = (y * width + x) * 4;
+  outputArray[targetIndex] = inputArray[sourceIndex];
+  outputArray[targetIndex + 1] = inputArray[sourceIndex + 1];
+  outputArray[targetIndex + 2] = inputArray[sourceIndex + 2];
+  outputArray[targetIndex + 3] = inputArray[sourceIndex + 3];
 }
 
 // Helper function for smooth step interpolation with enhanced curve

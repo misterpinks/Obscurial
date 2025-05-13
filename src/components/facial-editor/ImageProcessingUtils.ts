@@ -11,8 +11,7 @@ import type { TransformationParams } from './utils/transformationTypes';
 // Export transformation utilities
 import { 
   calculateTransitionFactor, 
-  bilinearInterpolation, 
-  generateVectorFieldVisualization 
+  bilinearInterpolation 
 } from './utils/transformation/transformCore';
 import { processRow } from './utils/transformation/pixelProcessor';
 import { processImageInChunks } from './utils/transformation/chunkedProcessor';
@@ -41,7 +40,6 @@ export {
   adjustSliderValues,
   hasTransformations,
   hasEffects,
-  generateVectorFieldVisualization,
   
   // Face effects
   applyFaceEffect,

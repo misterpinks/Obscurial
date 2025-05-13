@@ -23,13 +23,22 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
   autoAnalyze = false,
   onToggleAutoAnalyze
 }) => {
-  // Helper function to interpret facial difference values
+  // Helper function to interpret facial difference values with improved thresholds
   const getFacialDifferenceStatus = (difference: number) => {
     if (difference >= 1.5) return 'Recognition fully defeated';
     if (difference >= 1.0) return 'Likely defeats recognition';
     if (difference >= 0.7) return 'May defeat recognition';
     if (difference >= 0.4) return 'Some protection, but recognizable';
     return 'Easily recognizable';
+  };
+
+  // Helper to determine text color based on facial difference
+  const getFacialDifferenceColor = (difference: number) => {
+    if (difference >= 1.5) return 'text-green-600 font-bold';
+    if (difference >= 1.0) return 'text-green-500';
+    if (difference >= 0.7) return 'text-yellow-500';
+    if (difference >= 0.4) return 'text-orange-500';
+    return 'text-red-500';
   };
 
   return (
@@ -66,11 +75,12 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
               </li>
               <li className="flex justify-between">
                 <span>Facial difference:</span>
-                <span className="font-medium">
+                <span className={`font-medium ${facialDifference !== undefined && facialDifference !== null ? 
+                  getFacialDifferenceColor(facialDifference) : ''}`}>
                   {isAnalyzing ? 'Analyzing...' : 
                     (facialDifference !== undefined && facialDifference !== null ? 
                       `${facialDifference.toFixed(2)} (${getFacialDifferenceStatus(facialDifference)})` 
-                      : (confidence !== undefined && confidence !== null ? 'Not analyzed yet' : 'N/A'))}
+                      : (confidence !== undefined && confidence !== null ? 'Click "Run Analysis"' : 'N/A'))}
                 </span>
               </li>
               {imageDimensions && (imageDimensions.width > 0 || imageDimensions.height > 0) && (
@@ -102,7 +112,7 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-3 mr-2 rounded-full" style={{backgroundColor: '#F2FCE2'}}></div>
-                <span>Face Square</span>
+                <span>Face Shape</span>
               </div>
             </div>
           </div>

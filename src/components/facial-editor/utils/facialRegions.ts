@@ -1,16 +1,17 @@
+
 /**
  * Configuration for facial regions and transformation parameters
- * Improved with global transformation field and ultra-smooth transitions
+ * Complete rewrite with continuous global transformation field and ultra-smooth transitions
  */
 
 import { FacialRegion } from './transformationTypes';
 
 // Significantly increased base amplification factor for more dramatic effects
 export function getAmplificationFactor(): number {
-  return 7.0; // Dramatically increased for more pronounced effects (from 5.0)
+  return 10.0; // Dramatically increased for more pronounced effects
 }
 
-// Get displacement for any pixel using a smooth, continuous field approach
+// Get displacement for any pixel using a global continuous field approach
 export function getDisplacement(
   normX: number, 
   normY: number, 
@@ -22,178 +23,160 @@ export function getDisplacement(
   let displacementX = 0;
   let displacementY = 0;
   
-  // For each facial region, calculate its contribution to the displacement
-  // and blend them using ultra-smooth weight functions
+  // ---- CORE IMPROVEMENT: Using a continuous global transformation field ----
+  // Each feature's influence blends smoothly with no defined boundaries
+  // This approach eliminates any visible "box" or region boundaries
   
-  // Eye region
-  {
-    // Use multiple eye centers with elliptical distance calculation
-    const leftEyeCenterX = -0.3;
-    const rightEyeCenterX = 0.3;
-    const eyeCenterY = -0.25;
+  // Global scale factor to make transformations more dramatic for facial recognition defeat
+  const globalScaleFactor = 1.5; // Increased from previous version
+  
+  // ------ Eyes region with smooth falloff ------
+  // Dynamic eye centers that adapt to face width
+  const eyeSpread = 0.3 * (1 + (sliderValues.faceWidth || 0) / 200);
+  const leftEyeCenterX = -eyeSpread;
+  const rightEyeCenterX = eyeSpread;
+  const eyeCenterY = -0.25;
+  
+  // Smooth radial influence calculation (no boundaries)
+  const leftEyeDistance = Math.sqrt(Math.pow((normX - leftEyeCenterX) / 0.4, 2) + Math.pow((normY - eyeCenterY) / 0.3, 2));
+  const rightEyeDistance = Math.sqrt(Math.pow((normX - rightEyeCenterX) / 0.4, 2) + Math.pow((normY - eyeCenterY) / 0.3, 2));
+  const eyeDistance = Math.min(leftEyeDistance, rightEyeDistance);
+  
+  // Ultra smooth falloff that extends far beyond the eye region
+  const eyeInfluence = Math.pow(Math.max(0, 1 - eyeDistance / 3.5), 3);
+  
+  // Apply eye size transformation
+  if (sliderValues.eyeSize) {
+    // Which eye are we closer to?
+    const eyeCenterX = normX > 0 ? rightEyeCenterX : leftEyeCenterX;
     
-    // Calculate distances from each eye with elliptical weighting
-    const dxLeft = (normX - leftEyeCenterX) / 0.4;
-    const dxRight = (normX - rightEyeCenterX) / 0.4;
-    const dy = (normY - eyeCenterY) / 0.3;
+    // Vector from eye center
+    const vx = normX - eyeCenterX;
+    const vy = normY - eyeCenterY;
     
-    const distFromLeftEye = Math.sqrt(dxLeft*dxLeft + dy*dy);
-    const distFromRightEye = Math.sqrt(dxRight*dxRight + dy*dy);
-    
-    // Choose the closest eye for influence
-    const distFromEye = Math.min(distFromLeftEye, distFromRightEye);
-    
-    // Create ultra smooth falloff with 7th order polynomial for perfect transitions
-    const maxEyeDistance = 1.8; // Expanded influence area 
-    const eyeFalloff = Math.max(0, 1 - (distFromEye / maxEyeDistance));
-    const eyeWeight = eyeFalloff * eyeFalloff * eyeFalloff * (eyeFalloff * (eyeFalloff * 6 - 15) + 10);
-    
-    // Apply eye size transformation
-    if (sliderValues.eyeSize) {
-      // Calculate vector from eye center to current point
-      const eyeCenterX = normX > 0 ? rightEyeCenterX : leftEyeCenterX;
-      const vx = normX - eyeCenterX;
-      const vy = normY - eyeCenterY;
-      
-      // Apply radial displacement scaled by eye size
-      displacementX += (sliderValues.eyeSize / 100) * vx * amplificationFactor * eyeWeight;
-      displacementY += (sliderValues.eyeSize / 100) * vy * amplificationFactor * eyeWeight;
-    }
-    
-    // Apply eye spacing transformation with smooth blending
-    if (sliderValues.eyeSpacing) {
-      // Direction depends on which side of the face we're on
-      const direction = normX > 0 ? 1 : -1;
-      displacementX += (sliderValues.eyeSpacing / 100) * direction * amplificationFactor * eyeWeight;
-    }
+    // Apply radial displacement with smooth falloff
+    const eyeSizeFactor = (sliderValues.eyeSize / 100) * amplificationFactor * globalScaleFactor * eyeInfluence;
+    displacementX += vx * eyeSizeFactor;
+    displacementY += vy * eyeSizeFactor;
   }
   
-  // Eyebrow region with improved spatial weighting
-  {
-    const leftBrowCenterX = -0.3;
-    const rightBrowCenterX = 0.3;
-    const browCenterY = -0.4;
+  // Apply eye spacing transformation
+  if (sliderValues.eyeSpacing) {
+    // Direction depends on which half of face we're on
+    const direction = normX > 0 ? 1 : -1;
     
-    // Calculate distances with elliptical weighting
-    const dxLeft = (normX - leftBrowCenterX) / 0.4;
-    const dxRight = (normX - rightBrowCenterX) / 0.4;
-    const dy = (normY - browCenterY) / 0.25;
-    
-    const distFromLeftBrow = Math.sqrt(dxLeft*dxLeft + dy*dy);
-    const distFromRightBrow = Math.sqrt(dxRight*dxRight + dy*dy);
-    
-    // Choose the closest brow for influence
-    const distFromBrow = Math.min(distFromLeftBrow, distFromRightBrow);
-    
-    // Create smooth falloff
-    const maxBrowDistance = 1.8;
-    const browFalloff = Math.max(0, 1 - (distFromBrow / maxBrowDistance));
-    const browWeight = browFalloff * browFalloff * browFalloff * (browFalloff * (browFalloff * 6 - 15) + 10);
-    
-    // Apply eyebrow height transformation
-    if (sliderValues.eyebrowHeight) {
-      displacementY += -(sliderValues.eyebrowHeight / 100) * amplificationFactor * 2.2 * browWeight;
-    }
+    // Apply horizontal displacement with smooth falloff
+    displacementX += direction * (sliderValues.eyeSpacing / 100) * amplificationFactor * globalScaleFactor * eyeInfluence;
   }
   
-  // Nose region with circular influence
-  {
-    // Circular distance from nose center with adjustable influence area
-    const noseCenterY = 0;
-    const dx = normX / 0.4; // Widened x radius
-    const dy = (normY - noseCenterY) / 0.4; // Widened y radius
-    const distFromNose = Math.sqrt(dx*dx + dy*dy);
-    
-    // Smooth falloff
-    const maxNoseDistance = 1.8;
-    const noseFalloff = Math.max(0, 1 - (distFromNose / maxNoseDistance));
-    const noseWeight = noseFalloff * noseFalloff * noseFalloff * (noseFalloff * (noseFalloff * 6 - 15) + 10);
-    
-    // Apply nose transformations
-    if (sliderValues.noseWidth) {
-      displacementX += (sliderValues.noseWidth / 100) * normX * amplificationFactor * 1.8 * noseWeight;
-    }
-    
-    if (sliderValues.noseLength) {
-      displacementY += (sliderValues.noseLength / 100) * (normY > 0 ? 1 : -1) * amplificationFactor * 1.8 * noseWeight;
-    }
+  // ------ Eyebrows with smooth falloff ------
+  const browCenterY = -0.4;
+  const leftBrowDistance = Math.sqrt(Math.pow((normX - leftEyeCenterX) / 0.4, 2) + Math.pow((normY - browCenterY) / 0.25, 2));
+  const rightBrowDistance = Math.sqrt(Math.pow((normX - rightEyeCenterX) / 0.4, 2) + Math.pow((normY - browCenterY) / 0.25, 2));
+  const browDistance = Math.min(leftBrowDistance, rightBrowDistance);
+  
+  // Smooth falloff with very wide influence
+  const browInfluence = Math.pow(Math.max(0, 1 - browDistance / 3.0), 3);
+  
+  // Apply eyebrow transformations
+  if (sliderValues.eyebrowHeight) {
+    // Vertical displacement with smooth falloff
+    displacementY += -(sliderValues.eyebrowHeight / 100) * amplificationFactor * globalScaleFactor * 2.5 * browInfluence;
   }
   
-  // Mouth region with elliptical influence
-  {
-    // Elliptical distance calculation
-    const mouthCenterY = 0.25;
-    const dx = normX / 0.5;
-    const dy = (normY - mouthCenterY) / 0.4;
-    const distFromMouth = Math.sqrt(dx*dx + dy*dy);
-    
-    // Smooth falloff
-    const maxMouthDistance = 1.8;
-    const mouthFalloff = Math.max(0, 1 - (distFromMouth / maxMouthDistance));
-    const mouthWeight = mouthFalloff * mouthFalloff * mouthFalloff * (mouthFalloff * (mouthFalloff * 6 - 15) + 10);
-    
-    // Apply mouth transformations
-    if (sliderValues.mouthWidth) {
-      displacementX += (sliderValues.mouthWidth / 100) * normX * amplificationFactor * 1.9 * mouthWeight;
-    }
-    
-    if (sliderValues.mouthHeight) {
-      displacementY += (sliderValues.mouthHeight / 100) * (normY - mouthCenterY) * amplificationFactor * 1.9 * mouthWeight;
-    }
+  // ------ Nose with smooth falloff ------
+  const noseCenterY = 0;
+  const noseDistance = Math.sqrt(Math.pow(normX / 0.4, 2) + Math.pow((normY - noseCenterY) / 0.4, 2));
+  
+  // Extended smooth falloff
+  const noseInfluence = Math.pow(Math.max(0, 1 - noseDistance / 2.5), 3);
+  
+  // Apply nose transformations
+  if (sliderValues.noseWidth) {
+    // Horizontal displacement with smooth falloff
+    displacementX += (sliderValues.noseWidth / 100) * normX * amplificationFactor * globalScaleFactor * 2.0 * noseInfluence;
   }
   
-  // Face width using global radial gradient with emphasis on edges
-  {
-    // Use smooth sigmoid-like falloff that emphasizes edges
-    const targetDist = 0.8; // Distance where effect is strongest
-    const sharpness = 3.0; // How sharp the transition is
-    const faceFalloff = 1.0 / (1.0 + Math.exp(-(distFromCenter - targetDist) * sharpness));
-    
-    if (sliderValues.faceWidth) {
-      displacementX += (sliderValues.faceWidth / 100) * normX * amplificationFactor * 1.8 * faceFalloff;
-    }
+  if (sliderValues.noseLength) {
+    // Vertical displacement with smooth falloff
+    const verticalDirection = normY > 0 ? 1 : -1;
+    displacementY += (sliderValues.noseLength / 100) * verticalDirection * amplificationFactor * globalScaleFactor * 2.0 * noseInfluence;
   }
   
-  // Chin shape with improved elliptical influence
-  {
-    // Elliptical distance from chin center
-    const chinCenterY = 0.5;
-    const dx = normX / 0.4;
-    const dy = (normY - chinCenterY) / 0.4;
-    const distFromChin = Math.sqrt(dx*dx + dy*dy);
-    
-    // Smooth falloff
-    const maxChinDistance = 2.0;
-    const chinFalloff = Math.max(0, 1 - (distFromChin / maxChinDistance));
-    const chinWeight = chinFalloff * chinFalloff * chinFalloff * (chinFalloff * (chinFalloff * 6 - 15) + 10);
-    
-    // Apply chin shape transformation
-    if (sliderValues.chinShape) {
-      displacementY += (sliderValues.chinShape / 100) * (normY - 0.4) * amplificationFactor * 2.0 * chinWeight;
-    }
+  // ------ Mouth with smooth falloff ------
+  const mouthCenterY = 0.25;
+  const mouthDistance = Math.sqrt(Math.pow(normX / 0.5, 2) + Math.pow((normY - mouthCenterY) / 0.4, 2));
+  
+  // Extended smooth falloff
+  const mouthInfluence = Math.pow(Math.max(0, 1 - mouthDistance / 2.5), 3);
+  
+  // Apply mouth transformations
+  if (sliderValues.mouthWidth) {
+    // Horizontal displacement with smooth falloff
+    displacementX += (sliderValues.mouthWidth / 100) * normX * amplificationFactor * globalScaleFactor * 2.0 * mouthInfluence;
   }
   
-  // Jawline with improved angular weighting
-  {
-    // Create a weight based on both distance from center and angle to focus on jaw areas
-    const jawCenterY = 0.35;
-    const angle = Math.atan2(normY - jawCenterY, normX);
-    const angleFactor = Math.abs(Math.cos(angle)); // Peaks at sides of face
+  if (sliderValues.mouthHeight) {
+    // Vertical displacement with smooth falloff
+    displacementY += (sliderValues.mouthHeight / 100) * (normY - mouthCenterY) * amplificationFactor * globalScaleFactor * 2.0 * mouthInfluence;
+  }
+  
+  // ------ Face width with smooth falloff from center to edge ------
+  // Create a gradual falloff based on distance from center
+  // This creates more distortion as you move toward the edge of the face
+  const faceWidthInfluence = Math.pow(Math.min(1, distFromCenter / 0.9), 2);
+  
+  if (sliderValues.faceWidth) {
+    // Horizontal displacement increases toward edges
+    displacementX += (sliderValues.faceWidth / 100) * normX * amplificationFactor * globalScaleFactor * 2.0 * faceWidthInfluence;
+  }
+  
+  // ------ Chin shape with smooth falloff ------
+  const chinCenterY = 0.5;
+  const chinDistance = Math.sqrt(Math.pow(normX / 0.4, 2) + Math.pow((normY - chinCenterY) / 0.4, 2));
+  
+  // Extended smooth falloff
+  const chinInfluence = Math.pow(Math.max(0, 1 - chinDistance / 2.5), 3);
+  
+  if (sliderValues.chinShape) {
+    // Vertical displacement with smooth falloff
+    displacementY += (sliderValues.chinShape / 100) * (normY - 0.4) * amplificationFactor * globalScaleFactor * 2.0 * chinInfluence;
+  }
+  
+  // ------ Jawline with smooth falloff ------
+  // Complex influence field that targets jawline area
+  const jawCenterY = 0.35;
+  const jawAngle = Math.atan2(normY - jawCenterY, normX);
+  
+  // Create stronger effect at the sides of jaw
+  const jawAngleFactor = Math.abs(Math.cos(jawAngle));
+  
+  // Distance factor stronger at edges
+  const jawDistance = Math.sqrt(Math.pow(normX, 2) + Math.pow(normY - jawCenterY, 2));
+  const jawDistanceFactor = Math.min(1, jawDistance / 0.7);
+  
+  // Combine for a smooth jaw-specific influence
+  const jawInfluence = Math.pow(jawDistanceFactor * jawAngleFactor, 1.5);
+  
+  if (sliderValues.jawline) {
+    // Horizontal displacement based on which side of face
+    const direction = normX > 0 ? 1 : -1;
+    displacementX += direction * (sliderValues.jawline / 100) * amplificationFactor * globalScaleFactor * 2.0 * jawInfluence;
+  }
+  
+  // ------ Noise for facial recognition defeat ------
+  // Add subtle noise displacement for more effective facial recognition defeat
+  if (sliderValues.noiseLevel && sliderValues.noiseLevel > 0) {
+    // Use pseudo-random noise based on position (not truly random to maintain consistency)
+    const noiseX = Math.sin(normX * 50 + normY * 30) * 0.5 + 0.5;
+    const noiseY = Math.cos(normX * 30 + normY * 50) * 0.5 + 0.5;
     
-    // Create a radial distance factor that's stronger at the edges
-    const jawDistance = Math.sqrt(normX*normX + (normY-jawCenterY)*(normY-jawCenterY));
-    const distanceFactor = Math.min(1, jawDistance / 0.7);
+    // Scale noise by the noise level slider
+    const noiseInfluence = sliderValues.noiseLevel / 100;
     
-    // Combine angle and distance for jaw-specific weighting
-    const jawWeight = distanceFactor * angleFactor;
-    
-    // Add a smooth falloff to avoid any discontinuities
-    const smoothJawWeight = jawWeight * (3 * jawWeight - 2 * jawWeight * jawWeight);
-    
-    if (sliderValues.jawline) {
-      const direction = normX > 0 ? 1 : -1;
-      displacementX += (sliderValues.jawline / 100) * direction * amplificationFactor * 2.0 * smoothJawWeight;
-    }
+    // Add noise displacement
+    displacementX += (noiseX - 0.5) * amplificationFactor * 0.5 * noiseInfluence;
+    displacementY += (noiseY - 0.5) * amplificationFactor * 0.5 * noiseInfluence;
   }
   
   return { displacementX, displacementY };
