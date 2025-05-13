@@ -323,6 +323,11 @@ const FacialEditor = () => {
     const currentValue = sliderValues.mirrorFace || 0;
     baseHandleSliderChange('mirrorFace', currentValue === 0 ? 1 : 0);
     handleSliderChangeComplete();
+    
+    // Force immediate processing after toggling mirror
+    setTimeout(() => {
+      processImage();
+    }, 50);
   };
   
   // Handler for toggling which side to mirror
@@ -330,6 +335,11 @@ const FacialEditor = () => {
     const currentSide = sliderValues.mirrorSide || 0;
     baseHandleSliderChange('mirrorSide', currentSide === 0 ? 1 : 0);
     handleSliderChangeComplete();
+    
+    // Force immediate processing after toggling side
+    setTimeout(() => {
+      processImage();
+    }, 50);
   };
 
   return (

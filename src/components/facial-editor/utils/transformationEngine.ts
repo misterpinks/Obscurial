@@ -1,16 +1,20 @@
-
-/**
- * Core transformation engine for applying facial feature modifications
- * Optimized for better performance with modular architecture and Web Worker support
- */
-
-import { TransformationParams } from './transformationTypes';
-import { getAmplificationFactor } from './facialRegions';
-import { applyFaceEffect } from './faceEffects';
-import { adjustSliderValues, hasTransformations, hasEffects } from './transformation/sliderAdjuster';
+import { FaceEffectOptions } from './transformationTypes';
 import { processImageInChunks } from './transformation/chunkedProcessor';
+import { adjustSliderValues, hasTransformations, hasEffects } from './transformation/sliderAdjuster';
+import { applyFaceEffect } from './faceEffects';
+import { mirrorFace } from '../hooks/useImageProcessing';
 
-// Enhanced function to apply transformations with improved edge handling and performance
+interface TransformEngineProps {
+  ctx: CanvasRenderingContext2D;
+  originalImage: HTMLImageElement;
+  width: number;
+  height: number;
+  faceDetection: any;
+  sliderValues: Record<string, number>;
+  faceEffectOptions?: FaceEffectOptions;
+  worker?: Worker;
+}
+
 export const applyFeatureTransformations = async ({
   ctx,
   originalImage,
@@ -20,132 +24,91 @@ export const applyFeatureTransformations = async ({
   sliderValues,
   faceEffectOptions,
   worker
-}: TransformationParams & { worker?: Worker }) => {
-  if (!ctx || !originalImage) {
-    console.error("Missing context or original image in transformation");
+}: TransformEngineProps): Promise<void> => {
+  // Apply face mirroring first if enabled
+  if (sliderValues.mirrorFace && sliderValues.mirrorFace > 0) {
+    const mirrorSide = sliderValues.mirrorSide || 0; // 0 = left to right, 1 = right to left
+    // Draw the original image first (important!)
+    ctx.drawImage(originalImage, 0, 0);
+    // Then apply mirroring
+    mirrorFace(ctx, width, height, mirrorSide === 1);
+    // Return early if no other transformations are needed
+    if (!hasTransformations(sliderValues) && !hasEffects(faceEffectOptions)) {
+      return;
+    }
+  }
+  
+  // If mirroring is the only transformation, we're already done
+  if (sliderValues.mirrorFace && sliderValues.mirrorFace > 0 && 
+      !hasTransformations(sliderValues) && !hasEffects(faceEffectOptions)) {
     return;
   }
   
-  console.log("Starting transformation with options:", {
-    width, 
-    height, 
-    hasFaceDetection: !!faceDetection,
-    hasSliderValues: !!sliderValues,
-    hasEffectOptions: !!faceEffectOptions,
-    hasWorker: !!worker
-  });
-  
-  // Quick check if any transformations or effects are actually needed
-  const needsTransformations = hasTransformations(sliderValues);
-  const needsEffects = hasEffects(faceEffectOptions);
-  
-  console.log("Needs transformations:", needsTransformations, "Needs effects:", needsEffects);
-  
-  if (!needsTransformations && !needsEffects) {
-    // Just copy the original image if no transformations needed
-    console.log("No transformations or effects needed, copying original");
-    ctx.drawImage(originalImage, 0, 0);
-    return;
-  }
-  
-  // Skip expensive pixel-by-pixel operations if only effects are needed
-  if (!needsTransformations && needsEffects && faceEffectOptions) {
-    // Draw original image first
-    console.log("Only applying face effects, skipping transformations");
-    ctx.drawImage(originalImage, 0, 0);
+  // Otherwise, continue with normal transformations
+  const startTime = performance.now();
+
+  try {
+    // Adjust slider values for processing
+    const adjustedSliderValues = adjustSliderValues(sliderValues);
     
-    // Then apply face effects only
-    applyFaceEffect({
-      ctx,
-      originalImage,
-      faceDetection,
-      ...faceEffectOptions
-    });
-    return;
+    // For small images, process directly
+    if (width * height < 500000) {
+      console.log('Processing small image directly');
+      if (worker) {
+        // Process using Web Worker
+        await processImageInChunks({
+          ctx,
+          originalImage,
+          width,
+          height,
+          faceDetection,
+          sliderValues: adjustedSliderValues,
+          worker
+        });
+      } else {
+        // Fallback to direct processing
+        await processImageInChunks({
+          ctx,
+          originalImage,
+          width,
+          height,
+          faceDetection,
+          sliderValues: adjustedSliderValues
+        });
+      }
+    } else {
+      // Process large images in chunks
+      console.log('Processing large image in chunks');
+      await processImageInChunks({
+        ctx, 
+        originalImage,
+        width,
+        height,
+        faceDetection,
+        sliderValues: adjustedSliderValues,
+        worker
+      });
+    }
+
+    // Apply any additional face effects
+    if (faceEffectOptions && faceEffectOptions.effectType !== 'none') {
+      applyFaceEffect({
+        ctx,
+        width,
+        height,
+        faceDetection,
+        effectType: faceEffectOptions.effectType,
+        effectIntensity: faceEffectOptions.effectIntensity,
+        maskImage: faceEffectOptions.maskImage,
+        maskPosition: faceEffectOptions.maskPosition,
+        maskScale: faceEffectOptions.maskScale
+      });
+    }
+
+    console.log(`Image transformations completed in ${Math.round(performance.now() - startTime)}ms`);
+  } catch (error) {
+    console.error('Error in transformation engine:', error);
+    // Fallback: just show the original image if transformations fail
+    ctx.drawImage(originalImage, 0, 0);
   }
-  
-  // For actual transformations, use off-screen canvas for processing
-  console.log("Setting up off-screen canvas for transformations");
-  const offCanvas = document.createElement("canvas");
-  offCanvas.width = width;
-  offCanvas.height = height;
-  const offCtx = offCanvas.getContext("2d", { alpha: false, willReadFrequently: true });
-  if (!offCtx) {
-    console.error("Failed to get off-screen canvas context");
-    return;
-  }
-  
-  // Draw original to off-screen canvas
-  offCtx.drawImage(originalImage, 0, 0);
-  
-  // Get image data for processing
-  const originalData = offCtx.getImageData(0, 0, width, height);
-  
-  // Create output image data
-  const outputData = ctx.createImageData(width, height);
-  
-  // Approximate face center - use face detection if available, otherwise estimate
-  let centerX = width / 2;
-  let centerY = height / 2;
-  let faceWidth = width * 0.8;
-  let faceHeight = height * 0.9;
-  
-  // Use detected face box if available
-  if (faceDetection && faceDetection.detection && faceDetection.detection.box) {
-    const box = faceDetection.detection.box;
-    centerX = box.x + box.width / 2;
-    centerY = box.y + box.height / 2;
-    // Make face area SIGNIFICANTLY larger than detected to avoid edge artifacts - increased from 2.2 to 3.0
-    faceWidth = box.width * 3.0;
-    faceHeight = box.height * 3.0;
-    console.log("Using detected face box for transformation:", {centerX, centerY, faceWidth, faceHeight});
-  } else {
-    console.log("No face detection available, using estimated face area");
-  }
-  
-  // Calculate dynamic amplification factor based on image dimensions
-  const baseAmplificationFactor = getAmplificationFactor();
-  
-  // Normalize based on a standard size of 500x500
-  const sizeFactor = Math.sqrt((width * height) / (500 * 500));
-  
-  // Combine base amplification with size factor - increased multiplier for more dramatic effects
-  const amplificationFactor = baseAmplificationFactor * sizeFactor * 1.5;
-  console.log(`Using amplification factor: ${amplificationFactor} (base: ${baseAmplificationFactor}, size factor: ${sizeFactor})`);
-  
-  // Safety check for extreme values - automatically clamp them
-  const clampedSliderValues = adjustSliderValues(sliderValues);
-  
-  // Use chunked processing with Web Worker support for better UI responsiveness
-  console.log("Starting chunked image processing");
-  await processImageInChunks(
-    ctx,
-    originalData,
-    outputData,
-    width,
-    height,
-    centerX,
-    centerY,
-    faceWidth,
-    faceHeight,
-    clampedSliderValues,
-    amplificationFactor,
-    originalImage,
-    faceDetection,
-    faceEffectOptions,
-    worker // Pass the worker if available
-  );
-  
-  // After all transformations, apply any face effects if needed
-  if (needsEffects && faceEffectOptions) {
-    console.log("Applying face effects after transformations");
-    applyFaceEffect({
-      ctx,
-      originalImage: null, // Don't need original image here as we're working on already transformed data
-      faceDetection,
-      ...faceEffectOptions
-    });
-  }
-  
-  console.log("Image transformation complete");
 };

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Upload, ImageIcon } from "lucide-react";
@@ -7,15 +6,15 @@ import ImageUploader from './ImageUploader';
 import WebcamCapture from './WebcamCapture';
 import FacialRecognitionResources from './FacialRecognitionResources';
 
-interface EditorTabsProps {
+export interface EditorTabsProps {
   activeTab: string;
-  onTabChange: (tab: string) => void;
+  onTabChange: (value: string) => void;
   originalImage: HTMLImageElement | null;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   fileInputRef: React.RefObject<HTMLInputElement>;
   videoRef: React.RefObject<HTMLVideoElement>;
+  streamRef: React.MutableRefObject<MediaStream | null>;
   onCapture: () => HTMLImageElement | null;
-  streamRef: React.RefObject<MediaStream>;
   originalCanvasRef: React.RefObject<HTMLCanvasElement>;
   processedCanvasRef: React.RefObject<HTMLCanvasElement>;
   cleanProcessedCanvasRef: React.RefObject<HTMLCanvasElement>;
@@ -23,28 +22,30 @@ interface EditorTabsProps {
   isAnalyzing: boolean;
   faceDetection: any;
   facialDifference: number | null;
-  imageDimensions: { width: number; height: number } | null;
+  imageDimensions?: { width: number, height: number };
   triggerFileInput: () => void;
   downloadImage: () => void;
   hasProcessedImage: boolean;
   handleRunAnalysis: () => void;
+  showLandmarks: boolean;
+  toggleLandmarks: () => void;
   featureSliders: any[];
   sliderValues: Record<string, number>;
   onSliderChange: (id: string, value: number) => void;
   onSliderChangeComplete: () => void;
   onResetSliders: () => void;
   onRandomizeSliders: () => void;
-  showLandmarks: boolean;
-  toggleLandmarks: () => void;
-  handleLandmarkMove: (index: number, x: number, y: number) => void;
+  handleLandmarkMove: (landmark: any, newPosition: { x: number; y: number }) => void;
   autoAnalyze: boolean;
   onToggleAutoAnalyze: () => void;
-  maskPosition: { x: number; y: number };
-  maskScale: number;
-  onMaskPositionChange: (pos: { x: number; y: number }) => void;
-  onMaskScaleChange: (scale: number) => void;
-  faceMaskSelector: React.ReactNode;
-  presetsComponent: React.ReactNode;
+  maskPosition?: { x: number, y: number };
+  maskScale?: number;
+  onMaskPositionChange?: (position: { x: number, y: number }) => void;
+  onMaskScaleChange?: (scale: number) => void;
+  faceMaskSelector?: React.ReactNode;
+  onToggleMirror: () => void;
+  onToggleMirrorSide: () => void;
+  presetsComponent: React.ReactElement;
 }
 
 const EditorTabs = ({
@@ -54,8 +55,8 @@ const EditorTabs = ({
   handleImageUpload,
   fileInputRef,
   videoRef,
-  onCapture,
   streamRef,
+  onCapture,
   originalCanvasRef,
   processedCanvasRef,
   cleanProcessedCanvasRef,
@@ -68,14 +69,14 @@ const EditorTabs = ({
   downloadImage,
   hasProcessedImage,
   handleRunAnalysis,
+  showLandmarks,
+  toggleLandmarks,
   featureSliders,
   sliderValues,
   onSliderChange,
   onSliderChangeComplete,
   onResetSliders,
   onRandomizeSliders,
-  showLandmarks,
-  toggleLandmarks,
   handleLandmarkMove,
   autoAnalyze,
   onToggleAutoAnalyze,
@@ -84,6 +85,8 @@ const EditorTabs = ({
   onMaskPositionChange,
   onMaskScaleChange,
   faceMaskSelector,
+  onToggleMirror,
+  onToggleMirrorSide,
   presetsComponent,
 }: EditorTabsProps) => {
 

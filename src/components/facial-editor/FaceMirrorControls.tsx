@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface FaceMirrorControlsProps {
   mirrorEnabled: boolean;
@@ -63,25 +64,20 @@ const FaceMirrorControls: React.FC<FaceMirrorControlsProps> = ({
           </div>
           <Separator />
           <div className="flex flex-col space-y-2">
-            <h4 className="text-sm font-medium">Mirror Direction</h4>
-            <div className="flex space-x-2">
-              <Button
-                variant={mirrorSide === 0 ? "default" : "outline"}
-                className={mirrorSide === 0 ? "bg-editor-purple" : ""}
-                onClick={() => handleToggleSide()}
-                disabled={mirrorSide === 0}
-              >
+            <h4 className="text-sm font-medium mb-2">Mirror Direction</h4>
+            <ToggleGroup type="single" value={mirrorSide.toString()} onValueChange={(value) => {
+              if (value) {
+                if (!mirrorEnabled) onToggleMirror();
+                if (value !== mirrorSide.toString()) onToggleSide();
+              }
+            }}>
+              <ToggleGroupItem value="0" className={mirrorSide === 0 ? "bg-editor-purple text-white" : ""}>
                 Left → Right
-              </Button>
-              <Button
-                variant={mirrorSide === 1 ? "default" : "outline"}
-                className={mirrorSide === 1 ? "bg-editor-purple" : ""}
-                onClick={() => handleToggleSide()}
-                disabled={mirrorSide === 1}
-              >
+              </ToggleGroupItem>
+              <ToggleGroupItem value="1" className={mirrorSide === 1 ? "bg-editor-purple text-white" : ""}>
                 Right → Left
-              </Button>
-            </div>
+              </ToggleGroupItem>
+            </ToggleGroup>
             <p className="text-xs text-muted-foreground pt-2">
               {mirrorSide === 0 
                 ? "Copying left side of face to right side" 
