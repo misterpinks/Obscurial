@@ -92,20 +92,20 @@ function getDisplacementForPixel(
 }
 
 // Helper function to copy pixel directly from source to destination
-function copyPixel(
+export const copyPixel = (
   x: number,
   y: number,
   width: number,
   inputArray: Uint8ClampedArray,
   outputArray: Uint8ClampedArray,
   targetIndex: number
-) {
+) => {
   const sourceIndex = (y * width + x) * 4;
   outputArray[targetIndex] = inputArray[sourceIndex];
   outputArray[targetIndex + 1] = inputArray[sourceIndex + 1];
   outputArray[targetIndex + 2] = inputArray[sourceIndex + 2];
   outputArray[targetIndex + 3] = inputArray[sourceIndex + 3];
-}
+};
 
 // Helper function for smooth step interpolation with enhanced curve
 const smoothStep = (edge0: number, edge1: number, x: number): number => {

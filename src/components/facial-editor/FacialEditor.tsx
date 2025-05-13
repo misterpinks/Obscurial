@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -92,7 +93,8 @@ const FacialEditor = () => {
     autoAnalyze,
     toggleAutoAnalyze,
     lastProcessedValues,
-    setLastProcessedValues
+    setLastProcessedValues,
+    onProcessingComplete
   } = useFaceAnalysis(isFaceApiLoaded, originalImage, cleanProcessedCanvasRef);
 
   // Custom hook for image processing core with Web Worker support
@@ -206,7 +208,8 @@ const FacialEditor = () => {
     setLastProcessedValues,
     faceEffectOptions,
     worker,
-    isWorkerReady
+    isWorkerReady,
+    onProcessingComplete
   });
 
   // Hook for editor actions
@@ -278,7 +281,7 @@ const FacialEditor = () => {
   // Hook for batch upload
   const { handleBatchUpload } = useBatchUpload(addToBatch);
 
-  // FIX: Handle the webcam capture function to return HTMLImageElement as required
+  // Fix for the webcam capture function to return HTMLImageElement as required
   const handleCaptureFromWebcam = () => {
     const img = captureFromWebcam();
     if (img) {
@@ -314,6 +317,20 @@ const FacialEditor = () => {
       });
     }
   }, [isWorkerReady, toast]);
+
+  // Handler for toggling face mirroring
+  const handleToggleMirror = () => {
+    const currentValue = sliderValues.mirrorFace || 0;
+    baseHandleSliderChange('mirrorFace', currentValue === 0 ? 1 : 0);
+    handleSliderChangeComplete();
+  };
+  
+  // Handler for toggling which side to mirror
+  const handleToggleMirrorSide = () => {
+    const currentSide = sliderValues.mirrorSide || 0;
+    baseHandleSliderChange('mirrorSide', currentSide === 0 ? 1 : 0);
+    handleSliderChangeComplete();
+  };
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
@@ -372,6 +389,8 @@ const FacialEditor = () => {
         onMaskPositionChange={setMaskPosition}
         onMaskScaleChange={setMaskScale}
         faceMaskSelector={faceMaskSelector}
+        onToggleMirror={handleToggleMirror}
+        onToggleMirrorSide={handleToggleMirrorSide}
         presetsComponent={
           <PresetSelector 
             presets={presets}
