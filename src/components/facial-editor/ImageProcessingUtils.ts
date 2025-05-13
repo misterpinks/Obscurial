@@ -11,7 +11,8 @@ import type { TransformationParams } from './utils/transformationTypes';
 // Export transformation utilities
 import { 
   calculateTransitionFactor, 
-  bilinearInterpolation 
+  bilinearInterpolation,
+  copyPixel 
 } from './utils/transformation/transformCore';
 import { processRow } from './utils/transformation/pixelProcessor';
 import { processImageInChunks } from './utils/transformation/chunkedProcessor';
@@ -35,6 +36,7 @@ export {
   // Also export modular transformation functions
   calculateTransitionFactor,
   bilinearInterpolation,
+  copyPixel,
   processRow,
   processImageInChunks,
   adjustSliderValues,

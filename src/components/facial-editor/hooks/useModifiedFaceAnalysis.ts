@@ -14,6 +14,7 @@ export const useModifiedFaceAnalysis = (
   const { toast } = useToast();
   const [facialDifference, setFacialDifference] = useState<number | null>(null);
   const lastAnalysisRef = useRef<string | null>(null);
+  const analyzingRef = useRef<boolean>(false);
   
   // Automatically run analysis when auto-analyze is enabled
   useEffect(() => {
@@ -24,12 +25,13 @@ export const useModifiedFaceAnalysis = (
     });
     
     // Only update if we have new data
-    if (currentFaceState !== lastAnalysisRef.current && faceDetection?.original) {
+    if (currentFaceState !== lastAnalysisRef.current && faceDetection?.original && !analyzingRef.current) {
       lastAnalysisRef.current = currentFaceState;
       
       // Only run the analysis if we have face detection data
       if (faceDetection && faceDetection.original) {
         console.log("Auto-analyzing modified image due to face detection changes");
+        analyzeModifiedImage();
       }
     }
   }, [faceDetection]);
@@ -44,6 +46,8 @@ export const useModifiedFaceAnalysis = (
       return;
     }
     
+    // Set analyzing flag to prevent concurrent analyses
+    analyzingRef.current = true;
     console.log("Running facial analysis on modified image");
     
     try {
@@ -120,11 +124,15 @@ export const useModifiedFaceAnalysis = (
         title: "Analysis Error",
         description: "Could not analyze facial differences."
       });
+    } finally {
+      // Reset analyzing flag
+      analyzingRef.current = false;
     }
   };
 
   return {
     facialDifference,
-    analyzeModifiedImage
+    analyzeModifiedImage,
+    isAnalyzing: analyzingRef.current
   };
 };
