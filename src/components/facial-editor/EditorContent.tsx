@@ -7,6 +7,7 @@ import FaceAnalysis from './FaceAnalysis';
 import AdjustmentSliders from './AdjustmentSliders';
 import RandomizeButton from './RandomizeButton';
 import EditorImageControls from './EditorImageControls';
+import FaceMirrorControls from './FaceMirrorControls';
 
 interface EditorContentProps {
   originalCanvasRef: RefObject<HTMLCanvasElement>;
@@ -40,6 +41,8 @@ interface EditorContentProps {
   onMaskPositionChange?: (newPosition: { x: number, y: number }) => void;
   onMaskScaleChange?: (newScale: number) => void;
   faceMaskSelector?: React.ReactNode;
+  onToggleMirror?: () => void;
+  onToggleMirrorSide?: () => void;
 }
 
 const EditorContent: React.FC<EditorContentProps> = ({
@@ -73,7 +76,9 @@ const EditorContent: React.FC<EditorContentProps> = ({
   maskScale,
   onMaskPositionChange,
   onMaskScaleChange,
-  faceMaskSelector
+  faceMaskSelector,
+  onToggleMirror,
+  onToggleMirrorSide
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -147,6 +152,16 @@ const EditorContent: React.FC<EditorContentProps> = ({
       {/* Right side - adjustment sliders */}
       <div className="space-y-4">
         <RandomizeButton onRandomize={onRandomizeSliders} />
+        
+        {/* Add Face Mirroring Controls */}
+        {onToggleMirror && onToggleMirrorSide && (
+          <FaceMirrorControls
+            mirrorEnabled={sliderValues.mirrorFace === 1}
+            mirrorSide={sliderValues.mirrorSide}
+            onToggleMirror={onToggleMirror}
+            onToggleSide={onToggleMirrorSide}
+          />
+        )}
         
         <AdjustmentSliders 
           featureSliders={featureSliders}

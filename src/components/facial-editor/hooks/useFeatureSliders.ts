@@ -1,7 +1,7 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
-export interface FeatureSlider {
+export type FeatureSlider = {
   id: string;
   name: string;
   min: number;
@@ -10,73 +10,87 @@ export interface FeatureSlider {
   defaultValue: number;
   category: string;
   color?: string;
-}
+};
 
 export const useFeatureSliders = () => {
-  // Define sliders with their properties
+  // Feature adjustment sliders configuration
   const featureSliders: FeatureSlider[] = [
-    { id: 'eyeSize', name: 'Eye Size', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
-    { id: 'eyeSpacing', name: 'Eye Spacing', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
-    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
-    { id: 'noseWidth', name: 'Nose Width', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
-    { id: 'noseLength', name: 'Nose Length', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Nose', color: '#222222' },
-    { id: 'mouthWidth', name: 'Mouth Width', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
-    { id: 'mouthHeight', name: 'Mouth Height', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
-    { id: 'faceWidth', name: 'Face Width', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
-    { id: 'chinShape', name: 'Chin Shape', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
-    { id: 'jawline', name: 'Jawline', min: -75, max: 75, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'eyeSize', name: 'Eye Size', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'eyeSpacing', name: 'Eye Spacing', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'eyebrowHeight', name: 'Eyebrow Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Eyes', color: '#1EAEDB' },
+    { id: 'noseWidth', name: 'Nose Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#FEF7CD' },
+    { id: 'noseLength', name: 'Nose Length', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Nose', color: '#FEF7CD' },
+    { id: 'mouthWidth', name: 'Mouth Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
+    { id: 'mouthHeight', name: 'Mouth Height', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Mouth', color: '#ea384c' },
+    { id: 'faceWidth', name: 'Face Width', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'chinShape', name: 'Chin Shape', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'jawline', name: 'Jawline', min: -50, max: 50, step: 1, defaultValue: 0, category: 'Face', color: '#F97316' },
+    { id: 'noiseLevel', name: 'Noise Level', min: 0, max: 30, step: 1, defaultValue: 10, category: 'Privacy' },
+    // New face symmetry options
+    { id: 'mirrorFace', name: 'Face Symmetry', min: 0, max: 1, step: 1, defaultValue: 0, category: 'Symmetry' },
+    { id: 'mirrorSide', name: 'Mirror Side', min: 0, max: 1, step: 1, defaultValue: 0, category: 'Symmetry' },
   ];
 
-  // Initialize slider values with default values
   const [sliderValues, setSliderValues] = useState<Record<string, number>>(() => {
+    // Initialize all sliders with their default values
     return featureSliders.reduce((acc, slider) => {
       acc[slider.id] = slider.defaultValue;
       return acc;
     }, {} as Record<string, number>);
   });
 
-  const handleSliderChange = (id: string, value: number | Record<string, number>) => {
-    if (typeof value === 'number') {
-      // Handle single slider change
-      console.log(`Slider ${id} changed to ${value}`);
-      setSliderValues((prev) => ({
-        ...prev,
-        [id]: value
-      }));
-    } else if (id === 'batch' && typeof value === 'object') {
-      // Handle batch update of all slider values
-      console.log("Batch updating sliders", value);
-      setSliderValues({...value});
-    }
-  };
+  const handleSliderChange = useCallback((id: string, value: number) => {
+    setSliderValues((prev) => ({
+      ...prev,
+      [id]: value
+    }));
+  }, []);
 
-  const resetSliders = () => {
-    console.log("Resetting all sliders to default values");
+  const resetSliders = useCallback(() => {
     const resetValues = featureSliders.reduce((acc, slider) => {
       acc[slider.id] = slider.defaultValue;
       return acc;
     }, {} as Record<string, number>);
     
     setSliderValues(resetValues);
-  };
+  }, [featureSliders]);
 
-  const randomizeSliders = () => {
-    console.log("Randomizing slider values");
-    // Generate new random values for each slider
-    const randomValues = featureSliders.reduce((acc, slider) => {
-      // Use more moderate random values to avoid extremes
-      const safeMin = Math.max(slider.min, -35);
-      const safeMax = Math.min(slider.max, 35);
-      
-      // Generate random value within the range
-      const range = safeMax - safeMin;
-      acc[slider.id] = Math.round(safeMin + Math.random() * range);
-      return acc;
-    }, {} as Record<string, number>);
-    
-    console.log("New random values:", randomValues);
-    setSliderValues({...randomValues});
-  };
+  const randomizeSliders = useCallback((excludeCategories: string[] = []) => {
+    setSliderValues((prev) => {
+      const newValues = { ...prev };
+      featureSliders.forEach(slider => {
+        if (!excludeCategories.includes(slider.category)) {
+          const range = slider.max - slider.min;
+          newValues[slider.id] = Math.floor(Math.random() * range) + slider.min;
+        }
+      });
+      return newValues;
+    });
+  }, [featureSliders]);
 
-  return { featureSliders, sliderValues, handleSliderChange, resetSliders, randomizeSliders };
+  // Toggle the mirrorFace value between 0 and 1
+  const toggleMirrorFace = useCallback(() => {
+    setSliderValues(prev => ({
+      ...prev,
+      mirrorFace: prev.mirrorFace === 1 ? 0 : 1
+    }));
+  }, []);
+
+  // Toggle the mirror side value between 0 and 1
+  const toggleMirrorSide = useCallback(() => {
+    setSliderValues(prev => ({
+      ...prev,
+      mirrorSide: prev.mirrorSide === 1 ? 0 : 1
+    }));
+  }, []);
+
+  return {
+    featureSliders,
+    sliderValues,
+    handleSliderChange,
+    resetSliders,
+    randomizeSliders,
+    toggleMirrorFace,
+    toggleMirrorSide
+  };
 };

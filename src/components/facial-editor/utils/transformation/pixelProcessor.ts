@@ -28,7 +28,9 @@ export const processRow = (
     // Calculate normalized position relative to face center
     const normX = (x - centerX) / halfFaceWidth;
     const normY = (y - centerY) / halfFaceHeight;
-    const distFromCenter = Math.sqrt(normX * normX + normY * normY);
+    
+    // Use elliptical distance for better face shape adaptation
+    const ellipticalDist = Math.sqrt(normX * normX + normY * normY * 1.2);
     
     // Get the current pixel index
     const index = (y * width + x) * 4;
@@ -42,7 +44,7 @@ export const processRow = (
     // This logic is handled by the facialRegions module
     try {
       const { displacementX: dX, displacementY: dY } = getDisplacementForPixel(
-        normX, normY, distFromCenter, sliderValues, amplificationFactor
+        normX, normY, ellipticalDist, sliderValues, amplificationFactor
       );
       
       displacementX = dX;
@@ -182,7 +184,7 @@ export const improvedBilinearInterpolation = (
     
     // Add random noise if noise level is greater than 0
     if (noiseLevel > 0) {
-      const noise = (Math.random() - 0.5) * noiseLevel * 2;
+      const noise = (Math.random() - 0.5) * noiseLevel * 2.5;
       interpolated = Math.max(0, Math.min(255, Math.round(interpolated + noise)));
     } else {
       // Round to integer

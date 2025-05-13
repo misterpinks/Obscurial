@@ -37,21 +37,36 @@ export const useFaceAnalysis = (
   // Use the extracted modified face analysis hook
   const {
     facialDifference,
-    analyzeModifiedImage
+    analyzeModifiedImage,
+    requestAutoAnalysis,
+    isAnalyzing: isAnalyzingModified
   } = useModifiedFaceAnalysis(
     isFaceApiLoaded,
     cleanProcessedCanvasRef,
     faceDetection,
     setFaceDetection
   );
-
-  // Toggle auto-analyze feature
+  
+  // When auto-analyze changes, trigger an analysis if enabled
   const toggleAutoAnalyze = useCallback(() => {
-    setAutoAnalyze(prev => !prev);
-  }, []);
+    const newValue = !autoAnalyze;
+    setAutoAnalyze(newValue);
+    
+    // If turning on auto-analyze, trigger an analysis
+    if (newValue && faceDetection) {
+      requestAutoAnalysis();
+    }
+  }, [autoAnalyze, faceDetection, requestAutoAnalysis]);
+  
+  // This is called whenever an image is processed
+  const onProcessingComplete = useCallback(() => {
+    if (autoAnalyze) {
+      requestAutoAnalysis();
+    }
+  }, [autoAnalyze, requestAutoAnalysis]);
 
   return { 
-    isAnalyzing, 
+    isAnalyzing: isAnalyzing || isAnalyzingModified, 
     faceDetection, 
     facialDifference, 
     initialProcessingDone, 
@@ -65,6 +80,7 @@ export const useFaceAnalysis = (
     autoAnalyze,
     toggleAutoAnalyze,
     lastProcessedValues,
-    setLastProcessedValues
+    setLastProcessedValues,
+    onProcessingComplete
   };
 };

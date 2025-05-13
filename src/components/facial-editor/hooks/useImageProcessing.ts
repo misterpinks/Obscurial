@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState, RefObject } from 'react';
 import { FaceEffectOptions } from '../utils/transformationTypes';
 import { applyFeatureTransformations } from '../utils/transformationEngine';
@@ -22,6 +21,7 @@ interface UseImageProcessingProps {
   faceEffectOptions: FaceEffectOptions;
   worker?: Worker;
   isWorkerReady?: boolean;
+  onProcessingComplete?: () => void;
 }
 
 export const useImageProcessing = ({
@@ -41,7 +41,8 @@ export const useImageProcessing = ({
   setLastProcessedValues,
   faceEffectOptions,
   worker,
-  isWorkerReady = false
+  isWorkerReady = false,
+  onProcessingComplete
 }: UseImageProcessingProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>('');
@@ -186,6 +187,12 @@ export const useImageProcessing = ({
       // First draw the original image to the clean canvas
       cleanCtx.drawImage(originalImage, 0, 0);
       
+      // Apply face mirroring if enabled
+      if (sliderValues.mirrorFace && sliderValues.mirrorFace > 0) {
+        const mirrorSide = sliderValues.mirrorSide || 0; // 0 = left to right, 1 = right to left
+        mirrorFace(cleanCtx, originalImage.width, originalImage.height, mirrorSide === 1);
+      }
+      
       // Apply feature transformations to the clean canvas
       await applyFeatureTransformations({
         ctx: cleanCtx,
@@ -231,9 +238,9 @@ export const useImageProcessing = ({
       const currentValuesString = JSON.stringify({ sliders: sliderValues, effects: faceEffectOptions });
       setLastProcessedValues(currentValuesString);
       
-      // If we have face data and auto analyze is on, analyze the modified image
-      if (faceDetection && isFaceApiLoaded && autoAnalyze) {
-        setTimeout(analyzeModifiedImage, 300);
+      // Notify that processing is complete
+      if (onProcessingComplete) {
+        onProcessingComplete();
       }
     } catch (error) {
       console.error("Error processing image:", error);
@@ -253,8 +260,60 @@ export const useImageProcessing = ({
     faceEffectOptions,
     worker,
     isWorkerReady,
-    drawFaceLandmarks
+    drawFaceLandmarks,
+    onProcessingComplete
   ]);
+  
+  // Face mirroring implementation
+  const mirrorFace = (ctx: CanvasRenderingContext2D, width: number, height: number, rightToLeft: boolean) => {
+    // Create temporary canvas to hold the original image
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    if (!tempCtx) return;
+    
+    // Copy the current canvas state to temp canvas
+    tempCtx.drawImage(ctx.canvas, 0, 0);
+    
+    // Clear the main canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    // Calculate the center line
+    const centerX = width / 2;
+    
+    // Draw the original half
+    if (rightToLeft) {
+      // Mirror right side to left side
+      ctx.drawImage(tempCanvas, centerX, 0, centerX, height, centerX, 0, centerX, height);
+      
+      // Draw the right half mirrored to the left side
+      ctx.save();
+      ctx.translate(centerX, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(tempCanvas, centerX, 0, centerX, height, 0, 0, centerX, height);
+      ctx.restore();
+    } else {
+      // Mirror left side to right side
+      ctx.drawImage(tempCanvas, 0, 0, centerX, height, 0, 0, centerX, height);
+      
+      // Draw the left half mirrored to the right side
+      ctx.save();
+      ctx.translate(centerX, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(tempCanvas, 0, 0, centerX, height, 0, 0, centerX, height);
+      ctx.restore();
+    }
+    
+    // Draw thin line down the center of the face to show the line of symmetry
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.moveTo(centerX, 0);
+    ctx.lineTo(centerX, height);
+    ctx.stroke();
+  };
 
   // Helper function to download the processed image
   const downloadImage = useCallback(() => {

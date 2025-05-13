@@ -15,24 +15,15 @@ export const useModifiedFaceAnalysis = (
   const [facialDifference, setFacialDifference] = useState<number | null>(null);
   const lastAnalysisRef = useRef<string | null>(null);
   const analyzingRef = useRef<boolean>(false);
+  const autoRunRequestedRef = useRef<boolean>(false);
   
-  // Automatically run analysis when auto-analyze is enabled
+  // Fix endless loop by only triggering analysis when explicitly requested
+  // or when faceDetection.original changes but not faceDetection.modified
   useEffect(() => {
-    // Track when the last analysis was performed using stringified faceDetection
-    const currentFaceState = JSON.stringify({
-      originalDescriptor: faceDetection?.original,
-      modifiedDescriptor: faceDetection?.modified
-    });
-    
-    // Only update if we have new data
-    if (currentFaceState !== lastAnalysisRef.current && faceDetection?.original && !analyzingRef.current) {
-      lastAnalysisRef.current = currentFaceState;
-      
-      // Only run the analysis if we have face detection data
-      if (faceDetection && faceDetection.original) {
-        console.log("Auto-analyzing modified image due to face detection changes");
-        analyzeModifiedImage();
-      }
+    // Only auto-analyze if explicitly requested and not already analyzing
+    if (autoRunRequestedRef.current && !analyzingRef.current) {
+      autoRunRequestedRef.current = false;
+      analyzeModifiedImage();
     }
   }, [faceDetection]);
 
@@ -43,6 +34,12 @@ export const useModifiedFaceAnalysis = (
         title: "Analysis Error",
         description: "Required resources are not available."
       });
+      return;
+    }
+    
+    // Prevent multiple concurrent analyses
+    if (analyzingRef.current) {
+      console.log("Analysis already in progress, skipping");
       return;
     }
     
@@ -129,10 +126,18 @@ export const useModifiedFaceAnalysis = (
       analyzingRef.current = false;
     }
   };
+  
+  // Method to request an auto-analysis on next render cycle
+  const requestAutoAnalysis = () => {
+    if (!analyzingRef.current) {
+      autoRunRequestedRef.current = true;
+    }
+  };
 
   return {
     facialDifference,
     analyzeModifiedImage,
+    requestAutoAnalysis,
     isAnalyzing: analyzingRef.current
   };
 };
