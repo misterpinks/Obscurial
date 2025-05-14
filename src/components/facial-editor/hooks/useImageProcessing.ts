@@ -234,8 +234,28 @@ export const useImageProcessing = ({
       if (onProcessingComplete) {
         onProcessingComplete();
       }
+      
+      // Log for debugging
+      console.log('Image processing complete - clean canvas should show modifications');
     } catch (error) {
       console.error("Error processing image:", error);
+      
+      // Even if there's an error, make sure something is displayed in both canvases
+      if (cleanProcessedCanvasRef.current && originalImage) {
+        const fallbackCtx = cleanProcessedCanvasRef.current.getContext('2d');
+        if (fallbackCtx) {
+          fallbackCtx.clearRect(0, 0, cleanProcessedCanvasRef.current.width, cleanProcessedCanvasRef.current.height);
+          fallbackCtx.drawImage(originalImage, 0, 0);
+        }
+      }
+      
+      if (processedCanvasRef.current && originalImage) {
+        const fallbackCtx = processedCanvasRef.current.getContext('2d');
+        if (fallbackCtx) {
+          fallbackCtx.clearRect(0, 0, processedCanvasRef.current.width, processedCanvasRef.current.height);
+          fallbackCtx.drawImage(originalImage, 0, 0);
+        }
+      }
     } finally {
       setIsProcessing(false);
       console.log('Image processing complete');

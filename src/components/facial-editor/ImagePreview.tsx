@@ -1,8 +1,6 @@
 
-import React, { useState, useEffect, useRef, memo } from 'react';
-import { Circle, ZoomIn, ZoomOut, Grab, Move, Square } from 'lucide-react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React, { useRef, useState, useEffect } from 'react';
+import { Loader2, AlertCircle } from "lucide-react";
 
 interface ImagePreviewProps {
   title: string;
@@ -11,483 +9,256 @@ interface ImagePreviewProps {
   isAnalyzing?: boolean;
   noFaceDetected?: boolean;
   originalImage?: HTMLImageElement | null;
-  className?: string;
   enableZoom?: boolean;
-  enableMaskControl?: boolean;
   onLandmarkMove?: (pointIndex: number, x: number, y: number) => void;
-  onMaskPositionChange?: (newPosition: { x: number, y: number }) => void;
-  onMaskScaleChange?: (newScale: number) => void;
+  faceDetection?: any;
+  enableMaskControl?: boolean;
   maskPosition?: { x: number, y: number };
   maskScale?: number;
-  faceDetection?: any;
+  onMaskPositionChange?: (newPosition: { x: number, y: number }) => void;
+  onMaskScaleChange?: (newScale: number) => void;
 }
 
-// Use memo to prevent unnecessary re-renders
-const ImagePreview: React.FC<ImagePreviewProps> = memo(({
+const ImagePreview: React.FC<ImagePreviewProps> = ({
   title,
   canvasRef,
   isProcessing = false,
   isAnalyzing = false,
   noFaceDetected = false,
   originalImage,
-  className,
   enableZoom = false,
-  enableMaskControl = false,
   onLandmarkMove,
-  onMaskPositionChange,
-  onMaskScaleChange,
+  faceDetection,
+  enableMaskControl = false,
   maskPosition,
   maskScale,
-  faceDetection
+  onMaskPositionChange,
+  onMaskScaleChange
 }) => {
   const [scale, setScale] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [activeLandmark, setActiveLandmark] = useState<number | null>(null);
-  const [isDraggingMask, setIsDraggingMask] = useState(false);
-  const [isResizingMask, setIsResizingMask] = useState(false);
-  const [initialMaskPos, setInitialMaskPos] = useState({ x: 0, y: 0 });
-  const [initialMaskScale, setInitialMaskScale] = useState(1);
-  const [interactionMode, setInteractionMode] = useState<'zoom' | 'mask'>('zoom');
+  const [dragPoint, setDragPoint] = useState<{ index: number; x: number; y: number } | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
+  const [dragMask, setDragMask] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // Reset zoom and pan when image changes
+  // Effect to update canvas display when scale changes
   useEffect(() => {
-    setScale(1);
-    setOffset({ x: 0, y: 0 });
-  }, [originalImage]);
-
-  const handleZoomIn = () => {
-    if (scale < 5) {  // Limit max zoom
-      setScale(prevScale => prevScale + 0.5);
+    if (canvasRef.current && containerRef.current) {
+      const canvas = canvasRef.current;
+      
+      // Adjust display size while maintaining internal dimensions
+      if (scale !== 1) {
+        canvas.style.width = `${canvas.width * scale}px`;
+        canvas.style.height = `${canvas.height * scale}px`;
+      } else {
+        canvas.style.width = '';
+        canvas.style.height = '';
+      }
+    }
+  }, [canvasRef, scale]);
+  
+  // Handle zooming with mouse wheel
+  const handleWheel = (e: React.WheelEvent) => {
+    if (enableZoom) {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      setScale(prevScale => Math.min(Math.max(prevScale + delta, 0.5), 3));
     }
   };
-
-  const handleZoomOut = () => {
-    if (scale > 1) {  // Limit min zoom
-      setScale(prevScale => prevScale - 0.5);
-    } else {
-      // If scale would go below 1, reset to 1 and also reset offset
-      setScale(1);
-      setOffset({ x: 0, y: 0 });
-    }
-  };
-
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!canvasRef.current) return;
+  
+  // Handle mouse down for dragging landmarks
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!onLandmarkMove || !faceDetection || !faceDetection.landmarks) return;
     
-    const rect = canvasRef.current.getBoundingClientRect();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    
+    // Calculate mouse position relative to canvas, accounting for scale
     const x = (e.clientX - rect.left) / scale;
     const y = (e.clientY - rect.top) / scale;
     
-    // Check if we're in mask control mode and mask dragging is enabled
-    if (enableMaskControl && interactionMode === 'mask') {
-      if (faceDetection && maskPosition) {
-        const box = faceDetection.detection.box;
-        const maskCenterX = box.x + box.width/2 + maskPosition.x * box.width;
-        const maskCenterY = box.y + box.height/2 + maskPosition.y * box.height;
-        const maskWidth = box.width * (maskScale || 1);
-        const maskHeight = box.height * (maskScale || 1);
-        
-        // Check if click is inside mask area
-        const halfWidth = maskWidth / 2;
-        const halfHeight = maskHeight / 2;
-        
-        // Check if we're on the edge (resize handles)
-        const edgeThreshold = 15;
-        const isOnRightEdge = Math.abs(x - (maskCenterX + halfWidth)) < edgeThreshold;
-        const isOnBottomEdge = Math.abs(y - (maskCenterY + halfHeight)) < edgeThreshold;
-        
-        if (isOnRightEdge || isOnBottomEdge) {
-          // Start resize operation
-          setIsResizingMask(true);
-          setInitialMaskScale(maskScale || 1);
-          setDragStart({ x: e.clientX, y: e.clientY });
-          return;
-        }
-        
-        // Check if we're inside the mask (for moving)
-        if (
-          x >= maskCenterX - halfWidth && 
-          x <= maskCenterX + halfWidth && 
-          y >= maskCenterY - halfHeight && 
-          y <= maskCenterY + halfHeight
-        ) {
-          setIsDraggingMask(true);
-          setInitialMaskPos({ ...maskPosition });
-          setDragStart({ x: e.clientX, y: e.clientY });
-          return;
-        }
+    // Check if we're near any landmark point
+    const landmarks = faceDetection.landmarks.positions;
+    const pointSize = 10; // Detection radius (larger than drawn point)
+    
+    if (enableMaskControl && maskPosition && onMaskPositionChange) {
+      // Convert relative mask position to absolute canvas coordinates
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const absMaskX = centerX + maskPosition.x * canvas.width;
+      const absMaskY = centerY + maskPosition.y * canvas.height;
+      
+      // Check if clicking on mask control point
+      if (Math.abs(x - absMaskX) < pointSize && Math.abs(y - absMaskY) < pointSize) {
+        setDragMask(true);
+        return;
       }
     }
     
-    // Handle landmark control if in zoom mode
-    if (enableZoom && interactionMode === 'zoom') {
-      // Check if we're clicking on a landmark point
-      if (faceDetection?.landmarks) {
-        const landmarks = faceDetection.landmarks.positions;
-        for (let i = 0; i < landmarks.length; i++) {
-          const point = landmarks[i];
-          // Adjust for current scale and offset
-          const adjustedX = point.x * scale + offset.x;
-          const adjustedY = point.y * scale + offset.y;
-          
-          // Check if click is within 10px of a landmark
-          if (Math.abs(x * scale - adjustedX) < 10 && Math.abs(y * scale - adjustedY) < 10) {
-            setActiveLandmark(i);
-            return;
-          }
-        }
+    // Check landmarks only if not dragging mask
+    for (let i = 0; i < landmarks.length; i++) {
+      const point = landmarks[i];
+      if (Math.abs(x - point._x) < pointSize && Math.abs(y - point._y) < pointSize) {
+        setIsDragging(true);
+        setDragPoint({ index: i, x: point._x, y: point._y });
+        break;
       }
-      
-      // If not clicking on a landmark, start panning
-      setIsDragging(true);
-      setDragStart({ x: e.clientX, y: e.clientY });
     }
   };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  
+  // Handle mouse move for dragging landmarks
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!canvasRef.current) return;
     
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Calculate mouse position relative to canvas, accounting for scale
+    const x = (e.clientX - rect.left) / scale;
+    const y = (e.clientY - rect.top) / scale;
+    
     // Handle mask dragging
-    if (isDraggingMask && enableMaskControl && onMaskPositionChange && maskPosition) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const dx = (e.clientX - dragStart.x) / rect.width;
-      const dy = (e.clientY - dragStart.y) / rect.height;
+    if (dragMask && onMaskPositionChange && maskPosition) {
+      // Convert absolute position to relative position
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const relX = (x - centerX) / canvas.width;
+      const relY = (y - centerY) / canvas.height;
       
-      // Update mask position with limited range
-      const newX = Math.max(-0.5, Math.min(0.5, initialMaskPos.x + dx));
-      const newY = Math.max(-0.5, Math.min(0.5, initialMaskPos.y + dy));
-      
-      onMaskPositionChange({ x: newX, y: newY });
-      return;
-    }
-    
-    // Handle mask resizing
-    if (isResizingMask && enableMaskControl && onMaskScaleChange) {
-      const deltaX = e.clientX - dragStart.x;
-      // Calculate scale change based on drag distance
-      const scaleChange = deltaX * 0.01;
-      const newScale = Math.max(0.5, Math.min(2, initialMaskScale + scaleChange));
-      
-      onMaskScaleChange(newScale);
-      return;
-    }
-    
-    // Handle panning in zoom mode
-    if (isDragging && enableZoom && interactionMode === 'zoom') {
-      const dx = e.clientX - dragStart.x;
-      const dy = e.clientY - dragStart.y;
-      setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-      setDragStart({ x: e.clientX, y: e.clientY });
+      onMaskPositionChange({ x: relX, y: relY });
       return;
     }
     
     // Handle landmark dragging
-    if (activeLandmark !== null && onLandmarkMove) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / scale - offset.x / scale;
-      const y = (e.clientY - rect.top) / scale - offset.y / scale;
-      
-      onLandmarkMove(activeLandmark, x, y);
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    setIsDraggingMask(false);
-    setIsResizingMask(false);
-    setActiveLandmark(null);
-  };
-
-  const handleMouseLeave = () => {
-    setIsDragging(false);
-    setIsDraggingMask(false);
-    setIsResizingMask(false);
-    setActiveLandmark(null);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!canvasRef.current || e.touches.length !== 1) return;
-    
-    const touch = e.touches[0];
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (touch.clientX - rect.left) / scale;
-    const y = (touch.clientY - rect.top) / scale;
-    
-    // Handle mask touch controls
-    if (enableMaskControl && interactionMode === 'mask') {
-      if (faceDetection && maskPosition) {
-        const box = faceDetection.detection.box;
-        const maskCenterX = box.x + box.width/2 + maskPosition.x * box.width;
-        const maskCenterY = box.y + box.height/2 + maskPosition.y * box.height;
-        const maskWidth = box.width * (maskScale || 1);
-        const maskHeight = box.height * (maskScale || 1);
-        
-        // Check if touch is inside mask area
-        const halfWidth = maskWidth / 2;
-        const halfHeight = maskHeight / 2;
-        
-        // Check if we're on the edge (resize handles)
-        const edgeThreshold = 25; // Larger for touch
-        const isOnRightEdge = Math.abs(x - (maskCenterX + halfWidth)) < edgeThreshold;
-        const isOnBottomEdge = Math.abs(y - (maskCenterY + halfHeight)) < edgeThreshold;
-        
-        if (isOnRightEdge || isOnBottomEdge) {
-          // Start resize operation
-          setIsResizingMask(true);
-          setInitialMaskScale(maskScale || 1);
-          setDragStart({ x: touch.clientX, y: touch.clientY });
-          e.preventDefault();
-          return;
-        }
-        
-        // Check if we're inside the mask (for moving)
-        if (
-          x >= maskCenterX - halfWidth && 
-          x <= maskCenterX + halfWidth && 
-          y >= maskCenterY - halfHeight && 
-          y <= maskCenterY + halfHeight
-        ) {
-          setIsDraggingMask(true);
-          setInitialMaskPos({ ...maskPosition });
-          setDragStart({ x: touch.clientX, y: touch.clientY });
-          e.preventDefault();
-          return;
-        }
-      }
+    if (isDragging && dragPoint && onLandmarkMove) {
+      onLandmarkMove(dragPoint.index, x, y);
+      return;
     }
     
-    // Check for landmark touch
-    if (enableZoom && interactionMode === 'zoom' && faceDetection?.landmarks) {
+    // Handle hover effects on landmarks
+    if (faceDetection && faceDetection.landmarks) {
       const landmarks = faceDetection.landmarks.positions;
+      const pointSize = 10;
+      
+      let foundHover = false;
       for (let i = 0; i < landmarks.length; i++) {
         const point = landmarks[i];
-        // Use larger touch area for mobile
-        const touchRadius = 20; 
-        const adjustedX = point.x * scale + offset.x;
-        const adjustedY = point.y * scale + offset.y;
-        
-        if (Math.abs(x * scale - adjustedX) < touchRadius && 
-            Math.abs(y * scale - adjustedY) < touchRadius) {
-          setActiveLandmark(i);
-          e.preventDefault(); // Prevent scrolling
-          return;
+        if (Math.abs(x - point._x) < pointSize && Math.abs(y - point._y) < pointSize) {
+          setHoveredPoint(i);
+          foundHover = true;
+          break;
         }
       }
-    }
-    
-    // Start panning on touch if in zoom mode
-    if (enableZoom && interactionMode === 'zoom') {
-      setIsDragging(true);
-      setDragStart({ x: touch.clientX, y: touch.clientY });
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!canvasRef.current || e.touches.length !== 1) return;
-    e.preventDefault(); // Prevent scrolling while manipulating
-    
-    const touch = e.touches[0];
-    
-    // Handle mask dragging on touch
-    if (isDraggingMask && enableMaskControl && onMaskPositionChange && maskPosition) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const dx = (touch.clientX - dragStart.x) / rect.width;
-      const dy = (touch.clientY - dragStart.y) / rect.height;
       
-      // Update mask position with limited range
-      const newX = Math.max(-0.5, Math.min(0.5, initialMaskPos.x + dx));
-      const newY = Math.max(-0.5, Math.min(0.5, initialMaskPos.y + dy));
-      
-      onMaskPositionChange({ x: newX, y: newY });
-      return;
-    }
-    
-    // Handle mask resizing on touch
-    if (isResizingMask && enableMaskControl && onMaskScaleChange) {
-      const deltaX = touch.clientX - dragStart.x;
-      // Calculate scale change based on drag distance
-      const scaleChange = deltaX * 0.01;
-      const newScale = Math.max(0.5, Math.min(2, initialMaskScale + scaleChange));
-      
-      onMaskScaleChange(newScale);
-      return;
-    }
-    
-    if (isDragging && enableZoom && interactionMode === 'zoom') {
-      // Handle touch panning
-      const dx = touch.clientX - dragStart.x;
-      const dy = touch.clientY - dragStart.y;
-      setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-      setDragStart({ x: touch.clientX, y: touch.clientY });
-    } else if (activeLandmark !== null && onLandmarkMove) {
-      // Handle landmark dragging on touch
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x = (touch.clientX - rect.left) / scale - offset.x / scale;
-      const y = (touch.clientY - rect.top) / scale - offset.y / scale;
-      
-      onLandmarkMove(activeLandmark, x, y);
+      if (!foundHover && hoveredPoint !== null) {
+        setHoveredPoint(null);
+      }
     }
   };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-    setIsDraggingMask(false);
-    setIsResizingMask(false);
-    setActiveLandmark(null);
-  };
-
-  const handleReset = () => {
-    setScale(1);
-    setOffset({ x: 0, y: 0 });
-  };
-
-  const toggleInteractionMode = () => {
-    setInteractionMode(prev => prev === 'zoom' ? 'mask' : 'zoom');
-  };
-
-  const canvasTransform = enableZoom ? `scale(${scale}) translate(${offset.x / scale}px, ${offset.y / scale}px)` : undefined;
   
-  // Determine cursor style based on interaction mode and state
-  const getCursorStyle = () => {
-    if (enableMaskControl && interactionMode === 'mask') {
-      if (isDraggingMask) return 'grabbing';
-      if (isResizingMask) return 'nwse-resize';
-      return 'pointer';
-    }
-    
-    if (enableZoom && interactionMode === 'zoom') {
-      return isDragging ? 'grabbing' : 'grab';
-    }
-    
-    return 'default';
+  // Handle mouse up for dragging landmarks
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDragMask(false);
+    setDragPoint(null);
   };
-
-  return (
-    <Card className={className}>
-      <CardContent className="p-4">
-        <div className="text-center font-medium mb-2">{title}</div>
-        <div 
-          className="relative border rounded-lg overflow-hidden flex items-center justify-center bg-gray-50 h-[300px]"
-          ref={containerRef}
+  
+  // Handle mouse leave
+  const handleMouseLeave = () => {
+    setHoveredPoint(null);
+  };
+  
+  // Handle mask scale with keyboard shortcuts
+  useEffect(() => {
+    if (!enableMaskControl || !onMaskScaleChange) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        if (maskScale) onMaskScaleChange(maskScale * 1.1);
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        if (maskScale) onMaskScaleChange(maskScale * 0.9);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [enableMaskControl, onMaskScaleChange, maskScale]);
+  
+  // Display the canvas content or a status message
+  const renderPreviewContent = () => {
+    if (isProcessing || isAnalyzing) {
+      return (
+        <div className="flex flex-col items-center justify-center p-5 h-full">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mb-2" />
+          <p className="text-sm">{isProcessing ? 'Processing...' : 'Analyzing...'}</p>
+        </div>
+      );
+    } else if (noFaceDetected && originalImage) {
+      return (
+        <div className="flex flex-col items-center justify-center p-2 h-full relative">
+          <canvas 
+            ref={canvasRef} 
+            className="max-w-full object-contain opacity-40"
+          />
+          <div className="absolute flex flex-col items-center">
+            <AlertCircle className="h-10 w-10 text-orange-500 mb-2" />
+            <p className="text-sm text-center">No face detected.<br/>Applying global adjustments.</p>
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <canvas 
+          ref={canvasRef} 
+          className="max-w-full h-auto object-contain"
+          onWheel={enableZoom ? handleWheel : undefined}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <canvas 
-            ref={canvasRef} 
-            className="max-w-full max-h-full object-contain origin-center transition-transform"
-            style={{ 
-              transform: canvasTransform,
-              cursor: getCursorStyle(),
-              willChange: 'transform' // Performance hint
-            }}
-          />
-          {isProcessing && (
-            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-              <div className="text-white">Processing...</div>
-            </div>
-          )}
-          {isAnalyzing && (
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-              <div className="flex flex-col items-center">
-                <Circle className="h-6 w-6 animate-spin mb-2" />
-                <span>Analyzing face...</span>
-              </div>
-            </div>
-          )}
-          {noFaceDetected && !isAnalyzing && originalImage && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-              <div className="text-white bg-black/70 font-medium px-3 py-1 rounded">
-                No face detected
-              </div>
-            </div>
-          )}
-          {!originalImage && title === "Original" && (
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-              No image loaded
-            </div>
-          )}
-          
-          {/* Control buttons */}
-          {(enableZoom || enableMaskControl) && (
-            <div className="absolute bottom-2 right-2 flex gap-1">
-              {enableZoom && (
-                <>
-                  <Button 
-                    variant="secondary" 
-                    size="icon" 
-                    className={`w-8 h-8 ${interactionMode === 'zoom' ? 'bg-primary text-white' : 'bg-white/90 hover:bg-white'}`}
-                    onClick={() => setInteractionMode('zoom')}
-                    title="Zoom Mode"
-                  >
-                    <ZoomIn size={16} />
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="icon" 
-                    className="w-8 h-8 bg-white/90 hover:bg-white"
-                    onClick={handleZoomIn}
-                    title="Zoom In"
-                  >
-                    <ZoomIn size={16} />
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="icon" 
-                    className="w-8 h-8 bg-white/90 hover:bg-white"
-                    onClick={handleZoomOut}
-                    title="Zoom Out"
-                  >
-                    <ZoomOut size={16} />
-                  </Button>
-                  <Button 
-                    variant="secondary"
-                    size="icon"
-                    className="w-8 h-8 bg-white/90 hover:bg-white"
-                    onClick={handleReset}
-                    title="Reset View"
-                  >
-                    <Move size={16} />
-                  </Button>
-                </>
-              )}
-              
-              {enableMaskControl && (
-                <Button 
-                  variant="secondary" 
-                  size="icon" 
-                  className={`w-8 h-8 ${interactionMode === 'mask' ? 'bg-primary text-white' : 'bg-white/90 hover:bg-white'}`}
-                  onClick={() => setInteractionMode('mask')}
-                  title="Mask Control Mode"
-                >
-                  <Square size={16} />
-                </Button>
-              )}
-            </div>
-          )}
-          
-          {/* Mask indicator overlay when in mask control mode */}
-          {enableMaskControl && interactionMode === 'mask' && faceDetection && maskPosition && (
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="text-xs bg-black/50 text-white p-1 rounded absolute top-2 left-2">
-                Mask Control Mode - Drag to position, edges to resize
-              </div>
-            </div>
-          )}
+        />
+      );
+    }
+  };
+  
+  // Tips for zoom and mask control
+  const renderControlTips = () => {
+    if (enableZoom || enableMaskControl) {
+      return (
+        <div className="text-xs text-gray-500 mt-1">
+          {enableZoom && <p>Scroll to zoom</p>}
+          {enableMaskControl && <p>Drag mask | +/- keys to resize</p>}
         </div>
-      </CardContent>
-    </Card>
-  );
-});
+      );
+    }
+    return null;
+  };
 
-ImagePreview.displayName = 'ImagePreview';
+  return (
+    <div className="flex flex-col space-y-1">
+      {title && <h3 className="text-sm font-medium">{title}</h3>}
+      <div 
+        className="border rounded-md bg-muted/30 flex items-center justify-center min-h-[150px] overflow-hidden relative"
+        ref={containerRef}
+      >
+        {renderPreviewContent()}
+      </div>
+      {renderControlTips()}
+      
+      {/* Debug information */}
+      {process.env.NODE_ENV === 'development' && canvasRef.current && (
+        <div className="text-xs text-gray-400">
+          Canvas: {canvasRef.current.width}x{canvasRef.current.height}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default ImagePreview;
