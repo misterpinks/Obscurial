@@ -1,8 +1,8 @@
+
 import { FaceEffectOptions } from './transformationTypes';
 import { processImageInChunks } from './transformation/chunkedProcessor';
 import { adjustSliderValues, hasTransformations, hasEffects } from './transformation/sliderAdjuster';
 import { applyFaceEffect } from './faceEffects';
-import { mirrorFace } from '../hooks/useImageProcessing';
 
 interface TransformEngineProps {
   ctx: CanvasRenderingContext2D;
@@ -13,6 +13,53 @@ interface TransformEngineProps {
   sliderValues: Record<string, number>;
   faceEffectOptions?: FaceEffectOptions;
   worker?: Worker;
+}
+
+// Function to mirror face - will be called directly in applyFeatureTransformations
+export function mirrorFace(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  rightToLeft: boolean = false
+): void {
+  // Create a temporary canvas to hold the original image
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = width;
+  tempCanvas.height = height;
+  const tempCtx = tempCanvas.getContext('2d');
+  
+  if (!tempCtx) return;
+  
+  // Copy the current content to the temporary canvas
+  tempCtx.drawImage(ctx.canvas, 0, 0);
+  
+  // Clear the original canvas
+  ctx.clearRect(0, 0, width, height);
+  
+  // Calculate the center line for mirroring
+  const centerX = width / 2;
+  
+  // Redraw the original image
+  ctx.drawImage(tempCanvas, 0, 0);
+  
+  // Mirror the appropriate half of the face
+  ctx.save();
+  
+  if (rightToLeft) {
+    // Right to left: Copy right side to left side
+    ctx.translate(centerX, 0);
+    ctx.scale(-1, 1);
+    ctx.translate(-centerX, 0);
+    ctx.drawImage(tempCanvas, centerX, 0, centerX, height, centerX, 0, centerX, height);
+  } else {
+    // Left to right: Copy left side to right side
+    ctx.translate(centerX, 0);
+    ctx.scale(-1, 1);
+    ctx.translate(-centerX, 0);
+    ctx.drawImage(tempCanvas, 0, 0, centerX, height, 0, 0, centerX, height);
+  }
+  
+  ctx.restore();
 }
 
 export const applyFeatureTransformations = async ({
@@ -27,15 +74,18 @@ export const applyFeatureTransformations = async ({
 }: TransformEngineProps): Promise<void> => {
   // Apply face mirroring first if enabled
   if (sliderValues.mirrorFace && sliderValues.mirrorFace > 0) {
-    const mirrorSide = sliderValues.mirrorSide || 0; // 0 = left to right, 1 = right to left
     // Draw the original image first (important!)
     ctx.drawImage(originalImage, 0, 0);
     // Then apply mirroring
+    const mirrorSide = sliderValues.mirrorSide || 0; // 0 = left to right, 1 = right to left
     mirrorFace(ctx, width, height, mirrorSide === 1);
     // Return early if no other transformations are needed
     if (!hasTransformations(sliderValues) && !hasEffects(faceEffectOptions)) {
       return;
     }
+  } else {
+    // If no mirroring, draw the original image
+    ctx.drawImage(originalImage, 0, 0);
   }
   
   // If mirroring is the only transformation, we're already done
@@ -94,8 +144,6 @@ export const applyFeatureTransformations = async ({
     if (faceEffectOptions && faceEffectOptions.effectType !== 'none') {
       applyFaceEffect({
         ctx,
-        width,
-        height,
         faceDetection,
         effectType: faceEffectOptions.effectType,
         effectIntensity: faceEffectOptions.effectIntensity,
