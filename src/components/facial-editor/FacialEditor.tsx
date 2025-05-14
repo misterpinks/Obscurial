@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -282,7 +281,7 @@ const FacialEditor = () => {
     clearBatch,
     processBatch,
     downloadAll
-  } = useBatchProcessing(sliderValues, processSingleImage);
+  } = useBatchProcessing(sliderValues, processSingleImage, faceEffectOptions);
 
   // Hook for batch upload
   const { handleBatchUpload } = useBatchUpload(addToBatch);
@@ -297,6 +296,36 @@ const FacialEditor = () => {
     return null;
   };
 
+  // Add mirror functionality
+  const [mirrorEnabled, setMirrorEnabled] = React.useState(false);
+  const [mirrorSide, setMirrorSide] = React.useState(0); // 0 = left, 1 = right
+  
+  const handleToggleMirror = () => {
+    setMirrorEnabled(!mirrorEnabled);
+    // Update slider values
+    const newValue = mirrorEnabled ? 0 : 1;
+    baseHandleSliderChange('mirrorFace', newValue);
+    pushSliderState({...currentSliderValues, mirrorFace: newValue});
+  };
+  
+  const handleToggleMirrorSide = () => {
+    const newSide = mirrorSide === 0 ? 1 : 0;
+    setMirrorSide(newSide);
+    // Update slider values
+    baseHandleSliderChange('mirrorSide', newSide);
+    pushSliderState({...currentSliderValues, mirrorSide: newSide});
+  };
+
+  // Create the mirror controls element
+  const mirrorControlsElement = (
+    <FaceMirrorControls
+      mirrorEnabled={mirrorEnabled}
+      mirrorSide={mirrorSide}
+      onToggleMirror={handleToggleMirror}
+      onToggleSide={handleToggleMirrorSide}
+    />
+  );
+  
   // Create the mask selector element
   const faceMaskSelector = (
     <FaceMaskSelector
@@ -381,7 +410,9 @@ const FacialEditor = () => {
         onMaskPositionChange={setMaskPosition}
         onMaskScaleChange={setMaskScale}
         faceMaskSelector={faceMaskSelector}
-        mirrorControls={null}
+        onToggleMirror={handleToggleMirror}
+        onToggleMirrorSide={handleToggleMirrorSide}
+        mirrorControls={mirrorControlsElement}
         presetsComponent={
           <PresetSelector 
             presets={presets}
