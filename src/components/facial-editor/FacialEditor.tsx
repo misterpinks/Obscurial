@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -128,7 +127,7 @@ const FacialEditor = () => {
         originalImage,
         width: cleanCanvas.width,
         height: cleanCanvas.height,
-        faceDetection: null, // Just use approximate transformations
+        faceDetection, // This was null before, but we need to pass the actual faceDetection
         sliderValues,
         faceEffectOptions,
         worker: isWorkerReady ? worker : undefined
@@ -259,7 +258,7 @@ const FacialEditor = () => {
           originalImage: img,
           width: canvas.width,
           height: canvas.height,
-          faceDetection: null, // Just use approximate transformations
+          faceDetection: null, // Use null here instead of unspecified
           sliderValues,
           faceEffectOptions,
           worker: isWorkerReady ? worker : undefined

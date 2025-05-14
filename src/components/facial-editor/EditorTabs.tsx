@@ -47,6 +47,7 @@ export interface EditorTabsProps {
   onToggleMirror: () => void;
   onToggleMirrorSide: () => void;
   presetsComponent: React.ReactElement;
+  mirrorControls?: React.ReactElement; // Added missing prop
 }
 
 const EditorTabs = ({

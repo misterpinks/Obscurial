@@ -144,7 +144,7 @@ export const applyFeatureTransformations = async ({
     if (faceEffectOptions && faceEffectOptions.effectType !== 'none') {
       applyFaceEffect({
         ctx,
-        originalImage, // Add the missing originalImage parameter
+        originalImage,
         faceDetection,
         effectType: faceEffectOptions.effectType,
         effectIntensity: faceEffectOptions.effectIntensity,
