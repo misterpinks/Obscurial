@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -6,6 +7,7 @@ import EditorTabs from './EditorTabs';
 import PresetSelector from './PresetSelector';
 import EditorToolbar from './EditorToolbar';
 import FaceMaskSelector from './FaceMaskSelector';
+import FaceMirrorControls from './FaceMirrorControls';
 
 // Import custom hooks
 import {
@@ -411,6 +413,14 @@ const FacialEditor = () => {
             onApplyPreset={applyPreset}
             onSavePreset={saveCurrentAsPreset}
             onDeletePreset={deletePreset}
+          />
+        }
+        mirrorControls={
+          <FaceMirrorControls
+            mirrorEnabled={sliderValues.mirrorFace > 0}
+            mirrorSide={sliderValues.mirrorSide || 0}
+            onToggleMirror={handleToggleMirror}
+            onToggleSide={handleToggleMirrorSide}
           />
         }
       />
