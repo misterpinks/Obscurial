@@ -1,4 +1,3 @@
-
 import { FaceEffectOptions } from './transformationTypes';
 import { processImageInChunks } from './transformation/chunkedProcessor';
 import { adjustSliderValues, hasTransformations, hasEffects } from './transformation/sliderAdjuster';
@@ -101,57 +100,87 @@ export const applyFeatureTransformations = async ({
     // Adjust slider values for processing
     const adjustedSliderValues = adjustSliderValues(sliderValues);
     
+    // Extract necessary data for image processing
+    const originalData = ctx.getImageData(0, 0, width, height);
+    const outputData = ctx.createImageData(width, height);
+    
+    // Calculate face center and dimensions
+    let centerX = width / 2;
+    let centerY = height / 2;
+    let faceWidth = width * 0.6;
+    let faceHeight = height * 0.7;
+    
+    // Use detected face box if available
+    if (faceDetection && faceDetection.detection) {
+      const box = faceDetection.detection.box;
+      centerX = box.x + box.width / 2;
+      centerY = box.y + box.height / 2;
+      faceWidth = box.width * 1.25;
+      faceHeight = box.height * 1.25;
+    }
+    
+    // Amplification factor for transformations
+    const amplificationFactor = 3.5;
+    
     // For small images, process directly
     if (width * height < 500000) {
       console.log('Processing small image directly');
       if (worker) {
-        // Process using Web Worker
-        await processImageInChunks({
+        await processImageInChunks(
           ctx,
-          originalImage,
+          originalData,
+          outputData,
           width,
           height,
+          centerX,
+          centerY,
+          faceWidth,
+          faceHeight,
+          adjustedSliderValues,
+          amplificationFactor,
+          originalImage,
           faceDetection,
-          sliderValues: adjustedSliderValues,
+          faceEffectOptions,
           worker
-        });
+        );
       } else {
-        // Fallback to direct processing
-        await processImageInChunks({
+        await processImageInChunks(
           ctx,
-          originalImage,
+          originalData,
+          outputData,
           width,
           height,
+          centerX,
+          centerY,
+          faceWidth,
+          faceHeight,
+          adjustedSliderValues,
+          amplificationFactor,
+          originalImage,
           faceDetection,
-          sliderValues: adjustedSliderValues
-        });
+          faceEffectOptions
+        );
       }
     } else {
       // Process large images in chunks
       console.log('Processing large image in chunks');
-      await processImageInChunks({
-        ctx, 
-        originalImage,
+      await processImageInChunks(
+        ctx,
+        originalData,
+        outputData,
         width,
         height,
-        faceDetection,
-        sliderValues: adjustedSliderValues,
-        worker
-      });
-    }
-
-    // Apply any additional face effects
-    if (faceEffectOptions && faceEffectOptions.effectType !== 'none') {
-      applyFaceEffect({
-        ctx,
+        centerX,
+        centerY,
+        faceWidth,
+        faceHeight,
+        adjustedSliderValues,
+        amplificationFactor,
         originalImage,
         faceDetection,
-        effectType: faceEffectOptions.effectType,
-        effectIntensity: faceEffectOptions.effectIntensity,
-        maskImage: faceEffectOptions.maskImage,
-        maskPosition: faceEffectOptions.maskPosition,
-        maskScale: faceEffectOptions.maskScale
-      });
+        faceEffectOptions,
+        worker
+      );
     }
 
     console.log(`Image transformations completed in ${Math.round(performance.now() - startTime)}ms`);

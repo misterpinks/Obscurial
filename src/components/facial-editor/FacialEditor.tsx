@@ -128,7 +128,7 @@ const FacialEditor = () => {
         originalImage,
         width: cleanCanvas.width,
         height: cleanCanvas.height,
-        faceDetection, // This was null before, but we need to pass the actual faceDetection
+        faceDetection,
         sliderValues,
         faceEffectOptions,
         worker: isWorkerReady ? worker : undefined
@@ -259,7 +259,7 @@ const FacialEditor = () => {
           originalImage: img,
           width: canvas.width,
           height: canvas.height,
-          faceDetection: null, // Use null here instead of unspecified
+          faceDetection: null,
           sliderValues,
           faceEffectOptions,
           worker: isWorkerReady ? worker : undefined
@@ -417,6 +417,7 @@ const FacialEditor = () => {
         faceMaskSelector={faceMaskSelector}
         onToggleMirror={handleToggleMirror}
         onToggleMirrorSide={handleToggleMirrorSide}
+        mirrorControls={mirrorControls}
         presetsComponent={
           <PresetSelector 
             presets={presets}
@@ -425,7 +426,6 @@ const FacialEditor = () => {
             onDeletePreset={deletePreset}
           />
         }
-        mirrorControls={mirrorControls}
       />
     </div>
   );
