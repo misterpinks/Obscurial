@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -347,6 +348,16 @@ const FacialEditor = () => {
     }, 50);
   };
 
+  // Create mirror controls component
+  const mirrorControls = (
+    <FaceMirrorControls
+      mirrorEnabled={sliderValues.mirrorFace > 0}
+      mirrorSide={sliderValues.mirrorSide || 0}
+      onToggleMirror={handleToggleMirror}
+      onToggleSide={handleToggleMirrorSide}
+    />
+  );
+
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
       <EditorHeader />
@@ -414,14 +425,7 @@ const FacialEditor = () => {
             onDeletePreset={deletePreset}
           />
         }
-        mirrorControls={
-          <FaceMirrorControls
-            mirrorEnabled={sliderValues.mirrorFace > 0}
-            mirrorSide={sliderValues.mirrorSide || 0}
-            onToggleMirror={handleToggleMirror}
-            onToggleSide={handleToggleMirrorSide}
-          />
-        }
+        mirrorControls={mirrorControls}
       />
     </div>
   );
