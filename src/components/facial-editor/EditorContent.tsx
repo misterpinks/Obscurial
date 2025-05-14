@@ -156,8 +156,8 @@ const EditorContent: React.FC<EditorContentProps> = ({
         {/* Add Face Mirroring Controls */}
         {onToggleMirror && onToggleMirrorSide && (
           <FaceMirrorControls
-            mirrorEnabled={sliderValues.mirrorFace === 1}
-            mirrorSide={sliderValues.mirrorSide}
+            mirrorEnabled={Boolean(sliderValues.mirrorFace) && sliderValues.mirrorFace > 0}
+            mirrorSide={sliderValues.mirrorSide || 0}
             onToggleMirror={onToggleMirror}
             onToggleSide={onToggleMirrorSide}
           />

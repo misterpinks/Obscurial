@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState, RefObject } from 'react';
 import { FaceEffectOptions } from '../utils/transformationTypes';
 import { applyFeatureTransformations } from '../utils/transformationEngine';
@@ -184,9 +185,6 @@ export const useImageProcessing = ({
       cleanCanvas.width = originalImage.width;
       cleanCanvas.height = originalImage.height;
       
-      // First draw the original image to the clean canvas
-      cleanCtx.drawImage(originalImage, 0, 0);
-      
       // Apply feature transformations to the clean canvas
       await applyFeatureTransformations({
         ctx: cleanCtx,
@@ -257,9 +255,6 @@ export const useImageProcessing = ({
     drawFaceLandmarks,
     onProcessingComplete
   ]);
-  
-  // Face mirroring implementation - Move this to a separate utility function
-  // This function is now referenced in transformationEngine.ts
   
   // Helper function to download the processed image
   const downloadImage = useCallback(() => {

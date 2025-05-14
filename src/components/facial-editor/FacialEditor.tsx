@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -165,6 +164,11 @@ const FacialEditor = () => {
 
   // Custom hook for landmarks handling
   const { showLandmarks, toggleLandmarks, handleLandmarkMove } = useLandmarks(setFaceDetection);
+
+  // Adapt the landmark move handler to the expected signature
+  const adaptedHandleLandmarkMove = (pointIndex: number, x: number, y: number) => {
+    handleLandmarkMove({ index: pointIndex }, { x, y });
+  };
 
   // Custom hook for tabs management
   const { activeTab, handleTabChange, captureFromWebcam } = useTabs({
@@ -391,7 +395,7 @@ const FacialEditor = () => {
         onSliderChangeComplete={handleSliderChangeComplete}
         onResetSliders={handleResetSliders}
         onRandomizeSliders={handleRandomize}
-        handleLandmarkMove={handleLandmarkMove}
+        handleLandmarkMove={adaptedHandleLandmarkMove}
         autoAnalyze={autoAnalyze}
         onToggleAutoAnalyze={handleToggleAutoAnalyze}
         maskPosition={maskPosition}

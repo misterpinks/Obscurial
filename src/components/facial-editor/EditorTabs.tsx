@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Upload, ImageIcon } from "lucide-react";
@@ -35,7 +36,7 @@ export interface EditorTabsProps {
   onSliderChangeComplete: () => void;
   onResetSliders: () => void;
   onRandomizeSliders: () => void;
-  handleLandmarkMove: (landmark: any, newPosition: { x: number; y: number }) => void;
+  handleLandmarkMove: (pointIndex: number, x: number, y: number) => void;
   autoAnalyze: boolean;
   onToggleAutoAnalyze: () => void;
   maskPosition?: { x: number, y: number };
@@ -157,6 +158,8 @@ const EditorTabs = ({
             onMaskScaleChange={onMaskScaleChange}
             faceMaskSelector={faceMaskSelector}
             originalImage={originalImage}
+            onToggleMirror={onToggleMirror}
+            onToggleMirrorSide={onToggleMirrorSide}
           />
           
           {/* Presets section */}
