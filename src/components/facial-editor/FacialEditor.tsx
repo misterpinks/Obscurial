@@ -324,40 +324,6 @@ const FacialEditor = () => {
     }
   }, [isWorkerReady, toast]);
 
-  // Handler for toggling face mirroring
-  const handleToggleMirror = () => {
-    const currentValue = sliderValues.mirrorFace || 0;
-    baseHandleSliderChange('mirrorFace', currentValue === 0 ? 1 : 0);
-    handleSliderChangeComplete();
-    
-    // Force immediate processing after toggling mirror
-    setTimeout(() => {
-      processImage();
-    }, 50);
-  };
-  
-  // Handler for toggling which side to mirror
-  const handleToggleMirrorSide = () => {
-    const currentSide = sliderValues.mirrorSide || 0;
-    baseHandleSliderChange('mirrorSide', currentSide === 0 ? 1 : 0);
-    handleSliderChangeComplete();
-    
-    // Force immediate processing after toggling side
-    setTimeout(() => {
-      processImage();
-    }, 50);
-  };
-
-  // Create mirror controls component
-  const mirrorControls = (
-    <FaceMirrorControls
-      mirrorEnabled={sliderValues.mirrorFace > 0}
-      mirrorSide={sliderValues.mirrorSide || 0}
-      onToggleMirror={handleToggleMirror}
-      onToggleSide={handleToggleMirrorSide}
-    />
-  );
-
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
       <EditorHeader />
@@ -415,9 +381,7 @@ const FacialEditor = () => {
         onMaskPositionChange={setMaskPosition}
         onMaskScaleChange={setMaskScale}
         faceMaskSelector={faceMaskSelector}
-        onToggleMirror={handleToggleMirror}
-        onToggleMirrorSide={handleToggleMirrorSide}
-        mirrorControls={mirrorControls}
+        mirrorControls={null}
         presetsComponent={
           <PresetSelector 
             presets={presets}

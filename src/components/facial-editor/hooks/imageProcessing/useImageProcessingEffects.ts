@@ -43,25 +43,38 @@ export const useImageProcessingEffects = ({
 }: UseImageProcessingEffectsProps) => {
   // Use ref to track if the component is mounted
   const isMounted = useRef(true);
+  const processingTimerRef = useRef<number | null>(null);
   
   // Cleanup function for unmounting
   useEffect(() => {
     return () => {
       isMounted.current = false;
+      if (processingTimerRef.current !== null) {
+        clearTimeout(processingTimerRef.current);
+      }
     };
   }, []);
 
-  // Throttle processing for smoother UI during rapid changes
+  // Improved throttle with better performance
   const throttledProcess = useCallback(
     throttle(() => {
       if (isMounted.current) {
-        processImage();
+        // Clear any existing timeout
+        if (processingTimerRef.current !== null) {
+          clearTimeout(processingTimerRef.current);
+        }
+        
+        // Use a timeout to avoid too frequent updates
+        processingTimerRef.current = window.setTimeout(() => {
+          processImage();
+          processingTimerRef.current = null;
+        }, 200);
       }
-    }, 100),
+    }, 250), // Increased throttle time for better performance
     [processImage]
   );
 
-  // Process the image whenever slider values change
+  // Process the image whenever slider values change - with optimizations
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       // Check if values actually changed
@@ -103,21 +116,26 @@ export const useImageProcessingEffects = ({
         origCtx.drawImage(originalImage, 0, 0);
       }
       
-      // After displaying original image, detect faces if needed
+      // After displaying original image, detect faces if needed but with a slight delay
       if (isFaceApiLoaded && !initialProcessingDone) {
         console.log("Detecting faces after image loaded");
-        detectFaces();
+        setTimeout(detectFaces, 50);
       }
     }
   }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
-  // Process image after face detection completes
+  // Process image after face detection completes - with performance optimization
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       console.log("Processing image after face detection or initialProcessingDone changed");
       
-      // Use requestAnimationFrame for smooth UI
-      window.requestAnimationFrame(() => {
+      // Clear existing timer
+      if (processingTimerRef.current !== null) {
+        clearTimeout(processingTimerRef.current);
+      }
+      
+      // Use a delayed timeout to prevent UI freezing
+      processingTimerRef.current = window.setTimeout(() => {
         if (isMounted.current) {
           console.log("Processing image after detection completed");
           processImage();
@@ -128,36 +146,9 @@ export const useImageProcessingEffects = ({
             effects: faceEffectOptions
           });
           setLastProcessedValues(currentValuesString);
+          processingTimerRef.current = null;
         }
-      });
+      }, 100);
     }
   }, [faceDetection, initialProcessingDone, originalImage, processImage, setLastProcessedValues, sliderValues, faceEffectOptions]);
-  
-  // Force process image when initially loaded
-  useEffect(() => {
-    if (originalImage && initialProcessingDone) {
-      console.log("Initial processing - forcing image display");
-      
-      window.requestAnimationFrame(() => {
-        if (isMounted.current) {
-          console.log("Force processing image on initial load");
-          processImage();
-        }
-      });
-    }
-  }, [initialProcessingDone, originalImage, processImage]);
-
-  // Ensure image is processed even if no face is detected
-  useEffect(() => {
-    if (originalImage && initialProcessingDone && !faceDetection) {
-      console.log("No face detected but still processing image");
-      
-      window.requestAnimationFrame(() => {
-        if (isMounted.current) {
-          console.log("Processing image without face detection");
-          processImage();
-        }
-      });
-    }
-  }, [originalImage, initialProcessingDone, faceDetection, processImage]);
 };

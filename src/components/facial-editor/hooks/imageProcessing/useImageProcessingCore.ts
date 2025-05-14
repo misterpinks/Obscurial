@@ -31,6 +31,7 @@ export const useImageProcessingCore = ({
   const processingQueuedRef = useRef(false);
   const workerRef = useRef<Worker | undefined>(undefined);
   const [isWorkerReady, setIsWorkerReady] = useState(false);
+  const processingTimeoutRef = useRef<number | null>(null);
   
   // Initialize the web worker
   useEffect(() => {
@@ -77,17 +78,23 @@ export const useImageProcessingCore = ({
     });
   }, []);
 
-  // Throttled version for frequent updates (like slider dragging)
+  // Improved debounce with proper timing
   const debouncedProcess = useCallback(
-    debounce(() => processImage(), 50),
+    debounce(() => processImage(), 150), // Increased debounce time for better performance
     [/* dependencies will be added by the real debounce */]
   );
   
-  // Wrapper for process image that handles state updates
+  // Wrapper for process image that handles state updates with performance improvements
   const processImage = useCallback(() => {
     if (!originalImage) {
       console.log("No original image to process");
       return;
+    }
+    
+    // Clear any existing timeout to avoid processing buildup
+    if (processingTimeoutRef.current !== null) {
+      clearTimeout(processingTimeoutRef.current);
+      processingTimeoutRef.current = null;
     }
     
     // Don't allow overlapping processing operations
@@ -117,18 +124,19 @@ export const useImageProcessingCore = ({
           }
         }
         
-        // If we have face data, analyze the modified image
+        // If we have face data, analyze the modified image with a delay
         if (faceDetection && isFaceApiLoaded && autoAnalyze) {
-          setTimeout(analyzeModifiedImage, 0);
+          processingTimeoutRef.current = window.setTimeout(analyzeModifiedImage, 300);
         }
       } catch (error) {
         console.error("Error processing image:", error);
       } finally {
         setIsProcessing(false);
+        
         // If there was another process requested while this one was running, run it now
         if (processingQueuedRef.current) {
           processingQueuedRef.current = false;
-          setTimeout(processImage, 0);
+          processingTimeoutRef.current = window.setTimeout(processImage, 100);
         }
       }
     });
