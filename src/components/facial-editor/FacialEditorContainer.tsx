@@ -174,7 +174,7 @@ const FacialEditorContainer: React.FC = () => {
   };
 
   // Custom hook for landmarks handling
-  const { showLandmarks, toggleLandmarks, handleLandmarkMove } = useLandmarks(setFaceDetection);
+  const { showLandmarks, toggleLandmarks, handleLandmarkMove } = useLandmarks(faceDetection, setFaceDetection);
 
   // Adapt the landmark move handler to the expected signature
   const adaptedHandleLandmarkMove = (pointIndex: number, x: number, y: number) => {
@@ -318,7 +318,7 @@ const FacialEditorContainer: React.FC = () => {
     mirrorSide,
     handleToggleMirror,
     handleToggleMirrorSide
-  } = useFaceMirror(sliderValues, handleSliderChange, pushSliderState, currentSliderValues);
+  } = useFaceMirror(sliderValues, handleSliderChange, handleSliderChangeComplete, currentSliderValues);
 
   // Create the mirror controls element
   const mirrorControlsElement = (
