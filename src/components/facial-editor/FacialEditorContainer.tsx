@@ -105,6 +105,9 @@ const FacialEditorContainer: React.FC = () => {
     isProcessing: isProcessingCore,
     cleanProcessedImageURL: cleanProcessedImageURLCore,
     processImage: processImageCore,
+    debouncedProcess,
+    processingQueued,
+    setProcessingQueued,
     worker,
     isWorkerReady
   } = useImageProcessingCore({
@@ -123,6 +126,10 @@ const FacialEditorContainer: React.FC = () => {
       // Set canvas dimensions to match image
       cleanCanvas.width = originalImage.width;
       cleanCanvas.height = originalImage.height;
+      
+      // Performance optimization: Use higher quality image smoothing
+      cleanCtx.imageSmoothingEnabled = true;
+      cleanCtx.imageSmoothingQuality = 'high';
       
       // Apply feature transformations to the clean canvas
       applyFeatureTransformations({
@@ -225,7 +232,13 @@ const FacialEditorContainer: React.FC = () => {
     handleResetSliders,
     handleRunAnalysis,
     handleToggleAutoAnalyze
-  } = useEditorActions(resetEffects, resetSliders, toggleAutoAnalyze, autoAnalyze, analyzeModifiedImage);
+  } = useEditorActions({
+    resetEffects, 
+    resetSliders, 
+    toggleAutoAnalyze, 
+    autoAnalyze, 
+    analyzeModifiedImage
+  });
 
   // Hook for presets
   const { 
@@ -284,7 +297,7 @@ const FacialEditorContainer: React.FC = () => {
     clearBatch,
     processBatch,
     downloadAll
-  } = useBatchProcessing(sliderValues, processSingleImage, faceEffectOptions);
+  } = useBatchProcessing(processSingleImage);
 
   // Hook for batch upload
   const { handleBatchUpload } = useBatchUpload(addToBatch);

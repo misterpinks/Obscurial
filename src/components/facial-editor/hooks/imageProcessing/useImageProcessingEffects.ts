@@ -1,6 +1,6 @@
 
 import { useEffect, RefObject, useCallback, useRef } from 'react';
-import { throttle } from 'lodash';
+import { throttle, debounce } from 'lodash';
 
 interface UseImageProcessingEffectsProps {
   originalImage: HTMLImageElement | null;
@@ -44,6 +44,7 @@ export const useImageProcessingEffects = ({
   // Use ref to track if the component is mounted
   const isMounted = useRef(true);
   const processingTimerRef = useRef<number | null>(null);
+  const processingRequestIdRef = useRef<number | null>(null);
   
   // Cleanup function for unmounting
   useEffect(() => {
@@ -52,25 +53,45 @@ export const useImageProcessingEffects = ({
       if (processingTimerRef.current !== null) {
         clearTimeout(processingTimerRef.current);
       }
+      if (processingRequestIdRef.current !== null) {
+        cancelAnimationFrame(processingRequestIdRef.current);
+      }
     };
   }, []);
 
-  // Improved throttle with better performance
+  // More aggressive throttling with better frame timing
   const throttledProcess = useCallback(
     throttle(() => {
       if (isMounted.current) {
-        // Clear any existing timeout
+        // Cancel any existing processing
         if (processingTimerRef.current !== null) {
           clearTimeout(processingTimerRef.current);
         }
+        if (processingRequestIdRef.current !== null) {
+          cancelAnimationFrame(processingRequestIdRef.current);
+        }
         
-        // Use a timeout to avoid too frequent updates
-        processingTimerRef.current = window.setTimeout(() => {
-          processImage();
-          processingTimerRef.current = null;
-        }, 200);
+        // Use requestAnimationFrame for better frame timing
+        processingRequestIdRef.current = requestAnimationFrame(() => {
+          // Use a short timeout to batch rapid changes
+          processingTimerRef.current = window.setTimeout(() => {
+            processImage();
+            processingTimerRef.current = null;
+            processingRequestIdRef.current = null;
+          }, 100);
+        });
       }
-    }, 250), // Increased throttle time for better performance
+    }, 300), // Increased throttle time for better performance
+    [processImage]
+  );
+  
+  // Improved debounced processor for slider interactions
+  const debouncedProcessing = useCallback(
+    debounce(() => {
+      if (isMounted.current) {
+        processImage();
+      }
+    }, 200),
     [processImage]
   );
 
@@ -85,70 +106,77 @@ export const useImageProcessingEffects = ({
       
       // Prevent unnecessary processing if values haven't changed
       if (currentValuesString !== lastProcessedValues) {
-        console.log("Slider values changed, processing image");
-        
         // Use throttled processing for smoother UI
         throttledProcess();
         
-        // Update last processed values
+        // Update last processed values to prevent reprocessing
         setLastProcessedValues(currentValuesString);
       }
     }
   }, [sliderValues, faceEffectOptions, originalImage, initialProcessingDone, lastProcessedValues, throttledProcess, setLastProcessedValues]);
 
-  // Display the original image on canvas after loading
+  // Display the original image on canvas after loading - optimized
   useEffect(() => {
     if (originalImage && originalCanvasRef.current) {
-      console.log("Original image provided, rendering to canvas");
-      
-      const origCtx = originalCanvasRef.current.getContext("2d");
-      if (origCtx) {
-        console.log("Drawing original image to canvas, dimensions:", originalImage.width, "x", originalImage.height);
-        
-        // Set canvas dimensions to match image
-        originalCanvasRef.current.width = originalImage.width;
-        originalCanvasRef.current.height = originalImage.height;
-        
-        // Clear any previous content
-        origCtx.clearRect(0, 0, originalCanvasRef.current.width, originalCanvasRef.current.height);
-        
-        // Draw the image to canvas
-        origCtx.drawImage(originalImage, 0, 0);
-      }
-      
-      // After displaying original image, detect faces if needed but with a slight delay
-      if (isFaceApiLoaded && !initialProcessingDone) {
-        console.log("Detecting faces after image loaded");
-        setTimeout(detectFaces, 50);
-      }
+      // Use requestAnimationFrame for smoother rendering
+      requestAnimationFrame(() => {
+        const origCtx = originalCanvasRef.current?.getContext("2d");
+        if (origCtx) {
+          // Set canvas dimensions to match image
+          originalCanvasRef.current!.width = originalImage.width;
+          originalCanvasRef.current!.height = originalImage.height;
+          
+          // Clear any previous content
+          origCtx.clearRect(0, 0, originalCanvasRef.current!.width, originalCanvasRef.current!.height);
+          
+          // Draw the image to canvas with better performance
+          origCtx.imageSmoothingQuality = 'medium'; // Balance between quality and speed
+          origCtx.drawImage(originalImage, 0, 0);
+          
+          // After displaying original image, detect faces if needed but with a slight delay
+          if (isFaceApiLoaded && !initialProcessingDone) {
+            // Use timeout to ensure UI remains responsive
+            setTimeout(detectFaces, 20);
+          }
+        }
+      });
     }
   }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
   // Process image after face detection completes - with performance optimization
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
-      console.log("Processing image after face detection or initialProcessingDone changed");
-      
-      // Clear existing timer
+      // Clear existing animation frame and timer
+      if (processingRequestIdRef.current !== null) {
+        cancelAnimationFrame(processingRequestIdRef.current);
+      }
       if (processingTimerRef.current !== null) {
         clearTimeout(processingTimerRef.current);
       }
       
-      // Use a delayed timeout to prevent UI freezing
-      processingTimerRef.current = window.setTimeout(() => {
-        if (isMounted.current) {
-          console.log("Processing image after detection completed");
-          processImage();
-          
-          // Save current state to prevent reprocessing the same values
-          const currentValuesString = JSON.stringify({
-            sliders: sliderValues,
-            effects: faceEffectOptions
-          });
-          setLastProcessedValues(currentValuesString);
+      // Use requestAnimationFrame for better frame timing
+      processingRequestIdRef.current = requestAnimationFrame(() => {
+        // Use a short timeout to allow UI to render
+        processingTimerRef.current = window.setTimeout(() => {
+          if (isMounted.current) {
+            processImage();
+            
+            // Save current state to prevent reprocessing the same values
+            const currentValuesString = JSON.stringify({
+              sliders: sliderValues,
+              effects: faceEffectOptions
+            });
+            setLastProcessedValues(currentValuesString);
+          }
           processingTimerRef.current = null;
-        }
-      }, 100);
+          processingRequestIdRef.current = null;
+        }, 50);
+      });
     }
   }, [faceDetection, initialProcessingDone, originalImage, processImage, setLastProcessedValues, sliderValues, faceEffectOptions]);
+  
+  return {
+    throttledProcess,
+    debouncedProcessing
+  };
 };
