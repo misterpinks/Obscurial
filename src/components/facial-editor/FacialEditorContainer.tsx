@@ -237,13 +237,13 @@ const FacialEditorContainer: React.FC = () => {
     handleResetSliders,
     handleRunAnalysis,
     handleToggleAutoAnalyze
-  } = useEditorActions({
+  } = useEditorActions(
     resetEffects, 
     resetSliders, 
     toggleAutoAnalyze, 
     autoAnalyze, 
     analyzeModifiedImage
-  });
+  );
 
   // Hook for presets
   const { 
