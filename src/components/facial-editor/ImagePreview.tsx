@@ -1,64 +1,82 @@
-
 import React, { useRef, useState, useEffect } from 'react';
-import { Loader2, AlertCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
+import { drawFaceLandmarks } from './utils/landmarkVisualization';
 
 interface ImagePreviewProps {
   title: string;
   canvasRef: React.RefObject<HTMLCanvasElement>;
+  originalImage?: HTMLImageElement | null;
   isProcessing?: boolean;
   isAnalyzing?: boolean;
   noFaceDetected?: boolean;
-  originalImage?: HTMLImageElement | null;
   enableZoom?: boolean;
-  onLandmarkMove?: (pointIndex: number, x: number, y: number) => void;
-  faceDetection?: any;
   enableMaskControl?: boolean;
   maskPosition?: { x: number, y: number };
   maskScale?: number;
-  onMaskPositionChange?: (newPosition: { x: number, y: number }) => void;
-  onMaskScaleChange?: (newScale: number) => void;
+  onMaskPositionChange?: (position: { x: number, y: number }) => void;
+  onMaskScaleChange?: (scale: number) => void;
+  onLandmarkMove?: (pointIndex: number, x: number, y: number) => void;
+  faceDetection?: any;
 }
 
 const ImagePreview: React.FC<ImagePreviewProps> = ({
   title,
   canvasRef,
-  isProcessing = false,
-  isAnalyzing = false,
-  noFaceDetected = false,
   originalImage,
+  isProcessing,
+  isAnalyzing,
+  noFaceDetected,
   enableZoom = false,
-  onLandmarkMove,
-  faceDetection,
   enableMaskControl = false,
   maskPosition,
   maskScale,
   onMaskPositionChange,
-  onMaskScaleChange
+  onMaskScaleChange,
+  onLandmarkMove,
+  faceDetection
 }) => {
-  const [scale, setScale] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragPoint, setDragPoint] = useState<{ index: number; x: number; y: number } | null>(null);
-  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
-  const [dragMask, setDragMask] = useState(false);
-  
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  // Effect to update canvas display when scale changes
+  const [scale, setScale] = useState(1);
+  const [dragging, setDragging] = useState(false);
+  const [dragPoint, setDragPoint] = useState<number | null>(null);
+  const [originalPointPos, setOriginalPointPos] = useState<{ x: number, y: number } | null>(null);
+  const [isShowingCanvas, setIsShowingCanvas] = useState(false);
+
+  // Check if the canvas has content
   useEffect(() => {
-    if (canvasRef.current && containerRef.current) {
+    const checkCanvasContent = () => {
       const canvas = canvasRef.current;
+      if (!canvas) return false;
       
-      // Adjust display size while maintaining internal dimensions
-      if (scale !== 1) {
-        canvas.style.width = `${canvas.width * scale}px`;
-        canvas.style.height = `${canvas.height * scale}px`;
-      } else {
-        canvas.style.width = '';
-        canvas.style.height = '';
+      try {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return false;
+        
+        // Check if the canvas has any non-transparent pixels
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          // If any pixel has a non-zero alpha (not fully transparent), canvas has content
+          if (data[i + 3] > 0) {
+            setIsShowingCanvas(true);
+            return;
+          }
+        }
+        
+        setIsShowingCanvas(false);
+      } catch (e) {
+        // If we can't access the canvas data (e.g., CORS issues), assume it has content
+        setIsShowingCanvas(!!originalImage);
       }
-    }
-  }, [canvasRef, scale]);
-  
+    };
+    
+    // Use a small timeout to ensure the canvas has been rendered
+    const timer = setTimeout(checkCanvasContent, 100);
+    return () => clearTimeout(timer);
+  }, [canvasRef, originalImage]);
+
   // Handle zooming with mouse wheel
   const handleWheel = (e: React.WheelEvent) => {
     if (enableZoom) {
@@ -67,7 +85,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
       setScale(prevScale => Math.min(Math.max(prevScale + delta, 0.5), 3));
     }
   };
-  
+
   // Handle mouse down for dragging landmarks
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!onLandmarkMove || !faceDetection || !faceDetection.landmarks) return;
@@ -109,7 +127,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
       }
     }
   };
-  
+
   // Handle mouse move for dragging landmarks
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!canvasRef.current) return;
@@ -159,19 +177,19 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
       }
     }
   };
-  
+
   // Handle mouse up for dragging landmarks
   const handleMouseUp = () => {
     setIsDragging(false);
     setDragMask(false);
     setDragPoint(null);
   };
-  
+
   // Handle mouse leave
   const handleMouseLeave = () => {
     setHoveredPoint(null);
   };
-  
+
   // Handle mask scale with keyboard shortcuts
   useEffect(() => {
     if (!enableMaskControl || !onMaskScaleChange) return;
@@ -189,7 +207,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [enableMaskControl, onMaskScaleChange, maskScale]);
-  
+
   // Display the canvas content or a status message
   const renderPreviewContent = () => {
     if (isProcessing || isAnalyzing) {
@@ -199,7 +217,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           <p className="text-sm">{isProcessing ? 'Processing...' : 'Analyzing...'}</p>
         </div>
       );
-    } else if (noFaceDetected && originalImage) {
+    } else if (noFaceDetected && !isShowingCanvas) {
       return (
         <div className="flex flex-col items-center justify-center p-2 h-full relative">
           <canvas 
@@ -226,7 +244,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
       );
     }
   };
-  
+
   // Tips for zoom and mask control
   const renderControlTips = () => {
     if (enableZoom || enableMaskControl) {
@@ -241,22 +259,55 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
   };
 
   return (
-    <div className="flex flex-col space-y-1">
-      {title && <h3 className="text-sm font-medium">{title}</h3>}
-      <div 
-        className="border rounded-md bg-muted/30 flex items-center justify-center min-h-[150px] overflow-hidden relative"
-        ref={containerRef}
-      >
-        {renderPreviewContent()}
-      </div>
-      {renderControlTips()}
+    <div className="relative rounded-lg border overflow-hidden h-48 md:h-64 bg-gray-50 dark:bg-gray-900 flex flex-col">
+      {title && <h3 className="text-sm font-medium absolute top-2 left-2 z-10 bg-white/80 dark:bg-black/80 px-2 py-1 rounded">{title}</h3>}
       
-      {/* Debug information */}
-      {process.env.NODE_ENV === 'development' && canvasRef.current && (
-        <div className="text-xs text-gray-400">
-          Canvas: {canvasRef.current.width}x{canvasRef.current.height}
-        </div>
-      )}
+      <div 
+        ref={containerRef}
+        className={`relative flex-grow flex items-center justify-center overflow-hidden ${enableZoom ? 'cursor-move' : ''}`}
+      >
+        {/* Loading indicators */}
+        {isProcessing && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="ml-2 text-sm font-medium">Processing...</span>
+          </div>
+        )}
+        
+        {isAnalyzing && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="ml-2 text-sm font-medium">Analyzing...</span>
+          </div>
+        )}
+        
+        {/* No face detected message */}
+        {noFaceDetected && !isShowingCanvas && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/5 z-5 text-center p-4">
+            <div>
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">No face detected.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Applying global adjustments</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Empty state */}
+        {!originalImage && !isShowingCanvas && !isProcessing && !isAnalyzing && (
+          <div className="flex flex-col items-center justify-center h-full w-full text-center p-4">
+            <Skeleton className="h-16 w-16 rounded mb-2" />
+            <p className="text-sm text-gray-400">No image loaded</p>
+          </div>
+        )}
+        
+        {/* Canvas */}
+        <canvas
+          ref={canvasRef}
+          className={`max-h-full max-w-full object-contain transition-opacity ${isShowingCanvas ? 'opacity-100' : 'opacity-0'}`}
+          style={{
+            transform: `scale(${scale})`,
+          }}
+        />
+      </div>
     </div>
   );
 };

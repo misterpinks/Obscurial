@@ -8,12 +8,22 @@ import { FaceDetection } from './types';
 // Re-export the FaceDetection type for compatibility
 export type { FaceDetection };
 
-export const useFaceAnalysis = (
-  isFaceApiLoaded: boolean,
-  originalImage: HTMLImageElement | null,
-  cleanProcessedCanvasRef: React.RefObject<HTMLCanvasElement>
-) => {
-  const { toast } = useToast();
+interface UseFaceAnalysisProps {
+  isFaceApiLoaded: boolean;
+  originalImage: HTMLImageElement | null;
+  cleanProcessedCanvasRef: React.RefObject<HTMLCanvasElement>;
+  toast?: any; // Optional toast for backward compatibility
+}
+
+export const useFaceAnalysis = ({
+  isFaceApiLoaded,
+  originalImage,
+  cleanProcessedCanvasRef,
+  toast: externalToast
+}: UseFaceAnalysisProps) => {
+  const internalToastHook = useToast();
+  const toast = externalToast || internalToastHook.toast;
+  
   const [initialProcessingDone, setInitialProcessingDone] = useState(false);
   const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
   const [autoAnalyze, setAutoAnalyze] = useState(false);
@@ -25,13 +35,15 @@ export const useFaceAnalysis = (
     faceDetection,
     setFaceDetection,
     detectFaces,
-    imageDimensions
+    imageDimensions,
+    detectionAttempts
   } = useFaceDetection(
     isFaceApiLoaded,
     originalImage,
     setInitialProcessingDone,
     setHasShownNoFaceToast,
-    hasShownNoFaceToast
+    hasShownNoFaceToast,
+    toast
   );
 
   // Use the extracted modified face analysis hook
@@ -44,7 +56,8 @@ export const useFaceAnalysis = (
     isFaceApiLoaded,
     cleanProcessedCanvasRef,
     faceDetection,
-    setFaceDetection
+    setFaceDetection,
+    toast
   );
   
   // When auto-analyze changes, trigger an analysis if enabled
@@ -81,6 +94,7 @@ export const useFaceAnalysis = (
     toggleAutoAnalyze,
     lastProcessedValues,
     setLastProcessedValues,
-    onProcessingComplete
+    onProcessingComplete,
+    detectionAttempts
   };
 };

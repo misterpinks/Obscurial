@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import * as faceapi from 'face-api.js';
-import { useToast } from "@/components/ui/use-toast";
 import { createImageFromCanvas } from '../utils/canvasUtils';
 import { FaceDetection } from './types';
 
@@ -10,9 +9,9 @@ export const useFaceDetection = (
   originalImage: HTMLImageElement | null,
   setInitialProcessingDone: (value: boolean) => void,
   setHasShownNoFaceToast: (value: boolean) => void,
-  hasShownNoFaceToast: boolean
+  hasShownNoFaceToast: boolean,
+  toast: any
 ) => {
-  const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [faceDetection, setFaceDetection] = useState<FaceDetection | null>(null);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
@@ -26,7 +25,10 @@ export const useFaceDetection = (
 
   const detectFaces = async () => {
     if (!originalImage || !isFaceApiLoaded) {
-      console.log("Cannot detect faces: missing image or face API not loaded");
+      console.log("Cannot detect faces: missing image or face API not loaded", {
+        originalImage: !!originalImage,
+        isFaceApiLoaded
+      });
       return;
     }
     
@@ -65,7 +67,8 @@ export const useFaceDetection = (
           landmarks: detections.landmarks,
           detection: detections.detection,
           confidence: detections.detection.score,
-          original: detections.descriptor
+          original: detections.descriptor,
+          modified: null // Initialize modified as null
         });
         
         // Reset attempts counter
@@ -73,7 +76,7 @@ export const useFaceDetection = (
         setHasShownNoFaceToast(false);
         setInitialProcessingDone(true);
       } else {
-        console.log("No face detected in the image");
+        console.log("No face detected in the image, attempt:", detectionAttempts + 1);
         
         // Try one more time with even lower threshold if this is the first attempt
         if (detectionAttempts < 2) {
@@ -95,7 +98,8 @@ export const useFaceDetection = (
                 landmarks: fallbackDetections.landmarks,
                 detection: fallbackDetections.detection,
                 confidence: fallbackDetections.detection.score,
-                original: fallbackDetections.descriptor
+                original: fallbackDetections.descriptor,
+                modified: null
               });
               
               setHasShownNoFaceToast(false);
@@ -103,24 +107,14 @@ export const useFaceDetection = (
               setDetectionAttempts(0);
             } else {
               setFaceDetection(null);
-              
-              if (!hasShownNoFaceToast) {
-                toast({
-                  variant: "destructive",
-                  title: "No Face Detected",
-                  description: "Try uploading a clearer image with a face."
-                });
-                setHasShownNoFaceToast(true);
-              }
-              
-              setInitialProcessingDone(true);
+              handleNoFaceDetection();
             }
           } catch (fallbackError) {
             console.error("Fallback face detection failed:", fallbackError);
             handleDetectionFailure();
           }
         } else {
-          handleDetectionFailure();
+          handleNoFaceDetection();
         }
       }
     } catch (error) {
@@ -129,6 +123,23 @@ export const useFaceDetection = (
     } finally {
       setIsAnalyzing(false);
     }
+  };
+  
+  // Helper function to handle when no face is detected
+  const handleNoFaceDetection = () => {
+    setFaceDetection(null);
+    
+    if (!hasShownNoFaceToast) {
+      toast({
+        variant: "default",
+        title: "Processing without face detection",
+        description: "No face detected. Applying global adjustments."
+      });
+      setHasShownNoFaceToast(true);
+    }
+    
+    setInitialProcessingDone(true);
+    setDetectionAttempts(0);
   };
   
   // Helper function to handle detection failure

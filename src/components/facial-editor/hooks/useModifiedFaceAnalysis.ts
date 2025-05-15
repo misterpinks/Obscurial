@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import * as faceapi from 'face-api.js';
-import { useToast } from "@/components/ui/use-toast";
 import { createImageFromCanvas } from '../utils/canvasUtils';
 import { FaceDetection } from './types';
 
@@ -9,9 +8,9 @@ export const useModifiedFaceAnalysis = (
   isFaceApiLoaded: boolean,
   cleanProcessedCanvasRef: React.RefObject<HTMLCanvasElement>,
   faceDetection: FaceDetection | null,
-  setFaceDetection: (detection: FaceDetection | null) => void
+  setFaceDetection: (detection: FaceDetection | null) => void,
+  toast: any
 ) => {
-  const { toast } = useToast();
   const [facialDifference, setFacialDifference] = useState<number | null>(null);
   const lastAnalysisRef = useRef<string | null>(null);
   const analyzingRef = useRef<boolean>(false);
@@ -28,7 +27,13 @@ export const useModifiedFaceAnalysis = (
   }, [faceDetection]);
 
   const analyzeModifiedImage = async () => {
+    // Make sure we have all required resources
     if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded) {
+      console.log("Required resources for analysis not available:", {
+        canvasRef: !!cleanProcessedCanvasRef.current,
+        faceApiLoaded: isFaceApiLoaded
+      });
+      
       toast({
         variant: "destructive",
         title: "Analysis Error",
@@ -48,6 +53,7 @@ export const useModifiedFaceAnalysis = (
     console.log("Running facial analysis on modified image");
     
     try {
+      // Create an image from the canvas for analysis
       const processedImage = await createImageFromCanvas(cleanProcessedCanvasRef.current);
       
       console.log("Created image from canvas, detecting face...");

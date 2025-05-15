@@ -27,7 +27,8 @@ import {
 import { useEditorState } from './hooks/useEditorState';
 import { useEditorActions } from './hooks/useEditorActions';
 import { useImageProcessingCore } from './hooks/imageProcessing/useImageProcessingCore';
-import { useFaceMirror, MirrorOptions } from './hooks/useFaceMirror';
+import { useFaceMirror } from './hooks/useFaceMirror';
+import type { MirrorOptions } from './hooks/useFaceMirror';
 
 // Import the transformation engine
 import { applyFeatureTransformations } from './utils/transformationEngine';
@@ -143,7 +144,7 @@ const FacialEditorContainer: React.FC = () => {
         width: cleanCanvas.width,
         height: cleanCanvas.height,
         faceDetection,
-        sliderValues,
+        sliderValues: sliderValues || {},
         faceEffectOptions,
         worker: isWorkerReady ? worker : undefined
       });
@@ -217,7 +218,7 @@ const FacialEditorContainer: React.FC = () => {
     processedCanvasRef,
     cleanProcessedCanvasRef,
     faceDetection,
-    sliderValues,
+    sliderValues: sliderValues || {},
     initialProcessingDone,
     showLandmarks,
     isFaceApiLoaded,
@@ -237,13 +238,13 @@ const FacialEditorContainer: React.FC = () => {
     handleResetSliders,
     handleRunAnalysis,
     handleToggleAutoAnalyze
-  } = useEditorActions(
+  } = useEditorActions({
     resetEffects, 
     resetSliders, 
     toggleAutoAnalyze, 
     autoAnalyze, 
     analyzeModifiedImage
-  );
+  });
 
   // Hook for presets
   const { 
@@ -253,7 +254,7 @@ const FacialEditorContainer: React.FC = () => {
     deletePreset 
   } = usePresets({
     featureSliders,
-    sliderValues,
+    sliderValues: sliderValues || {},
     onChange: (newValues) => {
       baseHandleSliderChange('batch', newValues);
       pushSliderState();
@@ -284,7 +285,7 @@ const FacialEditorContainer: React.FC = () => {
           width: canvas.width,
           height: canvas.height,
           faceDetection: null,
-          sliderValues,
+          sliderValues: sliderValues || {},
           faceEffectOptions,
           worker: isWorkerReady ? worker : undefined
         });
@@ -389,6 +390,15 @@ const FacialEditorContainer: React.FC = () => {
       });
     }
   }, [isWorkerReady, toast]);
+
+  // Add effect to ensure face detection runs after image load
+  React.useEffect(() => {
+    if (originalImage && isFaceApiLoaded && !initialProcessingDone) {
+      console.log("Image loaded and API ready, detecting faces");
+      // Use a small timeout to ensure the image is fully loaded
+      setTimeout(detectFaces, 100);
+    }
+  }, [originalImage, isFaceApiLoaded, initialProcessingDone, detectFaces]);
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
