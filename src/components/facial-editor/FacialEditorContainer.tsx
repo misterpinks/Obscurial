@@ -246,9 +246,13 @@ const FacialEditorContainer: React.FC = () => {
     applyPreset, 
     saveCurrentAsPreset, 
     deletePreset 
-  } = usePresets(featureSliders, sliderValues, (newValues) => {
-    baseHandleSliderChange('batch', newValues);
-    pushSliderState(newValues);
+  } = usePresets({
+    featureSliders,
+    sliderValues,
+    onChange: (newValues) => {
+      baseHandleSliderChange('batch', newValues);
+      pushSliderState(newValues);
+    }
   });
 
   // Process single image for batch processing
