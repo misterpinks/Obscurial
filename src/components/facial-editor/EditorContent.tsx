@@ -43,6 +43,15 @@ interface EditorContentProps {
   faceMaskSelector?: React.ReactNode;
   onToggleMirror?: () => void;
   onToggleMirrorSide?: () => void;
+  mirrorOffsetX?: number;
+  mirrorAngle?: number;
+  mirrorCutoffY?: number;
+  onMirrorOffsetChange?: (value: number) => void;
+  onMirrorOffsetChangeComplete?: () => void;
+  onMirrorAngleChange?: (value: number) => void;
+  onMirrorAngleChangeComplete?: () => void;
+  onMirrorCutoffChange?: (value: number) => void;
+  onMirrorCutoffChangeComplete?: () => void;
 }
 
 const EditorContent: React.FC<EditorContentProps> = ({
@@ -78,7 +87,16 @@ const EditorContent: React.FC<EditorContentProps> = ({
   onMaskScaleChange,
   faceMaskSelector,
   onToggleMirror,
-  onToggleMirrorSide
+  onToggleMirrorSide,
+  mirrorOffsetX = 0,
+  mirrorAngle = 0,
+  mirrorCutoffY = 1,
+  onMirrorOffsetChange,
+  onMirrorOffsetChangeComplete,
+  onMirrorAngleChange,
+  onMirrorAngleChangeComplete,
+  onMirrorCutoffChange,
+  onMirrorCutoffChangeComplete
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -153,13 +171,22 @@ const EditorContent: React.FC<EditorContentProps> = ({
       <div className="space-y-4">
         <RandomizeButton onRandomize={onRandomizeSliders} />
         
-        {/* Add Face Mirroring Controls */}
+        {/* Add Face Mirroring Controls with advanced options */}
         {onToggleMirror && onToggleMirrorSide && (
           <FaceMirrorControls
             mirrorEnabled={Boolean(sliderValues.mirrorFace) && sliderValues.mirrorFace > 0}
             mirrorSide={sliderValues.mirrorSide || 0}
+            mirrorOffsetX={mirrorOffsetX}
+            mirrorAngle={mirrorAngle}
+            mirrorCutoffY={mirrorCutoffY}
             onToggleMirror={onToggleMirror}
             onToggleSide={onToggleMirrorSide}
+            onOffsetChange={onMirrorOffsetChange}
+            onOffsetChangeComplete={onMirrorOffsetChangeComplete}
+            onAngleChange={onMirrorAngleChange}
+            onAngleChangeComplete={onMirrorAngleChangeComplete}
+            onCutoffChange={onMirrorCutoffChange}
+            onCutoffChangeComplete={onMirrorCutoffChangeComplete}
           />
         )}
         

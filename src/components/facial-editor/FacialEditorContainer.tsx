@@ -27,7 +27,7 @@ import {
 import { useEditorState } from './hooks/useEditorState';
 import { useEditorActions } from './hooks/useEditorActions';
 import { useImageProcessingCore } from './hooks/imageProcessing/useImageProcessingCore';
-import { useFaceMirror } from './hooks/useFaceMirror';
+import { useFaceMirror, MirrorOptions } from './hooks/useFaceMirror';
 
 // Import the transformation engine
 import { applyFeatureTransformations } from './utils/transformationEngine';
@@ -98,7 +98,12 @@ const FacialEditorContainer: React.FC = () => {
     lastProcessedValues,
     setLastProcessedValues,
     onProcessingComplete
-  } = useFaceAnalysis(isFaceApiLoaded, originalImage, cleanProcessedCanvasRef);
+  } = useFaceAnalysis({
+    isFaceApiLoaded,
+    originalImage,
+    cleanProcessedCanvasRef,
+    toast
+  });
 
   // Custom hook for image processing core with Web Worker support
   const {
@@ -158,19 +163,19 @@ const FacialEditorContainer: React.FC = () => {
   
   // After slider changes finish (e.g., on slider release), push to history
   const handleSliderChangeComplete = () => {
-    pushSliderState(currentSliderValues);
+    pushSliderState();
   };
   
   // Reset sliders with history
   const resetSliders = () => {
     baseResetSliders();
-    pushSliderState(currentSliderValues);
+    pushSliderState();
   };
   
   // Apply a randomized preset with history
   const handleRandomize = () => {
     randomizeSliders();
-    pushSliderState(currentSliderValues);
+    pushSliderState();
   };
 
   // Custom hook for landmarks handling
@@ -251,7 +256,7 @@ const FacialEditorContainer: React.FC = () => {
     sliderValues,
     onChange: (newValues) => {
       baseHandleSliderChange('batch', newValues);
-      pushSliderState(newValues);
+      pushSliderState();
     }
   });
 
@@ -316,21 +321,45 @@ const FacialEditorContainer: React.FC = () => {
     return null;
   };
 
-  // Add mirror functionality using custom hook
+  // Add mirror functionality using custom hook with advanced controls
   const {
     mirrorEnabled,
     mirrorSide,
+    mirrorOffsetX,
+    mirrorAngle, 
+    mirrorCutoffY,
     handleToggleMirror,
-    handleToggleMirrorSide
-  } = useFaceMirror(sliderValues, handleSliderChange, handleSliderChangeComplete, currentSliderValues);
+    handleToggleMirrorSide,
+    handleMirrorOffsetChange,
+    handleMirrorOffsetChangeComplete,
+    handleMirrorAngleChange,
+    handleMirrorAngleChangeComplete,
+    handleMirrorCutoffChange,
+    handleMirrorCutoffChangeComplete,
+    getMirrorOptions
+  } = useFaceMirror(
+    sliderValues,
+    handleSliderChange,
+    handleSliderChangeComplete,
+    currentSliderValues
+  );
 
-  // Create the mirror controls element
+  // Create the mirror controls element with advanced options
   const mirrorControlsElement = (
     <FaceMirrorControls
       mirrorEnabled={mirrorEnabled}
       mirrorSide={mirrorSide}
+      mirrorOffsetX={mirrorOffsetX}
+      mirrorAngle={mirrorAngle}
+      mirrorCutoffY={mirrorCutoffY}
       onToggleMirror={handleToggleMirror}
       onToggleSide={handleToggleMirrorSide}
+      onOffsetChange={handleMirrorOffsetChange}
+      onOffsetChangeComplete={handleMirrorOffsetChangeComplete}
+      onAngleChange={handleMirrorAngleChange}
+      onAngleChangeComplete={handleMirrorAngleChangeComplete}
+      onCutoffChange={handleMirrorCutoffChange}
+      onCutoffChangeComplete={handleMirrorCutoffChangeComplete}
     />
   );
   

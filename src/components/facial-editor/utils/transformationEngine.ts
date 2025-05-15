@@ -1,3 +1,4 @@
+
 import { FaceEffectOptions } from './transformationTypes';
 import { processImageInChunks } from './transformation/chunkedProcessor';
 import { adjustSliderValues, hasTransformations, hasEffects } from './transformation/sliderAdjuster';
@@ -14,12 +15,19 @@ interface TransformEngineProps {
   worker?: Worker;
 }
 
-// Function to mirror face - will be called directly in applyFeatureTransformations
+interface MirrorOptions {
+  offsetX?: number; // -1 to 1 range for line position
+  angle?: number; // -45 to 45 degrees
+  cutoffY?: number; // 0 to 1 range (0 = top, 1 = bottom of image)
+}
+
+// Function to mirror face with advanced options
 export function mirrorFace(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  rightToLeft: boolean = false
+  rightToLeft: boolean = false,
+  options: MirrorOptions = {}
 ): void {
   // Create a temporary canvas to hold the original image
   const tempCanvas = document.createElement('canvas');
@@ -35,29 +43,81 @@ export function mirrorFace(
   // Clear the original canvas
   ctx.clearRect(0, 0, width, height);
   
-  // Calculate the center line for mirroring
-  const centerX = width / 2;
+  // Get options with defaults
+  const offsetX = options.offsetX || 0; // -1 to 1 range
+  const angle = options.angle || 0; // -45 to 45 degrees
+  const cutoffY = options.cutoffY !== undefined ? options.cutoffY : 1; // 0 to 1 range
   
-  // Redraw the original image
+  // Calculate the center line for mirroring, adjusted by offsetX
+  const centerX = width / 2 + (offsetX * width / 2);
+  
+  // Calculate the angle in radians
+  const angleRad = angle * Math.PI / 180;
+  
+  // Calculate the cutoff point in pixels
+  const cutoffYPx = height * cutoffY;
+  
+  // Draw the original image first
   ctx.drawImage(tempCanvas, 0, 0);
   
-  // Mirror the appropriate half of the face
+  // Save context state before transformations
   ctx.save();
   
-  if (rightToLeft) {
-    // Right to left: Copy right side to left side
-    ctx.translate(centerX, 0);
-    ctx.scale(-1, 1);
-    ctx.translate(-centerX, 0);
-    ctx.drawImage(tempCanvas, centerX, 0, centerX, height, centerX, 0, centerX, height);
+  // Create a clipping path for the mirror area based on the angle
+  ctx.beginPath();
+  
+  if (Math.abs(angle) < 0.1) {
+    // For nearly vertical lines, use a simpler approach
+    if (rightToLeft) {
+      // Right to left: clip the left side for reflection
+      ctx.rect(0, 0, centerX, cutoffYPx);
+    } else {
+      // Left to right: clip the right side for reflection
+      ctx.rect(centerX, 0, width - centerX, cutoffYPx);
+    }
   } else {
-    // Left to right: Copy left side to right side
+    // For angled lines, create a polygon for clipping
+    const topY = 0;
+    const bottomY = cutoffYPx;
+    
+    // Calculate x-offset at top and bottom of image based on angle
+    const topOffset = Math.tan(angleRad) * topY;
+    const bottomOffset = Math.tan(angleRad) * bottomY;
+    
+    if (rightToLeft) {
+      // Right to left: Draw a polygon covering left side
+      ctx.moveTo(0, topY);
+      ctx.lineTo(centerX + topOffset, topY);
+      ctx.lineTo(centerX + bottomOffset, bottomY);
+      ctx.lineTo(0, bottomY);
+    } else {
+      // Left to right: Draw a polygon covering right side
+      ctx.moveTo(centerX + topOffset, topY);
+      ctx.lineTo(width, topY);
+      ctx.lineTo(width, bottomY);
+      ctx.lineTo(centerX + bottomOffset, bottomY);
+    }
+  }
+  
+  ctx.closePath();
+  ctx.clip();
+  
+  // Mirror the appropriate half of the face with rotation
+  if (rightToLeft) {
+    // Right to left: Copy right side to left side with rotation
     ctx.translate(centerX, 0);
     ctx.scale(-1, 1);
-    ctx.translate(-centerX, 0);
+    ctx.rotate(-angleRad); // Apply opposite angle to counteract the slant
+    ctx.drawImage(tempCanvas, centerX, 0, width - centerX, height, 0, 0, width - centerX, height);
+  } else {
+    // Left to right: Copy left side to right side with rotation
+    ctx.translate(centerX, 0);
+    ctx.scale(-1, 1);
+    ctx.rotate(-angleRad); // Apply opposite angle to counteract the slant
     ctx.drawImage(tempCanvas, 0, 0, centerX, height, 0, 0, centerX, height);
   }
   
+  // Restore the context state
   ctx.restore();
 }
 
@@ -75,9 +135,19 @@ export const applyFeatureTransformations = async ({
   if (sliderValues.mirrorFace && sliderValues.mirrorFace > 0) {
     // Draw the original image first (important!)
     ctx.drawImage(originalImage, 0, 0);
-    // Then apply mirroring
+    
+    // Then apply mirroring with advanced options
     const mirrorSide = sliderValues.mirrorSide || 0; // 0 = left to right, 1 = right to left
-    mirrorFace(ctx, width, height, mirrorSide === 1);
+    const mirrorOffsetX = sliderValues.mirrorOffsetX || 0;
+    const mirrorAngle = sliderValues.mirrorAngle || 0;
+    const mirrorCutoffY = sliderValues.mirrorCutoffY !== undefined ? sliderValues.mirrorCutoffY : 1;
+    
+    mirrorFace(ctx, width, height, mirrorSide === 1, {
+      offsetX: mirrorOffsetX,
+      angle: mirrorAngle,
+      cutoffY: mirrorCutoffY
+    });
+    
     // Return early if no other transformations are needed
     if (!hasTransformations(sliderValues) && !hasEffects(faceEffectOptions)) {
       return;
