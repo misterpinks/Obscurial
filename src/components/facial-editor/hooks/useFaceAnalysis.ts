@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { useFaceDetection } from './useFaceDetection';
 import { useModifiedFaceAnalysis } from './useModifiedFaceAnalysis';
@@ -28,6 +28,10 @@ export const useFaceAnalysis = ({
   const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [lastProcessedValues, setLastProcessedValues] = useState<string>('');
+  const [analysisAttempts, setAnalysisAttempts] = useState(0);
+  
+  // Add reference to prevent analysis loops
+  const analysisInProgressRef = useRef(false);
   
   // Use the extracted face detection hook
   const {
@@ -60,21 +64,44 @@ export const useFaceAnalysis = ({
     toast
   );
   
+  // Prevent infinite analysis loops
+  useEffect(() => {
+    if (analysisAttempts > 3) {
+      console.log("Too many analysis attempts, stopping automatic analysis");
+      setAnalysisAttempts(0);
+      analysisInProgressRef.current = false;
+      
+      toast({
+        title: "Analysis paused",
+        description: "Too many attempts. Try manual analysis."
+      });
+    }
+  }, [analysisAttempts, toast]);
+  
   // When auto-analyze changes, trigger an analysis if enabled
   const toggleAutoAnalyze = useCallback(() => {
     const newValue = !autoAnalyze;
     setAutoAnalyze(newValue);
     
     // If turning on auto-analyze, trigger an analysis
-    if (newValue && faceDetection) {
+    if (newValue && faceDetection && !analysisInProgressRef.current) {
+      analysisInProgressRef.current = true;
       requestAutoAnalysis();
+      setAnalysisAttempts(prev => prev + 1);
     }
   }, [autoAnalyze, faceDetection, requestAutoAnalysis]);
   
   // This is called whenever an image is processed
   const onProcessingComplete = useCallback(() => {
-    if (autoAnalyze) {
+    if (autoAnalyze && !analysisInProgressRef.current) {
+      analysisInProgressRef.current = true;
       requestAutoAnalysis();
+      setAnalysisAttempts(prev => prev + 1);
+      
+      // Reset flag after a delay
+      setTimeout(() => {
+        analysisInProgressRef.current = false;
+      }, 1000);
     }
   }, [autoAnalyze, requestAutoAnalysis]);
 

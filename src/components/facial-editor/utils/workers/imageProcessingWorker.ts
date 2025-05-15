@@ -1,3 +1,4 @@
+
 /**
  * Web Worker for image processing operations
  * This runs in a separate thread to prevent UI blocking
@@ -87,10 +88,10 @@ function processImageData(originalImageData: any, params: any) {
       }, 
       [outputData.buffer]
     );
-  } catch (error: any) {
+  } catch (error) {
     // Report errors back to main thread
     workerSelf.postMessage({
-      error: error.message || 'Unknown error in worker'
+      error: error instanceof Error ? error.message : 'Unknown error in worker'
     });
   }
 }

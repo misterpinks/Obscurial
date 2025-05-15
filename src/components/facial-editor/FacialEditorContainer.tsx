@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
 import ModelSetup from '../ModelSetup';
@@ -164,19 +164,19 @@ const FacialEditorContainer: React.FC = () => {
   
   // After slider changes finish (e.g., on slider release), push to history
   const handleSliderChangeComplete = () => {
-    pushSliderState();
+    pushSliderState(sliderValues || {});
   };
   
   // Reset sliders with history
   const resetSliders = () => {
     baseResetSliders();
-    pushSliderState();
+    pushSliderState(sliderValues || {});
   };
   
   // Apply a randomized preset with history
   const handleRandomize = () => {
     randomizeSliders();
-    pushSliderState();
+    pushSliderState(sliderValues || {});
   };
 
   // Custom hook for landmarks handling
@@ -257,7 +257,7 @@ const FacialEditorContainer: React.FC = () => {
     sliderValues: sliderValues || {},
     onChange: (newValues) => {
       baseHandleSliderChange('batch', newValues);
-      pushSliderState();
+      pushSliderState(sliderValues || {});
     }
   });
 
@@ -323,6 +323,9 @@ const FacialEditorContainer: React.FC = () => {
   };
 
   // Add mirror functionality using custom hook with advanced controls
+  // Handle potential null or undefined values with proper defaults
+  const safeSliderValues = sliderValues || {};
+  
   const {
     mirrorEnabled,
     mirrorSide,
@@ -339,7 +342,7 @@ const FacialEditorContainer: React.FC = () => {
     handleMirrorCutoffChangeComplete,
     getMirrorOptions
   } = useFaceMirror(
-    sliderValues || {},  // Ensure we always pass a valid object even if sliderValues is undefined
+    safeSliderValues,
     handleSliderChange,
     handleSliderChangeComplete,
     currentSliderValues

@@ -15,14 +15,29 @@ export const useModifiedFaceAnalysis = (
   const lastAnalysisRef = useRef<string | null>(null);
   const analyzingRef = useRef<boolean>(false);
   const autoRunRequestedRef = useRef<boolean>(false);
+  const analysisCountRef = useRef<number>(0);
+  
+  // Reset analysis counter when face detection changes
+  useEffect(() => {
+    if (faceDetection?.original) {
+      analysisCountRef.current = 0;
+    }
+  }, [faceDetection?.original]);
   
   // Fix endless loop by only triggering analysis when explicitly requested
   // or when faceDetection.original changes but not faceDetection.modified
   useEffect(() => {
     // Only auto-analyze if explicitly requested and not already analyzing
     if (autoRunRequestedRef.current && !analyzingRef.current) {
-      autoRunRequestedRef.current = false;
-      analyzeModifiedImage();
+      // Limit the number of consecutive auto-analyses
+      if (analysisCountRef.current < 3) {
+        autoRunRequestedRef.current = false;
+        analysisCountRef.current += 1;
+        analyzeModifiedImage();
+      } else {
+        console.log("Too many consecutive analyses, stopping auto-analysis");
+        autoRunRequestedRef.current = false;
+      }
     }
   }, [faceDetection]);
 
@@ -128,8 +143,10 @@ export const useModifiedFaceAnalysis = (
         description: "Could not analyze facial differences."
       });
     } finally {
-      // Reset analyzing flag
-      analyzingRef.current = false;
+      // Reset analyzing flag after a short delay to prevent rapid re-analysis
+      setTimeout(() => {
+        analyzingRef.current = false;
+      }, 500);
     }
   };
   

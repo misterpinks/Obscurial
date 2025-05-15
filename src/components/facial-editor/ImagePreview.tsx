@@ -1,6 +1,7 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { drawFaceLandmarks } from './utils/landmarkVisualization';
 
 interface ImagePreviewProps {
@@ -40,7 +41,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
   const [scale, setScale] = useState(1);
   const [dragging, setDragging] = useState(false);
   const [dragPoint, setDragPoint] = useState<number | null>(null);
-  const [originalPointPos, setOriginalPointPos] = useState<{ x: number, y: number } | null>(null);
+  const [isDraggingMask, setIsDraggingMask] = useState(false);
+  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
   const [isShowingCanvas, setIsShowingCanvas] = useState(false);
 
   // Check if the canvas has content
@@ -112,7 +114,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
       
       // Check if clicking on mask control point
       if (Math.abs(x - absMaskX) < pointSize && Math.abs(y - absMaskY) < pointSize) {
-        setDragMask(true);
+        setIsDraggingMask(true);
         return;
       }
     }
@@ -121,8 +123,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
     for (let i = 0; i < landmarks.length; i++) {
       const point = landmarks[i];
       if (Math.abs(x - point._x) < pointSize && Math.abs(y - point._y) < pointSize) {
-        setIsDragging(true);
-        setDragPoint({ index: i, x: point._x, y: point._y });
+        setDragging(true);
+        setDragPoint(i);
         break;
       }
     }
@@ -140,7 +142,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
     const y = (e.clientY - rect.top) / scale;
     
     // Handle mask dragging
-    if (dragMask && onMaskPositionChange && maskPosition) {
+    if (isDraggingMask && onMaskPositionChange && maskPosition) {
       // Convert absolute position to relative position
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
@@ -152,8 +154,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
     }
     
     // Handle landmark dragging
-    if (isDragging && dragPoint && onLandmarkMove) {
-      onLandmarkMove(dragPoint.index, x, y);
+    if (dragging && dragPoint !== null && onLandmarkMove) {
+      onLandmarkMove(dragPoint, x, y);
       return;
     }
     
@@ -180,8 +182,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
 
   // Handle mouse up for dragging landmarks
   const handleMouseUp = () => {
-    setIsDragging(false);
-    setDragMask(false);
+    setDragging(false);
+    setIsDraggingMask(false);
     setDragPoint(null);
   };
 
@@ -308,6 +310,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           }}
         />
       </div>
+      
+      {renderControlTips()}
     </div>
   );
 };
