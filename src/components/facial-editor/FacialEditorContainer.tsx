@@ -338,7 +338,7 @@ const FacialEditorContainer: React.FC = () => {
     handleMirrorCutoffChangeComplete,
     getMirrorOptions
   } = useFaceMirror(
-    sliderValues,
+    sliderValues || {},  // Ensure we always pass a valid object even if sliderValues is undefined
     handleSliderChange,
     handleSliderChangeComplete,
     currentSliderValues
@@ -434,7 +434,7 @@ const FacialEditorContainer: React.FC = () => {
         showLandmarks={showLandmarks}
         toggleLandmarks={toggleLandmarks}
         featureSliders={featureSliders}
-        sliderValues={sliderValues}
+        sliderValues={sliderValues || {}}  // Ensure we always pass a valid object
         onSliderChange={handleSliderChange}
         onSliderChangeComplete={handleSliderChangeComplete}
         onResetSliders={handleResetSliders}

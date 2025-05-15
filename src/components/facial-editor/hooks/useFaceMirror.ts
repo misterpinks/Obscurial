@@ -15,11 +15,13 @@ export const useFaceMirror = (
   pushSliderState: () => void,
   currentSliderValues: Record<string, number>
 ) => {
-  const [mirrorEnabled, setMirrorEnabled] = useState(Boolean(sliderValues.mirrorFace) && sliderValues.mirrorFace > 0);
-  const [mirrorSide, setMirrorSide] = useState(sliderValues.mirrorSide || 0); // 0 = left, 1 = right
-  const [mirrorOffsetX, setMirrorOffsetX] = useState(sliderValues.mirrorOffsetX || 0); // -1 to 1
-  const [mirrorAngle, setMirrorAngle] = useState(sliderValues.mirrorAngle || 0); // -45 to 45 degrees
-  const [mirrorCutoffY, setMirrorCutoffY] = useState(sliderValues.mirrorCutoffY || 1); // 0 to 1
+  // Add null checks with default values to prevent accessing properties of undefined
+  const mirrorFaceValue = sliderValues?.mirrorFace || 0;
+  const [mirrorEnabled, setMirrorEnabled] = useState(Boolean(mirrorFaceValue) && mirrorFaceValue > 0);
+  const [mirrorSide, setMirrorSide] = useState(sliderValues?.mirrorSide || 0); // 0 = left, 1 = right
+  const [mirrorOffsetX, setMirrorOffsetX] = useState(sliderValues?.mirrorOffsetX || 0); // -1 to 1
+  const [mirrorAngle, setMirrorAngle] = useState(sliderValues?.mirrorAngle || 0); // -45 to 45 degrees
+  const [mirrorCutoffY, setMirrorCutoffY] = useState(sliderValues?.mirrorCutoffY || 1); // 0 to 1
   
   const handleToggleMirror = useCallback(() => {
     const newMirrorEnabled = !mirrorEnabled;
