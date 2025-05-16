@@ -1,3 +1,4 @@
+
 import React, { useRef } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -97,7 +98,8 @@ const FacialEditorContainer: React.FC = () => {
     toggleAutoAnalyze,
     lastProcessedValues,
     setLastProcessedValues,
-    onProcessingComplete
+    onProcessingComplete,
+    detectionAttempts
   } = useFaceAnalysis({
     isFaceApiLoaded,
     originalImage,
@@ -255,7 +257,12 @@ const FacialEditorContainer: React.FC = () => {
     featureSliders,
     sliderValues: sliderValues || {},
     onChange: (newValues) => {
-      baseHandleSliderChange('batch', newValues);
+      // Fix for error #1: Pass the correct type for the 'id' parameter
+      // baseHandleSliderChange('batch', newValues); - This was causing the error
+      // Need to pass individual slider values instead of the whole object
+      Object.entries(newValues).forEach(([id, value]) => {
+        baseHandleSliderChange(id, value);
+      });
       pushSliderState(newValues);
     }
   });
