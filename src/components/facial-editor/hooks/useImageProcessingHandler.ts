@@ -75,6 +75,14 @@ export function useImageProcessingHandler({
         worker: isWorkerReady ? worker : undefined
       });
       
+      // Call the processing complete callback if provided
+      // But wrap it in setTimeout to avoid triggering immediate reprocessing
+      if (onProcessingComplete) {
+        setTimeout(() => {
+          onProcessingComplete();
+        }, 500);
+      }
+      
       return cleanCanvas;
     },
     analyzeModifiedImage,

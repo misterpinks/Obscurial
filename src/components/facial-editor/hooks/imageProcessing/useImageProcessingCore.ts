@@ -125,8 +125,12 @@ export const useImageProcessingCore = ({
         }
         
         // If we have face data, analyze the modified image with a delay
-        if (faceDetection && isFaceApiLoaded && autoAnalyze) {
-          processingTimeoutRef.current = window.setTimeout(analyzeModifiedImage, 300);
+        // IMPORTANT: Only do this once per processing cycle and only if auto-analyze is enabled
+        if (faceDetection && isFaceApiLoaded && autoAnalyze && !processingQueuedRef.current) {
+          processingTimeoutRef.current = window.setTimeout(() => {
+            analyzeModifiedImage();
+            processingTimeoutRef.current = null;
+          }, 300);
         }
       } catch (error) {
         console.error("Error processing image:", error);

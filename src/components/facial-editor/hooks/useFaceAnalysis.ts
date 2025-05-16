@@ -88,6 +88,11 @@ export const useFaceAnalysis = ({
       analysisInProgressRef.current = true;
       requestAutoAnalysis();
       setAnalysisAttempts(prev => prev + 1);
+      
+      // Reset flag after a delay
+      setTimeout(() => {
+        analysisInProgressRef.current = false;
+      }, 1000);
     }
   }, [autoAnalyze, faceDetection, requestAutoAnalysis]);
   
