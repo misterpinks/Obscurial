@@ -17,18 +17,24 @@ export const useModifiedFaceAnalysis = (
   const autoRunRequestedRef = useRef<boolean>(false);
   const analysisCountRef = useRef<number>(0);
   const analysisTimerRef = useRef<number | null>(null);
+  const lastAnalysisTimeRef = useRef<number>(0);
+  
+  console.log("[DEBUG-useModifiedFaceAnalysis] Initializing hook");
   
   // Reset analysis counter when face detection changes
   useEffect(() => {
     if (faceDetection?.original) {
+      console.log("[DEBUG-useModifiedFaceAnalysis] Face detection original changed, resetting analysis count");
       analysisCountRef.current = 0;
     }
   }, [faceDetection?.original]);
   
   // Clear timer on unmount
   useEffect(() => {
+    console.log("[DEBUG-useModifiedFaceAnalysis] Setting up cleanup for analysis timer");
     return () => {
       if (analysisTimerRef.current !== null) {
+        console.log("[DEBUG-useModifiedFaceAnalysis] Cleaning up analysis timer");
         clearTimeout(analysisTimerRef.current);
       }
     };
@@ -37,25 +43,47 @@ export const useModifiedFaceAnalysis = (
   // Fix endless loop by only triggering analysis when explicitly requested
   // or when faceDetection.original changes but not faceDetection.modified
   useEffect(() => {
+    console.log("[DEBUG-useModifiedFaceAnalysis] Auto-run effect triggered", {
+      autoRunRequested: autoRunRequestedRef.current,
+      analyzing: analyzingRef.current,
+      count: analysisCountRef.current
+    });
+    
     // Only auto-analyze if explicitly requested and not already analyzing
     if (autoRunRequestedRef.current && !analyzingRef.current) {
+      // Check time since last analysis
+      const now = Date.now();
+      const timeSinceLastAnalysis = now - lastAnalysisTimeRef.current;
+      
+      console.log("[DEBUG-useModifiedFaceAnalysis] Time since last analysis:", timeSinceLastAnalysis);
+      
+      // Rate limiting - 4 second minimum between analyses
+      if (timeSinceLastAnalysis < 4000) {
+        console.log("[DEBUG-useModifiedFaceAnalysis] Analysis too frequent, skipping");
+        autoRunRequestedRef.current = false;
+        return;
+      }
+      
       // Limit the number of consecutive auto-analyses
-      if (analysisCountRef.current < 3) {
+      if (analysisCountRef.current < 2) { // Reduced from 3 to 2
         // Clear any existing timer
         if (analysisTimerRef.current !== null) {
           clearTimeout(analysisTimerRef.current);
         }
         
         // Set a timer to prevent rapid re-analysis
+        console.log("[DEBUG-useModifiedFaceAnalysis] Scheduling analysis");
         analysisTimerRef.current = window.setTimeout(() => {
           // Reset the auto-run request
           autoRunRequestedRef.current = false;
           analysisCountRef.current += 1;
+          lastAnalysisTimeRef.current = Date.now();
+          console.log("[DEBUG-useModifiedFaceAnalysis] Running scheduled analysis, count:", analysisCountRef.current);
           analyzeModifiedImage();
           analysisTimerRef.current = null;
-        }, 1000); // Longer delay to prevent rapid cycles
+        }, 1500); // Longer delay to prevent rapid cycles
       } else {
-        console.log("Too many consecutive analyses, stopping auto-analysis");
+        console.log("[DEBUG-useModifiedFaceAnalysis] Too many consecutive analyses, stopping auto-analysis");
         autoRunRequestedRef.current = false;
       }
     }
@@ -64,7 +92,7 @@ export const useModifiedFaceAnalysis = (
   const analyzeModifiedImage = async () => {
     // Make sure we have all required resources
     if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded) {
-      console.log("Required resources for analysis not available:", {
+      console.log("[DEBUG-useModifiedFaceAnalysis] Required resources for analysis not available:", {
         canvasRef: !!cleanProcessedCanvasRef.current,
         faceApiLoaded: isFaceApiLoaded
       });
@@ -80,26 +108,26 @@ export const useModifiedFaceAnalysis = (
     // Check if we recently analyzed an identical image
     const canvasDataUrl = cleanProcessedCanvasRef.current.toDataURL('image/jpeg', 0.1);
     if (canvasDataUrl === lastAnalysisRef.current) {
-      console.log("Skipping analysis - image hasn't changed");
+      console.log("[DEBUG-useModifiedFaceAnalysis] Skipping analysis - image hasn't changed");
       return;
     }
     lastAnalysisRef.current = canvasDataUrl;
     
     // Prevent multiple concurrent analyses
     if (analyzingRef.current) {
-      console.log("Analysis already in progress, skipping");
+      console.log("[DEBUG-useModifiedFaceAnalysis] Analysis already in progress, skipping");
       return;
     }
     
     // Set analyzing flag to prevent concurrent analyses
     analyzingRef.current = true;
-    console.log("Running facial analysis on modified image");
+    console.log("[DEBUG-useModifiedFaceAnalysis] Running facial analysis on modified image");
     
     try {
       // Create an image from the canvas for analysis
       const processedImage = await createImageFromCanvas(cleanProcessedCanvasRef.current);
       
-      console.log("Created image from canvas, detecting face...");
+      console.log("[DEBUG-useModifiedFaceAnalysis] Created image from canvas, detecting face...");
       
       // Use a lower confidence threshold for better detection
       const detections = await faceapi
@@ -107,7 +135,7 @@ export const useModifiedFaceAnalysis = (
         .withFaceLandmarks()
         .withFaceDescriptor();
         
-      console.log("Face detection complete:", detections ? "Face found" : "No face detected");
+      console.log("[DEBUG-useModifiedFaceAnalysis] Face detection complete:", detections ? "Face found" : "No face detected");
       
       if (detections && faceDetection) {
         // Update state with modified face descriptor
@@ -117,7 +145,7 @@ export const useModifiedFaceAnalysis = (
         };
         
         setFaceDetection(updatedFaceDetection);
-        console.log("Updated face detection with modified descriptor");
+        console.log("[DEBUG-useModifiedFaceAnalysis] Updated face detection with modified descriptor");
         
         // Calculate similarity between original and modified faces
         if (faceDetection.original) {
@@ -135,8 +163,8 @@ export const useModifiedFaceAnalysis = (
           const enhancedDistance = Math.pow(distance * 5, 1.5); // Increased multiplier from 4 to 5
           const clampedDistance = Math.min(enhancedDistance, 2.0);
           
-          console.log("Raw facial difference:", distance);
-          console.log("Enhanced facial difference:", clampedDistance);
+          console.log("[DEBUG-useModifiedFaceAnalysis] Raw facial difference:", distance);
+          console.log("[DEBUG-useModifiedFaceAnalysis] Enhanced facial difference:", clampedDistance);
           setFacialDifference(clampedDistance);
           
           toast({
@@ -145,7 +173,7 @@ export const useModifiedFaceAnalysis = (
           });
         }
       } else {
-        console.log("No face detected in modified image - this is good for anti-recognition");
+        console.log("[DEBUG-useModifiedFaceAnalysis] No face detected in modified image - this is good for anti-recognition");
         // If no face is detected in the modified image, that's actually good for defeating recognition
         setFacialDifference(2.0); // Maximum difference - recognition fully defeated
         
@@ -164,7 +192,7 @@ export const useModifiedFaceAnalysis = (
         });
       }
     } catch (error) {
-      console.error("Error analyzing modified image:", error);
+      console.error("[DEBUG-useModifiedFaceAnalysis] Error analyzing modified image:", error);
       toast({
         variant: "destructive",
         title: "Analysis Error",
@@ -172,14 +200,21 @@ export const useModifiedFaceAnalysis = (
       });
     } finally {
       // Reset analyzing flag after a longer delay to prevent rapid re-analysis
+      console.log("[DEBUG-useModifiedFaceAnalysis] Analysis complete, resetting flag in 2 seconds");
       setTimeout(() => {
         analyzingRef.current = false;
-      }, 1500);
+        console.log("[DEBUG-useModifiedFaceAnalysis] Analysis flag reset");
+      }, 2000); // Increased from 1500ms
     }
   };
   
   // Method to request an auto-analysis on next render cycle
   const requestAutoAnalysis = () => {
+    console.log("[DEBUG-useModifiedFaceAnalysis] Auto-analysis requested", {
+      analyzing: analyzingRef.current,
+      count: analysisCountRef.current
+    });
+    
     if (!analyzingRef.current) {
       autoRunRequestedRef.current = true;
     }

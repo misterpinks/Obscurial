@@ -35,9 +35,13 @@ export const useImageProcessingCore = ({
   const lastProcessingTimeRef = useRef<number>(0);
   const processCountRef = useRef<number>(0);
   const autoAnalyzeRequested = useRef<boolean>(false);
+  const isProcessingRef = useRef<boolean>(false);
+  
+  console.log("[DEBUG-useImageProcessingCore] Initializing hook, autoAnalyze:", autoAnalyze);
   
   // Initialize the web worker
   useEffect(() => {
+    console.log("[DEBUG-useImageProcessingCore] Setting up web worker");
     if (isWorkerSupported) {
       try {
         // Create worker from the worker file URL
@@ -48,7 +52,7 @@ export const useImageProcessingCore = ({
           // Listen for the ready message
           const readyHandler = (event: MessageEvent) => {
             if (event.data?.status === 'ready') {
-              console.log('Image processing worker ready');
+              console.log('[DEBUG-useImageProcessingCore] Image processing worker ready');
               setIsWorkerReady(true);
             }
           };
@@ -60,13 +64,14 @@ export const useImageProcessingCore = ({
             worker.removeEventListener('message', readyHandler);
             terminateWorker(worker);
             workerRef.current = undefined;
+            console.log('[DEBUG-useImageProcessingCore] Worker terminated on cleanup');
           };
         }
       } catch (error) {
-        console.error('Failed to initialize worker:', error);
+        console.error('[DEBUG-useImageProcessingCore] Failed to initialize worker:', error);
       }
     } else {
-      console.log('Web Workers not supported, using main thread processing');
+      console.log('[DEBUG-useImageProcessingCore] Web Workers not supported, using main thread processing');
     }
   }, []);
   
@@ -76,21 +81,31 @@ export const useImageProcessingCore = ({
       try {
         callback();
       } catch (error) {
-        console.error("Error in scheduled processing:", error);
+        console.error("[DEBUG-useImageProcessingCore] Error in scheduled processing:", error);
       }
     });
   }, []);
 
-  // Improved debounce with proper timing
+  // More aggressive debouncing with increased delay
   const debouncedProcess = useCallback(
-    debounce(() => processImage(), 350), // Increased debounce time for better performance
+    debounce(() => {
+      console.log("[DEBUG-useImageProcessingCore] Debounced process triggered");
+      processImage();
+    }, 500), // Increased from 350ms to 500ms
     [/* dependencies will be added by the real debounce */]
   );
   
   // Wrapper for process image that handles state updates with performance improvements
   const processImage = useCallback(() => {
     if (!originalImage) {
-      console.log("No original image to process");
+      console.log("[DEBUG-useImageProcessingCore] No original image to process");
+      return;
+    }
+    
+    // If processing is already in progress, queue it and return
+    if (isProcessingRef.current) {
+      console.log("[DEBUG-useImageProcessingCore] Already processing, queueing request");
+      processingQueuedRef.current = true;
       return;
     }
     
@@ -98,28 +113,23 @@ export const useImageProcessingCore = ({
     if (processingTimeoutRef.current !== null) {
       clearTimeout(processingTimeoutRef.current);
       processingTimeoutRef.current = null;
+      console.log("[DEBUG-useImageProcessingCore] Cleared existing processing timeout");
     }
     
     // Implement rate limiting
     const now = Date.now();
-    if (now - lastProcessingTimeRef.current < 500) { // Don't process more than once every 500ms
+    if (now - lastProcessingTimeRef.current < 750) { // Increased from 500ms to 750ms
       if (!processingQueuedRef.current) {
-        console.log("Processing too frequent, queueing for later");
+        console.log("[DEBUG-useImageProcessingCore] Processing too frequent, queueing for later");
         processingQueuedRef.current = true;
         
         // Schedule a single delayed processing to batch rapid changes
         processingTimeoutRef.current = window.setTimeout(() => {
           processingQueuedRef.current = false;
+          console.log("[DEBUG-useImageProcessingCore] Running delayed processing");
           processImage();
-        }, 600);
+        }, 800); // Increased from 600ms to 800ms
       }
-      return;
-    }
-    
-    // Don't allow overlapping processing operations
-    if (isProcessing) {
-      console.log("Already processing, queuing request");
-      processingQueuedRef.current = true;
       return;
     }
     
@@ -129,7 +139,8 @@ export const useImageProcessingCore = ({
     
     // Set processing state
     setIsProcessing(true);
-    console.log("Starting image processing");
+    isProcessingRef.current = true;
+    console.log("[DEBUG-useImageProcessingCore] Starting image processing #" + processCountRef.current);
     
     // Use requestAnimationFrame to prevent UI blocking
     scheduleProcessing(() => {
@@ -141,9 +152,9 @@ export const useImageProcessingCore = ({
         if (cleanCanvas) {
           try {
             setCleanProcessedImageURL(cleanCanvas.toDataURL("image/png"));
-            console.log("Generated clean processed image URL");
+            console.log("[DEBUG-useImageProcessingCore] Generated clean processed image URL");
           } catch (e) {
-            console.error("Failed to generate data URL:", e);
+            console.error("[DEBUG-useImageProcessingCore] Failed to generate data URL:", e);
           }
         }
         
@@ -154,7 +165,9 @@ export const useImageProcessingCore = ({
         // IMPORTANT: Only do this once per processing cycle, only if auto-analyze is enabled,
         // and limit the frequency
         if (faceDetection && isFaceApiLoaded && autoAnalyze && !processingQueuedRef.current && 
-            processCountRef.current % 3 === 0) { // Only analyze every 3rd processing
+            processCountRef.current % 5 === 0) { // Only analyze every 5th processing (increased from 3)
+          
+          console.log("[DEBUG-useImageProcessingCore] Will analyze on processing count:", processCountRef.current);
           
           // Set flag to track that we've requested analysis
           autoAnalyzeRequested.current = true;
@@ -162,25 +175,32 @@ export const useImageProcessingCore = ({
           processingTimeoutRef.current = window.setTimeout(() => {
             // Only proceed if we haven't canceled this timer
             if (autoAnalyzeRequested.current) {
-              console.log("Running delayed analysis after processing");
+              console.log("[DEBUG-useImageProcessingCore] Running delayed analysis after processing");
               analyzeModifiedImage();
             }
             processingTimeoutRef.current = null;
-          }, 1000); // Longer delay to prevent rapid cycles
+          }, 2000); // Increased delay from 1000ms to 2000ms
         }
       } catch (error) {
-        console.error("Error processing image:", error);
+        console.error("[DEBUG-useImageProcessingCore] Error processing image:", error);
       } finally {
         setIsProcessing(false);
+        
+        // Delay resetting the processing flag to prevent rapid cycling
+        setTimeout(() => {
+          isProcessingRef.current = false;
+          console.log("[DEBUG-useImageProcessingCore] Processing complete, flag reset");
+        }, 500);
         
         // If there was another process requested while this one was running, run it now
         // but with a delay to prevent rapid cycling
         if (processingQueuedRef.current) {
           processingQueuedRef.current = false;
+          console.log("[DEBUG-useImageProcessingCore] Scheduling queued processing");
           processingTimeoutRef.current = window.setTimeout(() => {
             processImage();
             processingTimeoutRef.current = null;
-          }, 800); // Increased delay for better performance
+          }, 1000); // Increased delay from 800ms to 1000ms
         }
       }
     });
@@ -191,7 +211,6 @@ export const useImageProcessingCore = ({
     isFaceApiLoaded,
     autoAnalyze,
     analyzeModifiedImage,
-    isProcessing,
     scheduleProcessing
   ]);
 

@@ -35,6 +35,10 @@ export function useImageProcessingHandler({
   const lastCallbackTimeRef = useRef<number>(0);
   const callbackCountRef = useRef<number>(0);
   const callbackScheduledRef = useRef<boolean>(false);
+  const processingDisabledRef = useRef<boolean>(false);
+  const processingLockoutTimeRef = useRef<number>(0);
+  
+  console.log("[DEBUG-useImageProcessingHandler] Initializing hook, autoAnalyze:", autoAnalyze);
   
   // Implementation of the image processing with Web Worker support
   const {
@@ -55,6 +59,20 @@ export function useImageProcessingHandler({
     processImageImpl: () => {
       if (!cleanProcessedCanvasRef.current || !originalImage) return undefined;
       
+      // Check for processing lockout - helps break any loops
+      const now = Date.now();
+      if (processingDisabledRef.current && now - processingLockoutTimeRef.current < 5000) {
+        console.log("[DEBUG-useImageProcessingHandler] Processing locked out for cooldown");
+        return undefined;
+      }
+      
+      // Reset lockout if it's been long enough
+      if (processingDisabledRef.current && now - processingLockoutTimeRef.current >= 5000) {
+        console.log("[DEBUG-useImageProcessingHandler] Lockout period ended, re-enabling processing");
+        processingDisabledRef.current = false;
+      }
+      
+      console.log("[DEBUG-useImageProcessingHandler] Starting image transformation");
       const cleanCanvas = cleanProcessedCanvasRef.current;
       const cleanCtx = cleanCanvas.getContext('2d');
       if (!cleanCtx) return undefined;
@@ -83,23 +101,31 @@ export function useImageProcessingHandler({
       if (onProcessingComplete && !callbackScheduledRef.current) {
         const now = Date.now();
         
-        // Only allow callbacks at most once every 3 seconds
-        if (now - lastCallbackTimeRef.current > 3000) {
+        // Only allow callbacks at most once every 5 seconds (increased from 3 seconds)
+        if (now - lastCallbackTimeRef.current > 5000) {
           callbackCountRef.current = 0;
           lastCallbackTimeRef.current = now;
           callbackScheduledRef.current = true;
           
+          console.log("[DEBUG-useImageProcessingHandler] Scheduling processing complete callback");
+          
           // Use longer timeout to prevent immediate reprocessing
           setTimeout(() => {
             callbackScheduledRef.current = false;
+            console.log("[DEBUG-useImageProcessingHandler] Invoking processing complete callback");
             onProcessingComplete();
-          }, 1500);
+          }, 2000); // Increased from 1500ms
         } else {
           // Additional check to prevent too many callbacks
           callbackCountRef.current += 1;
-          if (callbackCountRef.current > 5) {
-            console.log("Too many processing callbacks, disabling for now");
-            // We'll reset this counter after the 3-second period above
+          console.log("[DEBUG-useImageProcessingHandler] Callback attempted too soon, count:", callbackCountRef.current);
+          
+          // If we're getting too many callbacks, disable processing for a while
+          if (callbackCountRef.current > 3) { // Reduced threshold from 5 to 3
+            console.log("[DEBUG-useImageProcessingHandler] Too many processing callbacks, enabling lockout");
+            processingDisabledRef.current = true;
+            processingLockoutTimeRef.current = now;
+            // We'll reset this counter after the 5-second lockout period
           }
         }
       }
@@ -115,6 +141,7 @@ export function useImageProcessingHandler({
   const processSingleImage = useCallback(async (img: HTMLImageElement): Promise<string> => {
     return new Promise((resolve, reject) => {
       try {
+        console.log("[DEBUG-useImageProcessingHandler] Processing single batch image");
         const canvas = document.createElement('canvas');
         canvas.width = img.width;
         canvas.height = img.height;
@@ -143,6 +170,7 @@ export function useImageProcessingHandler({
         // Return the data URL
         resolve(canvas.toDataURL('image/png'));
       } catch (error) {
+        console.error("[DEBUG-useImageProcessingHandler] Error in batch processing:", error);
         reject(error);
       }
     });

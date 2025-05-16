@@ -34,6 +34,9 @@ export const useFaceAnalysis = ({
   // Add reference to prevent analysis loops
   const analysisInProgressRef = useRef(false);
   const processingCallbackInvokedRef = useRef(false);
+  const autoAnalyzeCooldownRef = useRef(false);
+  
+  console.log("[DEBUG-useFaceAnalysis] Initializing hook, autoAnalyze:", autoAnalyze);
   
   // Use the extracted face detection hook
   const {
@@ -68,8 +71,9 @@ export const useFaceAnalysis = ({
   
   // Prevent infinite analysis loops
   useEffect(() => {
-    if (analysisAttempts > 3) {
-      console.log("Too many analysis attempts, stopping automatic analysis");
+    console.log("[DEBUG-useFaceAnalysis] Analysis attempts updated:", analysisAttempts);
+    if (analysisAttempts > 2) {
+      console.log("[DEBUG-useFaceAnalysis] Too many analysis attempts, stopping automatic analysis");
       setAnalysisAttempts(0);
       analysisInProgressRef.current = false;
       setAutoAnalyze(false); // Turn off auto analyze when we hit the limit
@@ -78,19 +82,28 @@ export const useFaceAnalysis = ({
         title: "Analysis paused",
         description: "Too many attempts. Auto-analysis has been turned off."
       });
+      
+      // Add a longer cooldown period
+      autoAnalyzeCooldownRef.current = true;
+      setTimeout(() => {
+        autoAnalyzeCooldownRef.current = false;
+        console.log("[DEBUG-useFaceAnalysis] Auto-analyze cooldown period ended");
+      }, 5000);
     }
   }, [analysisAttempts, toast]);
   
   // When auto-analyze changes, trigger an analysis if enabled
   const toggleAutoAnalyze = useCallback(() => {
     const newValue = !autoAnalyze;
+    console.log("[DEBUG-useFaceAnalysis] Auto-analyze toggled to:", newValue);
     setAutoAnalyze(newValue);
     
     // If turning on auto-analyze, trigger an analysis
-    if (newValue && faceDetection && !analysisInProgressRef.current) {
+    if (newValue && faceDetection && !analysisInProgressRef.current && !autoAnalyzeCooldownRef.current) {
       // Implement rate limiting - only analyze if enough time has passed
       const now = Date.now();
-      if (now - lastAnalysisTime > 2000) { // 2 seconds between analyses
+      if (now - lastAnalysisTime > 3000) { // 3 seconds between analyses (increased)
+        console.log("[DEBUG-useFaceAnalysis] Triggering initial analysis after toggle");
         analysisInProgressRef.current = true;
         setLastAnalysisTime(now);
         requestAutoAnalysis();
@@ -99,22 +112,33 @@ export const useFaceAnalysis = ({
         // Reset flag after a delay
         setTimeout(() => {
           analysisInProgressRef.current = false;
-        }, 2000); // Longer delay to prevent rapid cycling
+          console.log("[DEBUG-useFaceAnalysis] Analysis in progress flag reset");
+        }, 3000); // Longer delay to prevent rapid cycling
+      } else {
+        console.log("[DEBUG-useFaceAnalysis] Analysis attempted too soon, waiting");
       }
     }
   }, [autoAnalyze, faceDetection, requestAutoAnalysis, lastAnalysisTime]);
   
   // This is called whenever an image is processed
   const onProcessingComplete = useCallback(() => {
+    console.log("[DEBUG-useFaceAnalysis] Processing complete callback invoked", {
+      autoAnalyze,
+      analysisInProgress: analysisInProgressRef.current,
+      callbackInvoked: processingCallbackInvokedRef.current,
+      cooldown: autoAnalyzeCooldownRef.current
+    });
+    
     // Implement strict rate limiting for processing callback
     if (processingCallbackInvokedRef.current) {
-      console.log("Processing callback already invoked recently, skipping");
+      console.log("[DEBUG-useFaceAnalysis] Processing callback already invoked recently, skipping");
       return;
     }
     
-    if (autoAnalyze && !analysisInProgressRef.current) {
+    if (autoAnalyze && !analysisInProgressRef.current && !autoAnalyzeCooldownRef.current) {
       const now = Date.now();
-      if (now - lastAnalysisTime > 2000) { // 2 second minimum between analyses
+      if (now - lastAnalysisTime > 3000) { // 3 second minimum between analyses (increased)
+        console.log("[DEBUG-useFaceAnalysis] Auto-analyzing after processing complete");
         processingCallbackInvokedRef.current = true;
         analysisInProgressRef.current = true;
         setLastAnalysisTime(now);
@@ -125,9 +149,10 @@ export const useFaceAnalysis = ({
         setTimeout(() => {
           analysisInProgressRef.current = false;
           processingCallbackInvokedRef.current = false;
-        }, 2500); // Longer delay to prevent rapid cycling
+          console.log("[DEBUG-useFaceAnalysis] Analysis flags reset after processing");
+        }, 3500); // Longer delay to prevent rapid cycling
       } else {
-        console.log("Analysis attempted too soon after previous analysis, waiting");
+        console.log("[DEBUG-useFaceAnalysis] Analysis attempted too soon after previous analysis, waiting");
       }
     }
   }, [autoAnalyze, requestAutoAnalysis, lastAnalysisTime]);
