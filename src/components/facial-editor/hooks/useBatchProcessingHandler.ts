@@ -19,7 +19,10 @@ export function useBatchProcessingHandler({
     clearBatch,
     processBatch,
     downloadAll
-  } = useBatchProcessing(processSingleImage);
+  } = useBatchProcessing(
+    {}, // Empty sliderValues object as first argument
+    processSingleImage // The process function as second argument
+  );
 
   // Set up batch upload
   const { handleBatchUpload } = useBatchUpload(addToBatch);
