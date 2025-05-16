@@ -16,6 +16,7 @@ export const useModifiedFaceAnalysis = (
   const analyzingRef = useRef<boolean>(false);
   const autoRunRequestedRef = useRef<boolean>(false);
   const analysisCountRef = useRef<number>(0);
+  const analysisTimerRef = useRef<number | null>(null);
   
   // Reset analysis counter when face detection changes
   useEffect(() => {
@@ -24,6 +25,15 @@ export const useModifiedFaceAnalysis = (
     }
   }, [faceDetection?.original]);
   
+  // Clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (analysisTimerRef.current !== null) {
+        clearTimeout(analysisTimerRef.current);
+      }
+    };
+  }, []);
+  
   // Fix endless loop by only triggering analysis when explicitly requested
   // or when faceDetection.original changes but not faceDetection.modified
   useEffect(() => {
@@ -31,9 +41,19 @@ export const useModifiedFaceAnalysis = (
     if (autoRunRequestedRef.current && !analyzingRef.current) {
       // Limit the number of consecutive auto-analyses
       if (analysisCountRef.current < 3) {
-        autoRunRequestedRef.current = false;
-        analysisCountRef.current += 1;
-        analyzeModifiedImage();
+        // Clear any existing timer
+        if (analysisTimerRef.current !== null) {
+          clearTimeout(analysisTimerRef.current);
+        }
+        
+        // Set a timer to prevent rapid re-analysis
+        analysisTimerRef.current = window.setTimeout(() => {
+          // Reset the auto-run request
+          autoRunRequestedRef.current = false;
+          analysisCountRef.current += 1;
+          analyzeModifiedImage();
+          analysisTimerRef.current = null;
+        }, 1000); // Longer delay to prevent rapid cycles
       } else {
         console.log("Too many consecutive analyses, stopping auto-analysis");
         autoRunRequestedRef.current = false;
@@ -56,6 +76,14 @@ export const useModifiedFaceAnalysis = (
       });
       return;
     }
+    
+    // Check if we recently analyzed an identical image
+    const canvasDataUrl = cleanProcessedCanvasRef.current.toDataURL('image/jpeg', 0.1);
+    if (canvasDataUrl === lastAnalysisRef.current) {
+      console.log("Skipping analysis - image hasn't changed");
+      return;
+    }
+    lastAnalysisRef.current = canvasDataUrl;
     
     // Prevent multiple concurrent analyses
     if (analyzingRef.current) {
@@ -143,10 +171,10 @@ export const useModifiedFaceAnalysis = (
         description: "Could not analyze facial differences."
       });
     } finally {
-      // Reset analyzing flag after a short delay to prevent rapid re-analysis
+      // Reset analyzing flag after a longer delay to prevent rapid re-analysis
       setTimeout(() => {
         analyzingRef.current = false;
-      }, 500);
+      }, 1500);
     }
   };
   

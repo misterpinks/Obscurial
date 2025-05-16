@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { applyFeatureTransformations } from '../utils/transformationEngine';
 import { useImageProcessingCore } from './imageProcessing/useImageProcessingCore';
 import type { FaceDetection } from './types';
@@ -31,6 +31,10 @@ export function useImageProcessingHandler({
   faceEffectOptions,
   onProcessingComplete
 }: UseImageProcessingHandlerProps) {
+  // Track when the last callback was triggered to prevent loops
+  const lastCallbackTimeRef = useRef<number>(0);
+  const callbackCountRef = useRef<number>(0);
+  const callbackScheduledRef = useRef<boolean>(false);
   
   // Implementation of the image processing with Web Worker support
   const {
@@ -75,12 +79,29 @@ export function useImageProcessingHandler({
         worker: isWorkerReady ? worker : undefined
       });
       
-      // Call the processing complete callback if provided
-      // But wrap it in setTimeout to avoid triggering immediate reprocessing
-      if (onProcessingComplete) {
-        setTimeout(() => {
-          onProcessingComplete();
-        }, 500);
+      // Call the processing complete callback if provided - with strict rate limiting
+      if (onProcessingComplete && !callbackScheduledRef.current) {
+        const now = Date.now();
+        
+        // Only allow callbacks at most once every 3 seconds
+        if (now - lastCallbackTimeRef.current > 3000) {
+          callbackCountRef.current = 0;
+          lastCallbackTimeRef.current = now;
+          callbackScheduledRef.current = true;
+          
+          // Use longer timeout to prevent immediate reprocessing
+          setTimeout(() => {
+            callbackScheduledRef.current = false;
+            onProcessingComplete();
+          }, 1500);
+        } else {
+          // Additional check to prevent too many callbacks
+          callbackCountRef.current += 1;
+          if (callbackCountRef.current > 5) {
+            console.log("Too many processing callbacks, disabling for now");
+            // We'll reset this counter after the 3-second period above
+          }
+        }
       }
       
       return cleanCanvas;

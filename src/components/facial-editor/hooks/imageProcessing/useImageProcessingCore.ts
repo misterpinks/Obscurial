@@ -32,6 +32,9 @@ export const useImageProcessingCore = ({
   const workerRef = useRef<Worker | undefined>(undefined);
   const [isWorkerReady, setIsWorkerReady] = useState(false);
   const processingTimeoutRef = useRef<number | null>(null);
+  const lastProcessingTimeRef = useRef<number>(0);
+  const processCountRef = useRef<number>(0);
+  const autoAnalyzeRequested = useRef<boolean>(false);
   
   // Initialize the web worker
   useEffect(() => {
@@ -80,7 +83,7 @@ export const useImageProcessingCore = ({
 
   // Improved debounce with proper timing
   const debouncedProcess = useCallback(
-    debounce(() => processImage(), 150), // Increased debounce time for better performance
+    debounce(() => processImage(), 350), // Increased debounce time for better performance
     [/* dependencies will be added by the real debounce */]
   );
   
@@ -97,12 +100,32 @@ export const useImageProcessingCore = ({
       processingTimeoutRef.current = null;
     }
     
+    // Implement rate limiting
+    const now = Date.now();
+    if (now - lastProcessingTimeRef.current < 500) { // Don't process more than once every 500ms
+      if (!processingQueuedRef.current) {
+        console.log("Processing too frequent, queueing for later");
+        processingQueuedRef.current = true;
+        
+        // Schedule a single delayed processing to batch rapid changes
+        processingTimeoutRef.current = window.setTimeout(() => {
+          processingQueuedRef.current = false;
+          processImage();
+        }, 600);
+      }
+      return;
+    }
+    
     // Don't allow overlapping processing operations
     if (isProcessing) {
       console.log("Already processing, queuing request");
       processingQueuedRef.current = true;
       return;
     }
+    
+    // Track processing time for rate limiting
+    lastProcessingTimeRef.current = now;
+    processCountRef.current += 1;
     
     // Set processing state
     setIsProcessing(true);
@@ -124,13 +147,26 @@ export const useImageProcessingCore = ({
           }
         }
         
+        // Reset auto-analyze request flag to prevent loops
+        autoAnalyzeRequested.current = false;
+        
         // If we have face data, analyze the modified image with a delay
-        // IMPORTANT: Only do this once per processing cycle and only if auto-analyze is enabled
-        if (faceDetection && isFaceApiLoaded && autoAnalyze && !processingQueuedRef.current) {
+        // IMPORTANT: Only do this once per processing cycle, only if auto-analyze is enabled,
+        // and limit the frequency
+        if (faceDetection && isFaceApiLoaded && autoAnalyze && !processingQueuedRef.current && 
+            processCountRef.current % 3 === 0) { // Only analyze every 3rd processing
+          
+          // Set flag to track that we've requested analysis
+          autoAnalyzeRequested.current = true;
+          
           processingTimeoutRef.current = window.setTimeout(() => {
-            analyzeModifiedImage();
+            // Only proceed if we haven't canceled this timer
+            if (autoAnalyzeRequested.current) {
+              console.log("Running delayed analysis after processing");
+              analyzeModifiedImage();
+            }
             processingTimeoutRef.current = null;
-          }, 300);
+          }, 1000); // Longer delay to prevent rapid cycles
         }
       } catch (error) {
         console.error("Error processing image:", error);
@@ -138,9 +174,13 @@ export const useImageProcessingCore = ({
         setIsProcessing(false);
         
         // If there was another process requested while this one was running, run it now
+        // but with a delay to prevent rapid cycling
         if (processingQueuedRef.current) {
           processingQueuedRef.current = false;
-          processingTimeoutRef.current = window.setTimeout(processImage, 100);
+          processingTimeoutRef.current = window.setTimeout(() => {
+            processImage();
+            processingTimeoutRef.current = null;
+          }, 800); // Increased delay for better performance
         }
       }
     });
