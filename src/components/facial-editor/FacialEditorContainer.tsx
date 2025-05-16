@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -257,7 +256,7 @@ const FacialEditorContainer: React.FC = () => {
     sliderValues: sliderValues || {},
     onChange: (newValues) => {
       baseHandleSliderChange('batch', newValues);
-      pushSliderState(sliderValues || {});
+      pushSliderState(newValues);
     }
   });
 
