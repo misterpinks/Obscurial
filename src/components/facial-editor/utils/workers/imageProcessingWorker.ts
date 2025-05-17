@@ -1,3 +1,4 @@
+
 // This file runs in a Web Worker context
 let isReady = false;
 

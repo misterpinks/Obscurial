@@ -19,8 +19,12 @@ export const useModifiedFaceAnalysis = (
   const analysisTimerRef = useRef<number | null>(null);
   const lastAnalysisTimeRef = useRef<number>(0);
   const originalDescriptorRef = useRef<Float32Array | null>(null);
+  const hasInitialized = useRef(false);
   
-  console.log("[DEBUG-useModifiedFaceAnalysis] Initializing hook");
+  if (!hasInitialized.current) {
+    console.log("[DEBUG-useModifiedFaceAnalysis] Initializing hook");
+    hasInitialized.current = true;
+  }
   
   // Store the original descriptor in a ref to avoid dependency issues
   useEffect(() => {
@@ -36,15 +40,13 @@ export const useModifiedFaceAnalysis = (
     console.log("[DEBUG-useModifiedFaceAnalysis] Setting up cleanup for analysis timer");
     return () => {
       if (analysisTimerRef.current !== null) {
-        console.log("[DEBUG-useModifiedFaceAnalysis] Cleaning up analysis timer");
-        clearTimeout(analysisTimerRef.current);
+        window.clearTimeout(analysisTimerRef.current);
       }
     };
   }, []);
   
-  // Fix endless loop by only triggering analysis when explicitly requested
-  // IMPORTANT: We removed faceDetection from the dependencies array
-  useEffect(() => {
+  // Create a stable function for auto-run check to prevent loops
+  const checkAutoRunRequest = useCallback(() => {
     console.log("[DEBUG-useModifiedFaceAnalysis] Auto-run effect triggered", {
       autoRunRequested: autoRunRequestedRef.current,
       analyzing: analyzingRef.current,
@@ -67,10 +69,10 @@ export const useModifiedFaceAnalysis = (
       }
       
       // Limit the number of consecutive auto-analyses
-      if (analysisCountRef.current < 2) { // Reduced from 3 to 2
+      if (analysisCountRef.current < 2) {
         // Clear any existing timer
         if (analysisTimerRef.current !== null) {
-          clearTimeout(analysisTimerRef.current);
+          window.clearTimeout(analysisTimerRef.current);
         }
         
         // Set a timer to prevent rapid re-analysis
@@ -89,7 +91,14 @@ export const useModifiedFaceAnalysis = (
         autoRunRequestedRef.current = false;
       }
     }
-  }, [autoRunRequestedRef.current]); // Only depend on the ref value changes
+  }, []);
+  
+  // Effect for checking auto-run requests
+  useEffect(() => {
+    if (autoRunRequestedRef.current) {
+      checkAutoRunRequest();
+    }
+  }, [autoRunRequestedRef.current, checkAutoRunRequest]);
 
   const analyzeModifiedImage = async () => {
     // Make sure we have all required resources
@@ -204,15 +213,15 @@ export const useModifiedFaceAnalysis = (
     } finally {
       // Reset analyzing flag after a longer delay to prevent rapid re-analysis
       console.log("[DEBUG-useModifiedFaceAnalysis] Analysis complete, resetting flag in 2 seconds");
-      setTimeout(() => {
+      window.setTimeout(() => {
         analyzingRef.current = false;
         console.log("[DEBUG-useModifiedFaceAnalysis] Analysis flag reset");
       }, 2000); // Increased from 1500ms
     }
   };
   
-  // Method to request an auto-analysis on next render cycle
-  const requestAutoAnalysis = () => {
+  // Method to request an auto-analysis on next render cycle - memoized
+  const requestAutoAnalysis = useCallback(() => {
     console.log("[DEBUG-useModifiedFaceAnalysis] Auto-analysis requested", {
       analyzing: analyzingRef.current,
       count: analysisCountRef.current
@@ -221,7 +230,7 @@ export const useModifiedFaceAnalysis = (
     if (!analyzingRef.current) {
       autoRunRequestedRef.current = true;
     }
-  };
+  }, []);
 
   return {
     facialDifference,

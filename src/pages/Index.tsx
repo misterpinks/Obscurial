@@ -12,8 +12,8 @@ const Index = () => {
     if (window.electron) {
       setBgImagePath(window.electron.getResourcePath('ui/Background.png') || './Background.png');
     } else {
-      // For web, use the regular path
-      setBgImagePath('./src/components/ui/Background.png');
+      // For web, use the public path instead of src path
+      setBgImagePath('./Background.png');
     }
   }, []);
   

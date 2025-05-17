@@ -36,18 +36,20 @@ export const useImageProcessingCore = ({
   const processCountRef = useRef<number>(0);
   const autoAnalyzeRequested = useRef<boolean>(false);
   const isProcessingRef = useRef<boolean>(false);
-  const initializedRef = useRef<boolean>(false);
+  const hasInitialized = useRef<boolean>(false);
   
-  console.log("[DEBUG-useImageProcessingCore] Initializing hook, autoAnalyze:", autoAnalyze);
+  // Prevent console spam - only log once
+  if (!hasInitialized.current) {
+    console.log("[DEBUG-useImageProcessingCore] Initializing hook, autoAnalyze:", autoAnalyze);
+    hasInitialized.current = true;
+  }
   
-  // Prevent initialization loops
+  // Initialize the web worker once
   useEffect(() => {
-    if (initializedRef.current) {
-      return;
+    if (workerRef.current) {
+      return; // Worker already initialized
     }
-    initializedRef.current = true;
     
-    // Initialize the web worker
     console.log("[DEBUG-useImageProcessingCore] Setting up web worker");
     if (isWorkerSupported) {
       try {
@@ -71,7 +73,6 @@ export const useImageProcessingCore = ({
             worker.removeEventListener('message', readyHandler);
             terminateWorker(worker);
             workerRef.current = undefined;
-            initializedRef.current = false;
             console.log('[DEBUG-useImageProcessingCore] Worker terminated on cleanup');
           };
         }
@@ -94,13 +95,13 @@ export const useImageProcessingCore = ({
     });
   }, []);
 
-  // More aggressive debouncing with increased delay
+  // Debounced process function - created once
   const debouncedProcess = useCallback(
     debounce(() => {
       console.log("[DEBUG-useImageProcessingCore] Debounced process triggered");
       processImage();
-    }, 500), // Increased from 350ms to 500ms
-    [] // Empty dependency array to avoid recreation
+    }, 500),
+    [] // Empty dependency array to create only once
   );
   
   // Store processImage implementation in a ref to avoid dependency issues
@@ -115,7 +116,7 @@ export const useImageProcessingCore = ({
     analyzeModifiedImageRef.current = analyzeModifiedImage;
   }, [analyzeModifiedImage]);
   
-  // Wrapper for process image that handles state updates with performance improvements
+  // Stable processImage function
   const processImage = useCallback(() => {
     if (!originalImage) {
       console.log("[DEBUG-useImageProcessingCore] No original image to process");
@@ -131,14 +132,14 @@ export const useImageProcessingCore = ({
     
     // Clear any existing timeout to avoid processing buildup
     if (processingTimeoutRef.current !== null) {
-      clearTimeout(processingTimeoutRef.current);
+      window.clearTimeout(processingTimeoutRef.current);
       processingTimeoutRef.current = null;
       console.log("[DEBUG-useImageProcessingCore] Cleared existing processing timeout");
     }
     
     // Implement rate limiting
     const now = Date.now();
-    if (now - lastProcessingTimeRef.current < 750) { // Increased from 500ms to 750ms
+    if (now - lastProcessingTimeRef.current < 750) {
       if (!processingQueuedRef.current) {
         console.log("[DEBUG-useImageProcessingCore] Processing too frequent, queueing for later");
         processingQueuedRef.current = true;
@@ -148,7 +149,7 @@ export const useImageProcessingCore = ({
           processingQueuedRef.current = false;
           console.log("[DEBUG-useImageProcessingCore] Running delayed processing");
           processImage();
-        }, 800); // Increased from 600ms to 800ms
+        }, 800);
       }
       return;
     }
@@ -182,10 +183,9 @@ export const useImageProcessingCore = ({
         autoAnalyzeRequested.current = false;
         
         // If we have face data, analyze the modified image with a delay
-        // IMPORTANT: Only do this once per processing cycle, only if auto-analyze is enabled,
-        // and limit the frequency
+        // Only if auto-analyze is enabled and limit the frequency
         if (faceDetection && isFaceApiLoaded && autoAnalyze && !processingQueuedRef.current && 
-            processCountRef.current % 7 === 0) { // Only analyze every 7th processing (increased from 5)
+            processCountRef.current % 7 === 0) { // Only analyze every 7th processing
           
           console.log("[DEBUG-useImageProcessingCore] Will analyze on processing count:", processCountRef.current);
           
@@ -199,7 +199,7 @@ export const useImageProcessingCore = ({
               analyzeModifiedImageRef.current();
             }
             processingTimeoutRef.current = null;
-          }, 3000); // Increased delay from 2000ms to 3000ms
+          }, 3000);
         }
       } catch (error) {
         console.error("[DEBUG-useImageProcessingCore] Error processing image:", error);
@@ -207,7 +207,7 @@ export const useImageProcessingCore = ({
         setIsProcessing(false);
         
         // Delay resetting the processing flag to prevent rapid cycling
-        setTimeout(() => {
+        window.setTimeout(() => {
           isProcessingRef.current = false;
           console.log("[DEBUG-useImageProcessingCore] Processing complete, flag reset");
         }, 500);
@@ -220,11 +220,11 @@ export const useImageProcessingCore = ({
           processingTimeoutRef.current = window.setTimeout(() => {
             processImage();
             processingTimeoutRef.current = null;
-          }, 1500); // Increased delay from 1000ms to 1500ms
+          }, 1500);
         }
       }
     });
-  }, [originalImage, scheduleProcessing]); // Minimal dependencies to prevent loops
+  }, [originalImage, scheduleProcessing, autoAnalyze, faceDetection, isFaceApiLoaded]);
 
   return {
     isProcessing,
