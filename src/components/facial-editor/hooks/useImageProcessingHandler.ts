@@ -1,5 +1,5 @@
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { applyFeatureTransformations } from '../utils/transformationEngine';
 import { useImageProcessingCore } from './imageProcessing/useImageProcessingCore';
 import type { FaceDetection } from './types';
@@ -37,8 +37,105 @@ export function useImageProcessingHandler({
   const callbackScheduledRef = useRef<boolean>(false);
   const processingDisabledRef = useRef<boolean>(false);
   const processingLockoutTimeRef = useRef<number>(0);
+  const initializedRef = useRef<boolean>(false);
   
   console.log("[DEBUG-useImageProcessingHandler] Initializing hook, autoAnalyze:", autoAnalyze);
+  
+  // Store callback function in ref to avoid dependency issues
+  const onProcessingCompleteRef = useRef(onProcessingComplete);
+  useEffect(() => {
+    onProcessingCompleteRef.current = onProcessingComplete;
+  }, [onProcessingComplete]);
+  
+  // Fixed processImageImpl function wrapped in a useCallback to prevent re-renders
+  const processImageImpl = useCallback(() => {
+    if (!cleanProcessedCanvasRef.current || !originalImage) return undefined;
+    
+    // Check for processing lockout - helps break any loops
+    const now = Date.now();
+    if (processingDisabledRef.current && now - processingLockoutTimeRef.current < 5000) {
+      console.log("[DEBUG-useImageProcessingHandler] Processing locked out for cooldown");
+      return undefined;
+    }
+    
+    // Reset lockout if it's been long enough
+    if (processingDisabledRef.current && now - processingLockoutTimeRef.current >= 5000) {
+      console.log("[DEBUG-useImageProcessingHandler] Lockout period ended, re-enabling processing");
+      processingDisabledRef.current = false;
+    }
+    
+    console.log("[DEBUG-useImageProcessingHandler] Starting image transformation");
+    const cleanCanvas = cleanProcessedCanvasRef.current;
+    const cleanCtx = cleanCanvas.getContext('2d');
+    if (!cleanCtx) return undefined;
+    
+    // Set canvas dimensions to match image
+    cleanCanvas.width = originalImage.width;
+    cleanCanvas.height = originalImage.height;
+    
+    // Performance optimization: Use higher quality image smoothing
+    cleanCtx.imageSmoothingEnabled = true;
+    cleanCtx.imageSmoothingQuality = 'high';
+    
+    // Apply feature transformations to the clean canvas
+    applyFeatureTransformations({
+      ctx: cleanCtx,
+      originalImage,
+      width: cleanCanvas.width,
+      height: cleanCanvas.height,
+      faceDetection,
+      sliderValues: {},  // This will be populated in the consumer
+      faceEffectOptions,
+      worker: isWorkerReady ? worker : undefined
+    });
+    
+    // Call the processing complete callback if provided - with strict rate limiting
+    if (onProcessingCompleteRef.current && !callbackScheduledRef.current) {
+      const now = Date.now();
+      
+      // Only allow callbacks at most once every 10 seconds (increased from 5 seconds)
+      if (now - lastCallbackTimeRef.current > 10000) {
+        callbackCountRef.current = 0;
+        lastCallbackTimeRef.current = now;
+        callbackScheduledRef.current = true;
+        
+        console.log("[DEBUG-useImageProcessingHandler] Scheduling processing complete callback");
+        
+        // Use longer timeout to prevent immediate reprocessing
+        setTimeout(() => {
+          callbackScheduledRef.current = false;
+          console.log("[DEBUG-useImageProcessingHandler] Invoking processing complete callback");
+          if (onProcessingCompleteRef.current) {
+            onProcessingCompleteRef.current();
+          }
+        }, 3000); // Increased from 2000ms
+      } else {
+        // Additional check to prevent too many callbacks
+        callbackCountRef.current += 1;
+        console.log("[DEBUG-useImageProcessingHandler] Callback attempted too soon, count:", callbackCountRef.current);
+        
+        // If we're getting too many callbacks, disable processing for a while
+        if (callbackCountRef.current > 2) { // Reduced threshold from 3 to 2
+          console.log("[DEBUG-useImageProcessingHandler] Too many processing callbacks, enabling lockout");
+          processingDisabledRef.current = true;
+          processingLockoutTimeRef.current = now;
+          // We'll reset this counter after the lockout period
+        }
+      }
+    }
+    
+    return cleanCanvas;
+  }, [cleanProcessedCanvasRef, originalImage, faceDetection, faceEffectOptions]);
+  
+  // Avoid re-initialization
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    
+    return () => {
+      initializedRef.current = false;
+    };
+  }, []);
   
   // Implementation of the image processing with Web Worker support
   const {
@@ -56,82 +153,7 @@ export function useImageProcessingHandler({
     autoAnalyze,
     lastProcessedValues,
     setLastProcessedValues,
-    processImageImpl: () => {
-      if (!cleanProcessedCanvasRef.current || !originalImage) return undefined;
-      
-      // Check for processing lockout - helps break any loops
-      const now = Date.now();
-      if (processingDisabledRef.current && now - processingLockoutTimeRef.current < 5000) {
-        console.log("[DEBUG-useImageProcessingHandler] Processing locked out for cooldown");
-        return undefined;
-      }
-      
-      // Reset lockout if it's been long enough
-      if (processingDisabledRef.current && now - processingLockoutTimeRef.current >= 5000) {
-        console.log("[DEBUG-useImageProcessingHandler] Lockout period ended, re-enabling processing");
-        processingDisabledRef.current = false;
-      }
-      
-      console.log("[DEBUG-useImageProcessingHandler] Starting image transformation");
-      const cleanCanvas = cleanProcessedCanvasRef.current;
-      const cleanCtx = cleanCanvas.getContext('2d');
-      if (!cleanCtx) return undefined;
-      
-      // Set canvas dimensions to match image
-      cleanCanvas.width = originalImage.width;
-      cleanCanvas.height = originalImage.height;
-      
-      // Performance optimization: Use higher quality image smoothing
-      cleanCtx.imageSmoothingEnabled = true;
-      cleanCtx.imageSmoothingQuality = 'high';
-      
-      // Apply feature transformations to the clean canvas
-      applyFeatureTransformations({
-        ctx: cleanCtx,
-        originalImage,
-        width: cleanCanvas.width,
-        height: cleanCanvas.height,
-        faceDetection,
-        sliderValues: {},  // This will be populated in the consumer
-        faceEffectOptions,
-        worker: isWorkerReady ? worker : undefined
-      });
-      
-      // Call the processing complete callback if provided - with strict rate limiting
-      if (onProcessingComplete && !callbackScheduledRef.current) {
-        const now = Date.now();
-        
-        // Only allow callbacks at most once every 5 seconds (increased from 3 seconds)
-        if (now - lastCallbackTimeRef.current > 5000) {
-          callbackCountRef.current = 0;
-          lastCallbackTimeRef.current = now;
-          callbackScheduledRef.current = true;
-          
-          console.log("[DEBUG-useImageProcessingHandler] Scheduling processing complete callback");
-          
-          // Use longer timeout to prevent immediate reprocessing
-          setTimeout(() => {
-            callbackScheduledRef.current = false;
-            console.log("[DEBUG-useImageProcessingHandler] Invoking processing complete callback");
-            onProcessingComplete();
-          }, 2000); // Increased from 1500ms
-        } else {
-          // Additional check to prevent too many callbacks
-          callbackCountRef.current += 1;
-          console.log("[DEBUG-useImageProcessingHandler] Callback attempted too soon, count:", callbackCountRef.current);
-          
-          // If we're getting too many callbacks, disable processing for a while
-          if (callbackCountRef.current > 3) { // Reduced threshold from 5 to 3
-            console.log("[DEBUG-useImageProcessingHandler] Too many processing callbacks, enabling lockout");
-            processingDisabledRef.current = true;
-            processingLockoutTimeRef.current = now;
-            // We'll reset this counter after the 5-second lockout period
-          }
-        }
-      }
-      
-      return cleanCanvas;
-    },
+    processImageImpl,
     analyzeModifiedImage,
     isFaceApiLoaded,
     faceDetection

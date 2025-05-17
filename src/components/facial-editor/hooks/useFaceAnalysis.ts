@@ -35,6 +35,7 @@ export const useFaceAnalysis = ({
   const analysisInProgressRef = useRef(false);
   const processingCallbackInvokedRef = useRef(false);
   const autoAnalyzeCooldownRef = useRef(false);
+  const initializedRef = useRef(false);
   
   console.log("[DEBUG-useFaceAnalysis] Initializing hook, autoAnalyze:", autoAnalyze);
   
@@ -69,7 +70,17 @@ export const useFaceAnalysis = ({
     toast
   );
   
-  // Prevent infinite analysis loops
+  // Set initialization flag to prevent re-initialization loops
+  useEffect(() => {
+    initializedRef.current = true;
+    
+    // Cleanup function
+    return () => {
+      initializedRef.current = false;
+    };
+  }, []);
+  
+  // Prevent infinite analysis loops - removed dependencies to avoid re-triggering
   useEffect(() => {
     console.log("[DEBUG-useFaceAnalysis] Analysis attempts updated:", analysisAttempts);
     if (analysisAttempts > 2) {
@@ -155,7 +166,7 @@ export const useFaceAnalysis = ({
         console.log("[DEBUG-useFaceAnalysis] Analysis attempted too soon after previous analysis, waiting");
       }
     }
-  }, [autoAnalyze, requestAutoAnalysis, lastAnalysisTime]);
+  }, [autoAnalyze, requestAutoAnalysis]);
 
   return { 
     isAnalyzing: isAnalyzing || isAnalyzingModified, 

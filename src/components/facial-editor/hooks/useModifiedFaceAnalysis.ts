@@ -18,13 +18,15 @@ export const useModifiedFaceAnalysis = (
   const analysisCountRef = useRef<number>(0);
   const analysisTimerRef = useRef<number | null>(null);
   const lastAnalysisTimeRef = useRef<number>(0);
+  const originalDescriptorRef = useRef<Float32Array | null>(null);
   
   console.log("[DEBUG-useModifiedFaceAnalysis] Initializing hook");
   
-  // Reset analysis counter when face detection changes
+  // Store the original descriptor in a ref to avoid dependency issues
   useEffect(() => {
-    if (faceDetection?.original) {
-      console.log("[DEBUG-useModifiedFaceAnalysis] Face detection original changed, resetting analysis count");
+    if (faceDetection?.original && !originalDescriptorRef.current) {
+      console.log("[DEBUG-useModifiedFaceAnalysis] Face detection original changed, storing in ref");
+      originalDescriptorRef.current = faceDetection.original;
       analysisCountRef.current = 0;
     }
   }, [faceDetection?.original]);
@@ -41,7 +43,7 @@ export const useModifiedFaceAnalysis = (
   }, []);
   
   // Fix endless loop by only triggering analysis when explicitly requested
-  // or when faceDetection.original changes but not faceDetection.modified
+  // IMPORTANT: We removed faceDetection from the dependencies array
   useEffect(() => {
     console.log("[DEBUG-useModifiedFaceAnalysis] Auto-run effect triggered", {
       autoRunRequested: autoRunRequestedRef.current,
@@ -87,7 +89,7 @@ export const useModifiedFaceAnalysis = (
         autoRunRequestedRef.current = false;
       }
     }
-  }, [faceDetection]);
+  }, [autoRunRequestedRef.current]); // Only depend on the ref value changes
 
   const analyzeModifiedImage = async () => {
     // Make sure we have all required resources
@@ -148,13 +150,14 @@ export const useModifiedFaceAnalysis = (
         console.log("[DEBUG-useModifiedFaceAnalysis] Updated face detection with modified descriptor");
         
         // Calculate similarity between original and modified faces
-        if (faceDetection.original) {
+        // Use the stored original descriptor from ref to avoid dependency issues
+        if (originalDescriptorRef.current) {
           // Enhanced facial difference calculation
           // The euclideanDistance typically returns values between 0-1 for similar faces
           // and larger values for different faces. We need to enhance this difference
           // to better reflect visual changes
           const distance = faceapi.euclideanDistance(
-            faceDetection.original, 
+            originalDescriptorRef.current, 
             detections.descriptor
           );
           
