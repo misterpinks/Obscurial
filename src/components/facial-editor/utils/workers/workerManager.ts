@@ -15,10 +15,17 @@ export const createWorker = (workerUrl: string): Worker | undefined => {
   }
   
   try {
-    // For Vite bundling, we need to use URL constructor and "new Worker" pattern
-    // rather than import statements
-    const worker = new Worker(workerUrl, { type: 'classic' });
+    // For Vite bundling, we need to use new URL() and import.meta.url pattern
+    // This ensures the worker is properly bundled by Vite
+    const resolvedWorkerUrl = new URL(workerUrl, import.meta.url).href;
+    const worker = new Worker(resolvedWorkerUrl, { type: 'classic' });
     console.log('Web worker created successfully');
+    
+    // Add error handler
+    worker.addEventListener('error', (error) => {
+      console.error('Web worker error:', error);
+    });
+    
     return worker;
   } catch (error) {
     console.error('Failed to create Web Worker:', error);
@@ -83,18 +90,28 @@ export const processImageWithWorker = async (
         console.log(`Worker processed image in ${processingTime.toFixed(2)}ms`);
         
         // Create a new ImageData object from the processed data
-        const result = new ImageData(
-          new Uint8ClampedArray(processedData),
-          width,
-          height
-        );
-        
-        resolve(result);
+        try {
+          const result = new ImageData(
+            new Uint8ClampedArray(processedData),
+            width,
+            height
+          );
+          
+          resolve(result);
+        } catch (error) {
+          console.error('Error creating ImageData from worker result:', error);
+          reject(error);
+        }
+      } else if (event.data.status === 'ready') {
+        console.log('[DEBUG-useImageProcessingCore] Image processing worker ready');
+        // Just a ready message, don't resolve/reject
+      } else {
+        reject(new Error('Invalid response from worker'));
       }
     };
     
     // Listen for messages from the worker
-    worker.addEventListener('message', messageHandler, { once: true });
+    worker.addEventListener('message', messageHandler);
     
     // Send data to worker for processing
     worker.postMessage({
@@ -114,4 +131,30 @@ export const terminateWorker = (worker: Worker | undefined): void => {
   if (worker) {
     worker.terminate();
   }
+};
+
+// Fallback function when web workers aren't supported
+export const processImageInMainThread = (
+  imageData: ImageData,
+  params: any
+): ImageData => {
+  const width = imageData.width;
+  const height = imageData.height;
+  
+  // Create a copy of the source data
+  const resultData = new Uint8ClampedArray(imageData.data);
+  
+  // Apply simple noise (a minimal implementation)
+  if (params.noiseLevel && params.noiseLevel > 0) {
+    const noiseLevel = params.noiseLevel;
+    for (let i = 0; i < resultData.length; i += 4) {
+      // Apply to RGB but not alpha
+      for (let j = 0; j < 3; j++) {
+        const noise = (Math.random() - 0.5) * noiseLevel * 2;
+        resultData[i + j] = Math.min(255, Math.max(0, resultData[i + j] + noise));
+      }
+    }
+  }
+  
+  return new ImageData(resultData, width, height);
 };

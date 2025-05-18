@@ -1,53 +1,64 @@
 
-import { useRef, useState, useEffect } from 'react';
-import { createWorker, terminateWorker, isWorkerSupported } from '../../utils/workers/workerManager';
+import { useState, useEffect, useRef } from 'react';
+import { createWorker, isWorkerSupported } from '../../utils/workers/workerManager';
 
 export const useWorkerSetup = () => {
-  const workerRef = useRef<Worker | undefined>(undefined);
   const [isWorkerReady, setIsWorkerReady] = useState(false);
-  
-  // Initialize the web worker once
+  const workerRef = useRef<Worker | undefined>(undefined);
+
   useEffect(() => {
-    if (workerRef.current) {
-      return; // Worker already initialized
-    }
+    console.log('[DEBUG-useImageProcessingCore] Setting up web worker');
     
-    console.log("[DEBUG-useImageProcessingCore] Setting up web worker");
-    if (isWorkerSupported) {
-      try {
-        // Create worker from the worker file URL
-        const workerUrl = new URL('../../utils/workers/imageProcessingWorker.ts', import.meta.url);
-        const worker = createWorker(workerUrl.href);
-        
-        if (worker) {
-          // Listen for the ready message
-          const readyHandler = (event: MessageEvent) => {
-            if (event.data?.status === 'ready') {
-              console.log('[DEBUG-useImageProcessingCore] Image processing worker ready');
-              setIsWorkerReady(true);
-            }
-          };
-          
-          worker.addEventListener('message', readyHandler);
-          workerRef.current = worker;
-          
-          return () => {
-            worker.removeEventListener('message', readyHandler);
-            terminateWorker(worker);
-            workerRef.current = undefined;
-            console.log('[DEBUG-useImageProcessingCore] Worker terminated on cleanup');
-          };
-        }
-      } catch (error) {
-        console.error('[DEBUG-useImageProcessingCore] Failed to initialize worker:', error);
-      }
-    } else {
-      console.log('[DEBUG-useImageProcessingCore] Web Workers not supported, using main thread processing');
+    // Only set up once
+    if (workerRef.current) return;
+    
+    if (!isWorkerSupported) {
+      console.warn('Web Workers not supported in this browser');
+      return;
     }
-  }, []); // Empty dependency array to run only once
-  
-  return {
-    worker: workerRef.current,
-    isWorkerReady
+
+    try {
+      // Create worker with appropriate URL for Vite
+      const worker = createWorker('./src/components/facial-editor/utils/workers/imageProcessingWorker.ts');
+      
+      if (worker) {
+        // Listen for the ready message
+        const messageHandler = (event: MessageEvent) => {
+          if (event.data && event.data.status === 'ready') {
+            console.log('[DEBUG-useImageProcessingCore] Image processing worker ready');
+            setIsWorkerReady(true);
+          }
+        };
+        
+        // Listen for errors
+        const errorHandler = (error: ErrorEvent) => {
+          console.error('Worker error:', error);
+          setIsWorkerReady(false);
+        };
+        
+        worker.addEventListener('message', messageHandler);
+        worker.addEventListener('error', errorHandler);
+        
+        workerRef.current = worker;
+        
+        return () => {
+          // Clean up event listeners
+          worker.removeEventListener('message', messageHandler);
+          worker.removeEventListener('error', errorHandler);
+          
+          // Terminate worker
+          worker.terminate();
+          workerRef.current = undefined;
+          setIsWorkerReady(false);
+        };
+      }
+    } catch (error) {
+      console.error('Failed to initialize web worker:', error);
+    }
+  }, []);
+
+  return { 
+    worker: workerRef.current, 
+    isWorkerReady 
   };
 };

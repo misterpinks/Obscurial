@@ -12,4 +12,22 @@ interface ProcessedResult {
   [key: string]: any;
 }
 
-export {};
+interface ImageDataMessage {
+  command: 'process';
+  originalImageData: {
+    data: Uint8ClampedArray;
+    width: number;
+    height: number;
+  };
+  params?: any;
+}
+
+interface ProcessResponse {
+  processedData: Uint8ClampedArray;
+  width: number;
+  height: number;
+  processingTime: number;
+}
+
+// Note: This is just for TypeScript - it doesn't actually get used in the worker
+// Workers use standard DOM APIs, not ES modules
