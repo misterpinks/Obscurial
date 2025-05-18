@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import * as faceapi from 'face-api.js';
 import { createImageFromCanvas } from '../utils/canvasUtils';
 import { FaceDetection } from './types';
