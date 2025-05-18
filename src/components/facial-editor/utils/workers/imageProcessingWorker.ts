@@ -1,13 +1,11 @@
 
 // This file runs in a Web Worker context
-let isReady = false;
 
 // Send a ready message back to the main thread
 self.postMessage({ status: 'ready' });
-isReady = true;
 
 // Listen for messages from the main thread
-self.addEventListener('message', (event) => {
+self.addEventListener('message', (event: MessageEvent) => {
   const { type, data } = event.data;
   
   // Process based on message type
@@ -24,7 +22,7 @@ self.addEventListener('message', (event) => {
 });
 
 // Process image pixels (sample function)
-function processPixels(data) {
+function processPixels(data: any) {
   const { imageData, params } = data;
   
   // Return processed data

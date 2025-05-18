@@ -2,6 +2,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { debounce } from 'lodash';
 import { createWorker, processImageWithWorker, terminateWorker, isWorkerSupported } from '../../utils/workers/workerManager';
+import { useWorkerSetup } from './useWorkerSetup';
+import { useProcessingQueue } from './useProcessingQueue';
 
 interface UseImageProcessingCoreProps {
   originalImage: HTMLImageElement | null;
@@ -28,12 +30,6 @@ export const useImageProcessingCore = ({
 }: UseImageProcessingCoreProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cleanProcessedImageURL, setCleanProcessedImageURL] = useState<string>("");
-  const processingQueuedRef = useRef(false);
-  const workerRef = useRef<Worker | undefined>(undefined);
-  const [isWorkerReady, setIsWorkerReady] = useState(false);
-  const processingTimeoutRef = useRef<number | null>(null);
-  const lastProcessingTimeRef = useRef<number>(0);
-  const processCountRef = useRef<number>(0);
   const autoAnalyzeRequested = useRef<boolean>(false);
   const isProcessingRef = useRef<boolean>(false);
   const hasInitialized = useRef<boolean>(false);
@@ -44,65 +40,17 @@ export const useImageProcessingCore = ({
     hasInitialized.current = true;
   }
   
-  // Initialize the web worker once
-  useEffect(() => {
-    if (workerRef.current) {
-      return; // Worker already initialized
-    }
-    
-    console.log("[DEBUG-useImageProcessingCore] Setting up web worker");
-    if (isWorkerSupported) {
-      try {
-        // Create worker from the worker file URL
-        const workerUrl = new URL('../../utils/workers/imageProcessingWorker.ts', import.meta.url);
-        const worker = createWorker(workerUrl.href);
-        
-        if (worker) {
-          // Listen for the ready message
-          const readyHandler = (event: MessageEvent) => {
-            if (event.data?.status === 'ready') {
-              console.log('[DEBUG-useImageProcessingCore] Image processing worker ready');
-              setIsWorkerReady(true);
-            }
-          };
-          
-          worker.addEventListener('message', readyHandler);
-          workerRef.current = worker;
-          
-          return () => {
-            worker.removeEventListener('message', readyHandler);
-            terminateWorker(worker);
-            workerRef.current = undefined;
-            console.log('[DEBUG-useImageProcessingCore] Worker terminated on cleanup');
-          };
-        }
-      } catch (error) {
-        console.error('[DEBUG-useImageProcessingCore] Failed to initialize worker:', error);
-      }
-    } else {
-      console.log('[DEBUG-useImageProcessingCore] Web Workers not supported, using main thread processing');
-    }
-  }, []); // Empty dependency array to run only once
+  // Initialize worker with custom hook
+  const { worker, isWorkerReady } = useWorkerSetup();
   
-  // Use requestAnimationFrame for smoother UI updates
-  const scheduleProcessing = useCallback((callback: () => void) => {
-    return window.requestAnimationFrame(() => {
-      try {
-        callback();
-      } catch (error) {
-        console.error("[DEBUG-useImageProcessingCore] Error in scheduled processing:", error);
-      }
-    });
-  }, []);
-
-  // Debounced process function - created once
-  const debouncedProcess = useCallback(
-    debounce(() => {
-      console.log("[DEBUG-useImageProcessingCore] Debounced process triggered");
-      processImage();
-    }, 500),
-    [] // Empty dependency array to create only once
-  );
+  // Use a separate hook for processing queue management
+  const { 
+    processingQueued,
+    setProcessingQueued,
+    scheduleProcessing,
+    addToQueue,
+    clearQueue
+  } = useProcessingQueue();
   
   // Store processImage implementation in a ref to avoid dependency issues
   const processImageImplRef = useRef(processImageImpl);
@@ -116,6 +64,15 @@ export const useImageProcessingCore = ({
     analyzeModifiedImageRef.current = analyzeModifiedImage;
   }, [analyzeModifiedImage]);
   
+  // Debounced process function - created once
+  const debouncedProcess = useCallback(
+    debounce(() => {
+      console.log("[DEBUG-useImageProcessingCore] Debounced process triggered");
+      processImage();
+    }, 500),
+    [] // Empty dependency array to create only once
+  );
+  
   // Stable processImage function
   const processImage = useCallback(() => {
     if (!originalImage) {
@@ -126,42 +83,13 @@ export const useImageProcessingCore = ({
     // If processing is already in progress, queue it and return
     if (isProcessingRef.current) {
       console.log("[DEBUG-useImageProcessingCore] Already processing, queueing request");
-      processingQueuedRef.current = true;
+      addToQueue();
       return;
     }
-    
-    // Clear any existing timeout to avoid processing buildup
-    if (processingTimeoutRef.current !== null) {
-      window.clearTimeout(processingTimeoutRef.current);
-      processingTimeoutRef.current = null;
-      console.log("[DEBUG-useImageProcessingCore] Cleared existing processing timeout");
-    }
-    
-    // Implement rate limiting
-    const now = Date.now();
-    if (now - lastProcessingTimeRef.current < 750) {
-      if (!processingQueuedRef.current) {
-        console.log("[DEBUG-useImageProcessingCore] Processing too frequent, queueing for later");
-        processingQueuedRef.current = true;
-        
-        // Schedule a single delayed processing to batch rapid changes
-        processingTimeoutRef.current = window.setTimeout(() => {
-          processingQueuedRef.current = false;
-          console.log("[DEBUG-useImageProcessingCore] Running delayed processing");
-          processImage();
-        }, 800);
-      }
-      return;
-    }
-    
-    // Track processing time for rate limiting
-    lastProcessingTimeRef.current = now;
-    processCountRef.current += 1;
     
     // Set processing state
     setIsProcessing(true);
     isProcessingRef.current = true;
-    console.log("[DEBUG-useImageProcessingCore] Starting image processing #" + processCountRef.current);
     
     // Use requestAnimationFrame to prevent UI blocking
     scheduleProcessing(() => {
@@ -184,21 +112,16 @@ export const useImageProcessingCore = ({
         
         // If we have face data, analyze the modified image with a delay
         // Only if auto-analyze is enabled and limit the frequency
-        if (faceDetection && isFaceApiLoaded && autoAnalyze && !processingQueuedRef.current && 
-            processCountRef.current % 7 === 0) { // Only analyze every 7th processing
-          
-          console.log("[DEBUG-useImageProcessingCore] Will analyze on processing count:", processCountRef.current);
-          
+        if (faceDetection && isFaceApiLoaded && autoAnalyze && !processingQueued) {
           // Set flag to track that we've requested analysis
           autoAnalyzeRequested.current = true;
           
-          processingTimeoutRef.current = window.setTimeout(() => {
+          setTimeout(() => {
             // Only proceed if we haven't canceled this timer
             if (autoAnalyzeRequested.current) {
               console.log("[DEBUG-useImageProcessingCore] Running delayed analysis after processing");
               analyzeModifiedImageRef.current();
             }
-            processingTimeoutRef.current = null;
           }, 3000);
         }
       } catch (error) {
@@ -207,33 +130,39 @@ export const useImageProcessingCore = ({
         setIsProcessing(false);
         
         // Delay resetting the processing flag to prevent rapid cycling
-        window.setTimeout(() => {
+        setTimeout(() => {
           isProcessingRef.current = false;
           console.log("[DEBUG-useImageProcessingCore] Processing complete, flag reset");
+          
+          // If there was another process requested while this one was running, run it now
+          if (processingQueued) {
+            clearQueue();
+            console.log("[DEBUG-useImageProcessingCore] Processing queued request");
+            // Use a delay before processing the next item
+            setTimeout(processImage, 1000);
+          }
         }, 500);
-        
-        // If there was another process requested while this one was running, run it now
-        // but with a delay to prevent rapid cycling
-        if (processingQueuedRef.current) {
-          processingQueuedRef.current = false;
-          console.log("[DEBUG-useImageProcessingCore] Scheduling queued processing");
-          processingTimeoutRef.current = window.setTimeout(() => {
-            processImage();
-            processingTimeoutRef.current = null;
-          }, 1500);
-        }
       }
     });
-  }, [originalImage, scheduleProcessing, autoAnalyze, faceDetection, isFaceApiLoaded]);
+  }, [
+    originalImage, 
+    scheduleProcessing, 
+    autoAnalyze, 
+    faceDetection, 
+    isFaceApiLoaded, 
+    processingQueued, 
+    addToQueue, 
+    clearQueue
+  ]);
 
   return {
     isProcessing,
     cleanProcessedImageURL,
     processImage,
     debouncedProcess,
-    processingQueued: processingQueuedRef.current,
-    setProcessingQueued: (queued: boolean) => { processingQueuedRef.current = queued; },
-    worker: workerRef.current,
+    processingQueued,
+    setProcessingQueued,
+    worker,
     isWorkerReady
   };
 };

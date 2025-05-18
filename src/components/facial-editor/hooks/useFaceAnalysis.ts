@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useFaceDetection } from './useFaceDetection';
 import { useModifiedFaceAnalysis } from './useModifiedFaceAnalysis';
 import { FaceDetection } from './types';
+import { useFaceDetectionContext } from '../context/FaceDetectionContext';
 
 // Re-export the FaceDetection type for compatibility
 export type { FaceDetection };
@@ -28,7 +29,6 @@ export const useFaceAnalysis = ({
   const toast = externalToast || internalToastHook.toast;
   
   const [initialProcessingDone, setInitialProcessingDone] = useState(false);
-  const [hasShownNoFaceToast, setHasShownNoFaceToast] = useState(false);
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [lastProcessedValues, setLastProcessedValues] = useState<string>('');
   const [analysisAttempts, setAnalysisAttempts] = useState(0);
@@ -39,21 +39,21 @@ export const useFaceAnalysis = ({
     hasInitialized.current = true;
   }
   
-  // Use the extracted face detection hook
+  // Check if we're using the context API
+  const faceDetectionContext = useFaceDetectionContext();
   const {
     isAnalyzing,
     faceDetection,
     setFaceDetection,
     detectFaces,
     imageDimensions,
+    hasShownNoFaceToast,
+    setHasShownNoFaceToast,
     detectionAttempts
   } = useFaceDetection(
-    isFaceApiLoaded,
     originalImage,
-    setInitialProcessingDone,
-    setHasShownNoFaceToast,
-    hasShownNoFaceToast,
-    toast
+    initialProcessingDone,
+    setInitialProcessingDone
   );
 
   // Use the extracted modified face analysis hook

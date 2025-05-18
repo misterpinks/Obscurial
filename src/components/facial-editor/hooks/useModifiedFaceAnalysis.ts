@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as faceapi from 'face-api.js';
 import { createImageFromCanvas } from '../utils/canvasUtils';
@@ -19,7 +20,9 @@ export const useModifiedFaceAnalysis = (
   const lastAnalysisTimeRef = useRef<number>(0);
   const originalDescriptorRef = useRef<Float32Array | null>(null);
   const hasInitialized = useRef(false);
+  const canvasPrevDimensionsRef = useRef({ width: 0, height: 0 });
   
+  // Set initialized flag once
   if (!hasInitialized.current) {
     console.log("[DEBUG-useModifiedFaceAnalysis] Initializing hook");
     hasInitialized.current = true;
@@ -46,6 +49,9 @@ export const useModifiedFaceAnalysis = (
   
   // Create a stable function for auto-run check to prevent loops
   const checkAutoRunRequest = useCallback(() => {
+    // Only run if the component is still mounted and initialized
+    if (!hasInitialized.current) return;
+    
     console.log("[DEBUG-useModifiedFaceAnalysis] Auto-run effect triggered", {
       autoRunRequested: autoRunRequestedRef.current,
       analyzing: analyzingRef.current,
@@ -94,12 +100,13 @@ export const useModifiedFaceAnalysis = (
   
   // Effect for checking auto-run requests
   useEffect(() => {
+    // Don't trigger unnecessary effects
     if (autoRunRequestedRef.current) {
       checkAutoRunRequest();
     }
-  }, [autoRunRequestedRef.current, checkAutoRunRequest]);
+  }, [checkAutoRunRequest]);
 
-  const analyzeModifiedImage = async () => {
+  const analyzeModifiedImage = useCallback(async () => {
     // Make sure we have all required resources
     if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded) {
       console.log("[DEBUG-useModifiedFaceAnalysis] Required resources for analysis not available:", {
@@ -115,8 +122,17 @@ export const useModifiedFaceAnalysis = (
       return;
     }
     
+    // Check for canvas size changes to avoid unnecessary reprocessing
+    const canvas = cleanProcessedCanvasRef.current;
+    if (canvas.width === canvasPrevDimensionsRef.current.width && 
+        canvas.height === canvasPrevDimensionsRef.current.height) {
+      // Update canvas dimensions
+      canvasPrevDimensionsRef.current.width = canvas.width;
+      canvasPrevDimensionsRef.current.height = canvas.height;
+    }
+    
     // Check if we recently analyzed an identical image
-    const canvasDataUrl = cleanProcessedCanvasRef.current.toDataURL('image/jpeg', 0.1);
+    const canvasDataUrl = canvas.toDataURL('image/jpeg', 0.1);
     if (canvasDataUrl === lastAnalysisRef.current) {
       console.log("[DEBUG-useModifiedFaceAnalysis] Skipping analysis - image hasn't changed");
       return;
@@ -135,7 +151,7 @@ export const useModifiedFaceAnalysis = (
     
     try {
       // Create an image from the canvas for analysis
-      const processedImage = await createImageFromCanvas(cleanProcessedCanvasRef.current);
+      const processedImage = await createImageFromCanvas(canvas);
       
       console.log("[DEBUG-useModifiedFaceAnalysis] Created image from canvas, detecting face...");
       
@@ -161,17 +177,13 @@ export const useModifiedFaceAnalysis = (
         // Use the stored original descriptor from ref to avoid dependency issues
         if (originalDescriptorRef.current) {
           // Enhanced facial difference calculation
-          // The euclideanDistance typically returns values between 0-1 for similar faces
-          // and larger values for different faces. We need to enhance this difference
-          // to better reflect visual changes
           const distance = faceapi.euclideanDistance(
             originalDescriptorRef.current, 
             detections.descriptor
           );
           
           // Apply a non-linear transformation to emphasize differences
-          // More aggressive transformation for better recognition defeat
-          const enhancedDistance = Math.pow(distance * 5, 1.5); // Increased multiplier from 4 to 5
+          const enhancedDistance = Math.pow(distance * 5, 1.5);
           const clampedDistance = Math.min(enhancedDistance, 2.0);
           
           console.log("[DEBUG-useModifiedFaceAnalysis] Raw facial difference:", distance);
@@ -215,9 +227,9 @@ export const useModifiedFaceAnalysis = (
       window.setTimeout(() => {
         analyzingRef.current = false;
         console.log("[DEBUG-useModifiedFaceAnalysis] Analysis flag reset");
-      }, 2000); // Increased from 1500ms
+      }, 2000);
     }
-  };
+  }, [cleanProcessedCanvasRef, isFaceApiLoaded, faceDetection, setFaceDetection, toast]);
   
   // Method to request an auto-analysis on next render cycle - memoized
   const requestAutoAnalysis = useCallback(() => {
@@ -237,4 +249,4 @@ export const useModifiedFaceAnalysis = (
     requestAutoAnalysis,
     isAnalyzing: analyzingRef.current
   };
-};
+}, []);
