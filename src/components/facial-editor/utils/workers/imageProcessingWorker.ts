@@ -1,87 +1,72 @@
 
-// This file runs in a Web Worker context
+// Web Worker for image processing
+// This is a dedicated worker file that will be loaded by the browser
 
-// Send a ready message back to the main thread
-self.postMessage({ status: 'ready' });
-
-// Listen for messages from the main thread
-self.addEventListener('message', (event) => {
-  const { type, data } = event.data;
-  
-  // Process based on message type
-  switch (type) {
-    case 'processPixels':
-      const result = processPixels(data);
-      self.postMessage({ type: 'pixelsProcessed', data: result });
-      break;
-    
-    case 'process':
-      const startTime = performance.now();
-      
-      if (event.data.originalImageData) {
-        const processedData = processImageData(
-          event.data.originalImageData.data,
-          event.data.originalImageData.width,
-          event.data.originalImageData.height,
-          event.data.params || {}
-        );
-        
-        const processingTime = performance.now() - startTime;
-        
-        // Send the processed data back to the main thread
-        self.postMessage({
-          processedData: processedData,
-          width: event.data.originalImageData.width,
-          height: event.data.originalImageData.height,
-          processingTime: processingTime
-        });
-      } else {
-        self.postMessage({ error: 'No image data provided' });
-      }
-      break;
-      
-    default:
-      console.error('Unknown message type:', type);
-      self.postMessage({ type: 'error', message: `Unknown message type: ${type}` });
+// Set up the worker context
+self.onmessage = function(event) {
+  if (event.data.command === 'process') {
+    processImage(event.data);
+  } else if (event.data === 'init') {
+    // Respond that the worker is ready
+    self.postMessage({ status: 'ready' });
   }
-});
+};
 
-// Process image pixels (sample function)
-function processPixels(data) {
-  const { imageData, params } = data;
-  
-  // Return processed data
-  return {
-    processed: true,
-    // Add additional processing results here
-  };
+// Process the image data
+function processImage(data) {
+  try {
+    const startTime = performance.now();
+    
+    // Extract the data from the message
+    const { originalImageData, params } = data;
+    
+    // Create a typed array from the data
+    const width = originalImageData.width;
+    const height = originalImageData.height;
+    
+    // Decode the image data
+    const imageData = new Uint8ClampedArray(originalImageData.data);
+    
+    // Process the image (apply transformations, effects, etc.)
+    // For now, we're just passing it through with minimal processing
+    const processedData = processImageData(imageData, width, height, params);
+    
+    // Calculate processing time
+    const processingTime = performance.now() - startTime;
+    
+    // Send the processed data back to the main thread
+    self.postMessage({
+      processedData: processedData,
+      width: width,
+      height: height,
+      processingTime: processingTime
+    });
+  } catch (error) {
+    // Send error back to main thread
+    self.postMessage({
+      error: 'Processing error: ' + error.message
+    });
+  }
 }
 
-// Process image data with transformations
+// Image processing function - can be expanded with more sophisticated algorithms
 function processImageData(data, width, height, params) {
-  // Create a copy of the image data to avoid mutating the original
-  const processedData = new Uint8ClampedArray(data);
+  // For demonstration, just apply a simple effect (brightness adjustment)
+  // This can be expanded with real processing algorithms
+  const brightness = params?.brightness || 0;
+  const contrast = params?.contrast || 0;
   
-  // Apply specified transformations based on params
-  // Just a simple noise function for now
-  if (params.noiseLevel && params.noiseLevel > 0) {
-    applyNoise(processedData, params.noiseLevel);
+  // Create a copy of the data to modify
+  const processedData = new Uint8ClampedArray(data.length);
+  
+  // Apply brightness and contrast adjustments
+  for (let i = 0; i < data.length; i += 4) {
+    // Simple brightness adjustment
+    processedData[i] = Math.min(255, Math.max(0, data[i] + brightness));         // R
+    processedData[i + 1] = Math.min(255, Math.max(0, data[i + 1] + brightness)); // G
+    processedData[i + 2] = Math.min(255, Math.max(0, data[i + 2] + brightness)); // B
+    processedData[i + 3] = data[i + 3]; // Alpha - keep unchanged
   }
   
   return processedData;
 }
-
-// Apply noise to image data
-function applyNoise(data, level) {
-  const noiseStrength = Math.min(Math.max(level, 0), 50);
-  
-  for (let i = 0; i < data.length; i += 4) {
-    // Skip alpha channel
-    for (let c = 0; c < 3; c++) {
-      const noise = (Math.random() - 0.5) * noiseStrength;
-      data[i + c] = Math.min(255, Math.max(0, data[i + c] + noise));
-    }
-  }
-}
-
-// Web workers don't use ES modules, so we don't need export {}

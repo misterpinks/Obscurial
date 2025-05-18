@@ -52,7 +52,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
       if (!canvas) return false;
       
       try {
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return false;
         
         // Check if the canvas has any non-transparent pixels
