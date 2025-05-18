@@ -15,7 +15,11 @@ export const createWorker = (workerUrl: string): Worker | undefined => {
   }
   
   try {
-    return new Worker(workerUrl);
+    // For Vite bundling, we need to use URL constructor and "new Worker" pattern
+    // rather than import statements
+    const worker = new Worker(workerUrl, { type: 'classic' });
+    console.log('Web worker created successfully');
+    return worker;
   } catch (error) {
     console.error('Failed to create Web Worker:', error);
     return undefined;

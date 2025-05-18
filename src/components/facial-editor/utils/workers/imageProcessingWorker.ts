@@ -5,7 +5,7 @@
 self.postMessage({ status: 'ready' });
 
 // Listen for messages from the main thread
-self.addEventListener('message', (event: MessageEvent) => {
+self.addEventListener('message', (event) => {
   const { type, data } = event.data;
   
   // Process based on message type
@@ -22,7 +22,7 @@ self.addEventListener('message', (event: MessageEvent) => {
 });
 
 // Process image pixels (sample function)
-function processPixels(data: any) {
+function processPixels(data) {
   const { imageData, params } = data;
   
   // Return processed data
@@ -32,5 +32,5 @@ function processPixels(data: any) {
   };
 }
 
-// Ensure TypeScript knows this is a module to avoid global scope issues
-export {};
+// Use this comment instead of export {} to avoid syntax errors
+// Web workers don't use ES modules

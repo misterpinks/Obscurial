@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import PresetSelector from './PresetSelector';
@@ -257,9 +258,15 @@ export const FacialEditorContainer: React.FC<{
     if (originalImage && isFaceApiLoaded && !initialProcessingDone) {
       console.log("Image loaded and API ready, detecting faces");
       // Use a small timeout to ensure the image is fully loaded
-      setTimeout(detectFaces, 100);
+      setTimeout(() => {
+        // Force a direct detection attempt
+        if (detectionAttempts < 2) {
+          console.log("Forcing face detection attempt...");
+          detectFaces();
+        }
+      }, 500);
     }
-  }, [originalImage, isFaceApiLoaded, initialProcessingDone, detectFaces]);
+  }, [originalImage, isFaceApiLoaded, initialProcessingDone, detectFaces, detectionAttempts]);
 
   // Create the preset selector component
   const presetsComponent = (
