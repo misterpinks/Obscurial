@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import PresetSelector from './PresetSelector';
@@ -22,7 +21,11 @@ import {
   useBatchProcessingHandler
 } from './hooks';
 
-const FacialEditorContainer: React.FC = () => {
+// Adding explicit export name to match import in FacialEditor.tsx
+export const FacialEditorContainer: React.FC<{
+  isFaceApiLoaded: boolean;
+  modelsLoadingStatus: 'loading' | 'success' | 'error';
+}> = ({ isFaceApiLoaded, modelsLoadingStatus }) => {
   const { toast } = useToast();
   
   // Use the editor state hook to manage canvas refs and original image
@@ -38,7 +41,7 @@ const FacialEditorContainer: React.FC = () => {
   } = useEditorState();
 
   // Load face models
-  const { isFaceApiLoaded, modelsLoadingStatus } = useFaceApiModels();
+  const { isFaceApiLoaded: faceApiLoaded, modelsLoadingStatus: modelStatus } = useFaceApiModels();
   
   // Sliders with history/undo support
   const {
@@ -232,13 +235,11 @@ const FacialEditorContainer: React.FC = () => {
     processSingleImage
   });
 
-  // Fix for the webcam capture function to return HTMLImageElement as required
+  // Fix for the webcam capture function to properly handle the image
   const handleCaptureFromWebcam = () => {
     const img = captureFromWebcam();
-    if (img) {
-      return img;
-    }
-    return null;
+    // Just return the captured image, it can be null if capture failed
+    return img;
   };
 
   // Display a toast when Web Worker is ready
@@ -332,4 +333,5 @@ const FacialEditorContainer: React.FC = () => {
   );
 };
 
+// Add default export to make the component available both as named and default export
 export default FacialEditorContainer;
