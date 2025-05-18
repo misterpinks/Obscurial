@@ -249,4 +249,4 @@ export const useModifiedFaceAnalysis = (
     requestAutoAnalysis,
     isAnalyzing: analyzingRef.current
   };
-}, []);
+};

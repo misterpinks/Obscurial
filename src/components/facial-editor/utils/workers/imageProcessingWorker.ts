@@ -31,3 +31,6 @@ function processPixels(data: any) {
     // Add additional processing results here
   };
 }
+
+// Ensure TypeScript knows this is a module to avoid global scope issues
+export {};
