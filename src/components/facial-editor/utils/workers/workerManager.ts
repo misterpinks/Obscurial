@@ -1,5 +1,11 @@
-
 // Worker manager that handles the creation and management of web workers
+
+// Define the worker global scope interface
+export interface WorkerGlobalScopeInterface {
+  onmessage: (event: MessageEvent) => void;
+  postMessage: (message: any) => void;
+  importScripts: (...urls: string[]) => void;
+}
 
 // Check if web workers are supported
 export const isWorkerSupported = typeof Worker !== 'undefined';
@@ -47,27 +53,49 @@ export const createWorker = (scriptPath: string): Worker | undefined => {
  * @param worker The worker to use for processing
  * @param imageData The image data to process
  * @param params Additional parameters for processing
+ * @param timeout Optional timeout in milliseconds
  * @returns A promise that resolves with the processed image data
  */
 export const processImageWithWorker = (
   worker: Worker,
   imageData: ImageData,
-  params: any = {}
-): Promise<{ processedData: Uint8ClampedArray; width: number; height: number; processingTime: number }> => {
+  params: any = {},
+  timeout?: number
+): Promise<ImageData> => {
   return new Promise((resolve, reject) => {
     if (!worker) {
       reject(new Error('No worker available'));
       return;
     }
 
+    // Set up timeout if specified
+    let timeoutId: number | undefined;
+    if (timeout) {
+      timeoutId = window.setTimeout(() => {
+        worker.removeEventListener('message', messageHandler);
+        reject(new Error('Worker processing timed out'));
+      }, timeout);
+    }
+
     // Set up a one-time message handler
     const messageHandler = (event: MessageEvent) => {
       worker.removeEventListener('message', messageHandler);
       
+      // Clear timeout if it was set
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
+      
       if (event.data.error) {
         reject(new Error(event.data.error));
       } else {
-        resolve(event.data);
+        // Convert the processed data back to an ImageData object
+        const processedImageData = new ImageData(
+          event.data.processedData,
+          event.data.width,
+          event.data.height
+        );
+        resolve(processedImageData);
       }
     };
     

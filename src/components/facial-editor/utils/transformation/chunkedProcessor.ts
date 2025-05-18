@@ -1,4 +1,3 @@
-
 /**
  * Optimized image processing in chunks for better UI responsiveness
  */
@@ -64,8 +63,7 @@ export const processImageInChunks = async (
         const processedImageData = await processImageWithWorker(
           worker,
           originalData,
-          workerParams,
-          10000 // 10 second timeout
+          workerParams
         );
         
         // Put the processed image data on the canvas
