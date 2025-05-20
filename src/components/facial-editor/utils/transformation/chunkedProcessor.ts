@@ -1,3 +1,4 @@
+
 /**
  * Optimized image processing in chunks for better UI responsiveness
  */
@@ -59,7 +60,7 @@ export const processImageInChunks = async (
       };
       
       try {
-        // Use the worker to process the image
+        // Use the worker to process the image with simplified error handling
         const processedImageData = await processImageWithWorker(
           worker,
           originalData,

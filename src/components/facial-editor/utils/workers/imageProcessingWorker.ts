@@ -44,7 +44,7 @@ function processImage(data) {
   } catch (error) {
     // Send error back to main thread
     self.postMessage({
-      error: 'Processing error: ' + error.message
+      error: 'Processing error: ' + (error.message || 'Unknown error')
     });
   }
 }

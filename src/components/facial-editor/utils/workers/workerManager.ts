@@ -1,3 +1,4 @@
+
 // Worker manager that handles the creation and management of web workers
 
 // Define the worker global scope interface
@@ -22,23 +23,26 @@ export const createWorker = (scriptPath: string): Worker | undefined => {
   }
   
   try {
-    // In development with Vite, use a direct blob URL for the worker
-    const workerScript = `
-      // Importing the worker file
-      importScripts('${window.location.origin}${scriptPath}');
+    // Create a blob URL for the worker in Vite/development environment
+    const workerContent = `
+      // Import the worker script dynamically
+      self.importScripts('${window.location.origin}${scriptPath}');
     `;
     
-    // Create a blob URL from the script
-    const blob = new Blob([workerScript], { type: 'application/javascript' });
-    const worker = new Worker(URL.createObjectURL(blob));
+    // Create a blob with the worker content
+    const blob = new Blob([workerContent], { type: 'application/javascript' });
+    const blobURL = URL.createObjectURL(blob);
     
-    // Initialize the worker
-    worker.postMessage('init');
+    // Create and return the worker
+    const worker = new Worker(blobURL);
     
     // Add error handler
     worker.addEventListener('error', (error) => {
       console.error('Web worker error:', error);
     });
+    
+    // Initialize the worker and send a ready message
+    worker.postMessage('init');
     
     console.log('Web worker created successfully');
     return worker;
@@ -53,14 +57,12 @@ export const createWorker = (scriptPath: string): Worker | undefined => {
  * @param worker The worker to use for processing
  * @param imageData The image data to process
  * @param params Additional parameters for processing
- * @param timeout Optional timeout in milliseconds
  * @returns A promise that resolves with the processed image data
  */
 export const processImageWithWorker = (
   worker: Worker,
   imageData: ImageData,
-  params: any = {},
-  timeout?: number
+  params: any = {}
 ): Promise<ImageData> => {
   return new Promise((resolve, reject) => {
     if (!worker) {
@@ -68,23 +70,9 @@ export const processImageWithWorker = (
       return;
     }
 
-    // Set up timeout if specified
-    let timeoutId: number | undefined;
-    if (timeout) {
-      timeoutId = window.setTimeout(() => {
-        worker.removeEventListener('message', messageHandler);
-        reject(new Error('Worker processing timed out'));
-      }, timeout);
-    }
-
     // Set up a one-time message handler
     const messageHandler = (event: MessageEvent) => {
       worker.removeEventListener('message', messageHandler);
-      
-      // Clear timeout if it was set
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
-      }
       
       if (event.data.error) {
         reject(new Error(event.data.error));

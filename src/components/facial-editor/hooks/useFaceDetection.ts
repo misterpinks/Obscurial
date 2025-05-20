@@ -10,6 +10,7 @@ export const useFaceDetection = (
   const faceDetectionContext = useFaceDetectionContext();
   const detectionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const detectionAttemptRef = useRef<number>(0);
+  const lastDetectionTimeRef = useRef<number>(0);
   
   // Clear any existing timers when component unmounts
   useEffect(() => {
@@ -20,9 +21,17 @@ export const useFaceDetection = (
     };
   }, []);
 
-  // Enhanced face detection with retry logic
+  // Enhanced face detection with retry logic and debouncing
   const enhancedDetectFaces = useCallback(() => {
     if (originalImage && !faceDetectionContext.isAnalyzing) {
+      // Prevent multiple detection requests in quick succession
+      const now = Date.now();
+      if (now - lastDetectionTimeRef.current < 1000 && detectionAttemptRef.current > 0) {
+        console.log("Detection request throttled");
+        return;
+      }
+      
+      lastDetectionTimeRef.current = now;
       console.log(`Starting face detection attempt: ${detectionAttemptRef.current + 1}`);
       console.log(`Image dimensions: ${originalImage.width} x ${originalImage.height}`);
       
@@ -34,6 +43,7 @@ export const useFaceDetection = (
           // If successful, mark processing as complete
           setInitialProcessingDone(true);
           detectionAttemptRef.current = 0; // Reset attempts counter on success
+          console.log("Face detection completed successfully");
         })
         .catch(error => {
           console.error("Face detection error:", error);
@@ -52,10 +62,13 @@ export const useFaceDetection = (
         });
     } else {
       // If we can't detect faces, still mark processing as done so UI doesn't hang
-      setInitialProcessingDone(true);
+      if (!initialProcessingDone) {
+        console.log("Can't detect faces, marking processing as done anyway");
+        setInitialProcessingDone(true);
+      }
       return Promise.resolve();
     }
-  }, [originalImage, faceDetectionContext, setInitialProcessingDone]);
+  }, [originalImage, faceDetectionContext, setInitialProcessingDone, initialProcessingDone]);
 
   // Trigger face detection when image changes but only once
   useEffect(() => {
