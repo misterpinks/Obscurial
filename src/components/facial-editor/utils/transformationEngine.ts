@@ -30,102 +30,132 @@ export const applyFeatureTransformations = ({
   faceEffectOptions = { effectType: 'none', effectIntensity: 0 },
   worker
 }: TransformationParams): void => {
-  // This is a placeholder implementation
-  // For now, just draw the original image
-  ctx.clearRect(0, 0, width, height);
+  console.log("Applying feature transformations");
   
   // Set canvas dimensions to match image
   ctx.canvas.width = width;
   ctx.canvas.height = height;
   
-  // Draw original to canvas (this ensures we at least see something)
+  // Draw original to canvas first (as a base)
   ctx.drawImage(originalImage, 0, 0);
 
-  // If there's no face detection or slider values, just return the original
-  if (!faceDetection && Object.keys(sliderValues).length === 0) {
-    return;
-  }
-
-  try {
-    // Get image data for processing
-    const imageData = ctx.getImageData(0, 0, width, height);
-    
-    // Try to use the worker if available, otherwise process in main thread
-    if (worker) {
-      console.log("Using worker for image processing");
+  // Try to use the worker if available, otherwise process in main thread
+  if (worker) {
+    try {
+      console.log("Using worker for image processing with values:", sliderValues);
       
-      // Define a timeout for worker processing to prevent infinite waiting
+      // Get image data for processing
+      const imageData = ctx.getImageData(0, 0, width, height);
+      
+      // Define a timeout for worker processing
       const timeout = 5000; // 5 seconds
+      let timeoutId: number | null = null;
       
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Worker processing timed out')), timeout);
-      });
-      
-      // Create worker processing promise
-      const workerPromise = new Promise((resolve, reject) => {
-        // Set up one-time message handler
-        const onMessage = (e) => {
-          worker.removeEventListener('message', onMessage);
+      // Set up one-time message handler
+      const onMessage = (e: MessageEvent) => {
+        // Clear the timeout
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+        }
+        
+        worker.removeEventListener('message', onMessage);
+        
+        if (e.data.error) {
+          console.error("Worker processing error:", e.data.error);
+          // No need to redraw - we already drew the original image
+        } else if (e.data.processedData) {
+          console.log("Worker processing completed in", e.data.processingTime, "ms");
           
-          if (e.data.error) {
-            reject(new Error(e.data.error));
-          } else if (e.data.processedData) {
+          try {
+            // Create a new image data object
             const processedImageData = new ImageData(
               e.data.processedData,
-              width,
-              height
+              e.data.width,
+              e.data.height
             );
-            resolve(processedImageData);
-          } else {
-            reject(new Error('Invalid response from worker'));
+            
+            // Put the processed image data to the canvas
+            ctx.putImageData(processedImageData, 0, 0);
+            console.log("Successfully applied processed image to canvas");
+          } catch (err) {
+            console.error("Error applying processed image to canvas:", err);
           }
-        };
-        
-        // Listen for the response
-        worker.addEventListener('message', onMessage);
-        
-        // Send the image data to the worker
-        worker.postMessage({
-          command: 'process',
-          originalImageData: {
-            data: imageData.data,
-            width,
-            height
-          },
-          params: {
-            sliderValues,
-            faceDetection: faceDetection ? {
-              landmarks: faceDetection.landmarks ? true : false,
-              detection: faceDetection.detection ? {
-                box: faceDetection.detection.box
-              } : null
-            } : null,
-            faceEffectOptions
-          }
-        });
-      });
+        }
+      };
       
-      // Race the worker promise against the timeout
-      Promise.race([workerPromise, timeoutPromise])
-        .then((processedData: any) => {
-          ctx.putImageData(processedData, 0, 0);
-          console.log("Worker processing completed successfully");
-        })
-        .catch(err => {
-          console.error("Worker processing failed:", err);
-          // Fall back to simple rendering on error
-          ctx.drawImage(originalImage, 0, 0);
-        });
-    } else {
-      // Process in the main thread (fallback)
-      console.log("No worker available, processing in main thread");
-      // Just draw the original image for now
-      ctx.putImageData(imageData, 0, 0);
+      // Listen for the response
+      worker.addEventListener('message', onMessage);
+      
+      // Set up timeout to handle worker not responding
+      timeoutId = window.setTimeout(() => {
+        console.warn("Worker processing timed out");
+        worker.removeEventListener('message', onMessage);
+      }, timeout);
+      
+      // Send the image data to the worker
+      worker.postMessage({
+        command: 'process',
+        originalImageData: {
+          data: imageData.data,
+          width,
+          height
+        },
+        params: {
+          sliderValues,
+          faceDetection: faceDetection ? {
+            landmarks: faceDetection.landmarks ? true : false,
+            detection: faceDetection.detection ? {
+              box: faceDetection.detection.box
+            } : null
+          } : null,
+          faceEffectOptions
+        }
+      });
+    } catch (error) {
+      console.error("Error setting up worker:", error);
+      // Process in main thread as fallback
+      applyBasicTransformations(ctx, originalImage, sliderValues);
     }
-  } catch (error) {
-    console.error("Error in transformation engine:", error);
-    // Fallback to original image in case of error
-    ctx.drawImage(originalImage, 0, 0);
+  } else {
+    console.log("No worker available, processing in main thread");
+    // Apply basic transformations in the main thread
+    applyBasicTransformations(ctx, originalImage, sliderValues);
   }
 };
+
+// Apply very basic transformations in the main thread (fallback)
+function applyBasicTransformations(
+  ctx: CanvasRenderingContext2D, 
+  originalImage: HTMLImageElement,
+  sliderValues: Record<string, number>
+) {
+  // Get current canvas size
+  const width = ctx.canvas.width;
+  const height = ctx.canvas.height;
+  
+  // Just draw the original image first
+  ctx.drawImage(originalImage, 0, 0);
+  
+  // Only apply filters if we have slider values
+  if (Object.keys(sliderValues).length > 0) {
+    try {
+      // Apply simple CSS filters for quick visualization
+      const brightness = 1 + (sliderValues.brightness || 0) / 100;
+      const contrast = 1 + (sliderValues.contrast || 0) / 100;
+      const saturation = 1 + (sliderValues.saturation || 0) / 100;
+      const blur = (sliderValues.blur || 0) / 10;
+      
+      // Apply filters using CSS filter
+      ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation}) blur(${blur}px)`;
+      
+      // Redraw with filters
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(originalImage, 0, 0);
+      
+      // Reset filter
+      ctx.filter = 'none';
+    } catch (error) {
+      console.error("Error applying basic transformations:", error);
+    }
+  }
+}

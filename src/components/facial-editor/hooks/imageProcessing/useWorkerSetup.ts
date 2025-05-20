@@ -1,86 +1,59 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { createWorker, isWorkerSupported } from '../../utils/workers/workerManager';
 
 export const useWorkerSetup = () => {
   const [isWorkerReady, setIsWorkerReady] = useState(false);
-  const workerRef = useRef<Worker | undefined>(undefined);
-  const errorCountRef = useRef(0);
-  const maxRetries = 3;
+  const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
-    console.log('[DEBUG-useImageProcessingCore] Setting up web worker');
-    
-    // Only set up once
-    if (workerRef.current) return;
-    
-    if (!isWorkerSupported) {
-      console.warn('Web Workers not supported in this browser');
+    // Check if the Worker API is available
+    if (typeof Worker === 'undefined') {
+      console.log('Web Workers are not supported in this environment');
       return;
     }
 
     try {
-      // Create worker with appropriate URL for the environment
-      const workerPath = '/src/components/facial-editor/utils/workers/imageProcessingWorker.ts';
-      const worker = createWorker(workerPath);
+      // Create worker
+      console.log('Creating web worker for image processing...');
       
-      if (worker) {
-        // Listen for the ready message
-        const messageHandler = (event: MessageEvent) => {
-          if (event.data && event.data.status === 'ready') {
-            console.log('[DEBUG-useImageProcessingCore] Image processing worker ready');
-            setIsWorkerReady(true);
-            errorCountRef.current = 0; // Reset error count on success
-          }
-        };
-        
-        // Listen for errors
-        const errorHandler = (error: ErrorEvent) => {
-          console.error('Worker error:', error);
-          errorCountRef.current += 1;
-          
-          if (errorCountRef.current < maxRetries) {
-            console.log(`Retrying worker setup (attempt ${errorCountRef.current + 1} of ${maxRetries})`);
-            // Wait a bit before retrying
-            setTimeout(() => {
-              if (worker) {
-                worker.postMessage('init');
-              }
-            }, 1000);
-          } else {
-            setIsWorkerReady(false);
-            console.error('Max worker retry attempts reached. Processing will continue without worker.');
-          }
-        };
-        
-        worker.addEventListener('message', messageHandler);
-        worker.addEventListener('error', errorHandler);
-        
-        workerRef.current = worker;
-        
-        return () => {
-          // Clean up event listeners
-          worker.removeEventListener('message', messageHandler);
-          worker.removeEventListener('error', errorHandler);
-          
-          // Terminate worker
-          worker.terminate();
-          workerRef.current = undefined;
-          setIsWorkerReady(false);
-        };
-      }
+      // Create a new worker
+      const worker = new Worker(new URL('../../utils/workers/imageProcessingWorker.ts', import.meta.url), { type: 'module' });
+      
+      // Set up message handler
+      worker.onmessage = (event) => {
+        if (event.data.status === 'ready') {
+          console.log('Image processing worker ready');
+          setIsWorkerReady(true);
+        }
+      };
+      
+      // Set up error handler
+      worker.onerror = (error) => {
+        console.error('Error in image processing worker:', error);
+        setIsWorkerReady(false);
+      };
+      
+      // Initialize the worker
+      worker.postMessage('init');
+      
+      // Store the worker in the ref
+      workerRef.current = worker;
+      
+      // Clean up the worker when component unmounts
+      return () => {
+        console.log('Terminating image processing worker');
+        worker.terminate();
+        setIsWorkerReady(false);
+        workerRef.current = null;
+      };
     } catch (error) {
-      console.error('Failed to initialize web worker:', error);
-      // Continue without worker support
+      console.error('Failed to create image processing worker:', error);
       setIsWorkerReady(false);
     }
   }, []);
 
-  // Provide a safe way to use the worker, falling back to no worker if needed
-  const safeWorker = isWorkerReady ? workerRef.current : undefined;
-
-  return { 
-    worker: safeWorker, 
-    isWorkerReady 
+  return {
+    worker: workerRef.current,
+    isWorkerReady
   };
 };
