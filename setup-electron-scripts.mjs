@@ -49,7 +49,7 @@ const electronBuildScript = packageJson.scripts.build.includes('ELECTRON_RUN=tru
   ? packageJson.scripts.build 
   : `cross-env ELECTRON_RUN=true ${packageJson.scripts.build}`;
 
-// Add the Electron-specific scripts
+// Add the Electron-specific scripts with --no-rebuild flag to skip native dependencies
 packageJson.scripts = {
   ...packageJson.scripts,
   "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"npm run electron:start\"",
