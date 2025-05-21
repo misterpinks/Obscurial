@@ -34,12 +34,13 @@ function processImage(data) {
     const processingTime = performance.now() - startTime;
     
     // Send the processed data back to the main thread
+    // Fix the TypeScript error by using the correct overload format
     self.postMessage({
       processedData: processedData,
       width: width,
       height: height,
       processingTime: processingTime
-    }, [processedData.buffer]); // Transfer the buffer for better performance
+    }, [processedData.buffer]); // Use transferable objects for better performance
   } catch (error) {
     // Send error back to main thread
     self.postMessage({

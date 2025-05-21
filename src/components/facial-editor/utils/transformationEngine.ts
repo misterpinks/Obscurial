@@ -42,7 +42,7 @@ export const applyFeatureTransformations = ({
   // Check if we need to do any processing at all
   const needsProcessing = Object.keys(sliderValues).some(key => sliderValues[key] !== 0);
   
-  // If no slider values are set, just return with the original image
+  // If no slider values are set and no effects are applied, just return with the original image
   if (!needsProcessing && faceEffectOptions.effectType === 'none') {
     return;
   }
@@ -55,8 +55,8 @@ export const applyFeatureTransformations = ({
       // Get image data for processing
       const imageData = ctx.getImageData(0, 0, width, height);
       
-      // Define a timeout for worker processing
-      const timeout = 5000; // 5 seconds
+      // Define a timeout for worker processing - increased to prevent hangs
+      const timeout = 8000; // 8 seconds
       let timeoutId: number | null = null;
       
       // Set up one-time message handler
@@ -87,6 +87,8 @@ export const applyFeatureTransformations = ({
             console.log("Successfully applied processed image to canvas");
           } catch (err) {
             console.error("Error applying processed image to canvas:", err);
+            // On error, ensure we have at least the original image displayed
+            ctx.drawImage(originalImage, 0, 0);
           }
         }
       };
@@ -96,8 +98,10 @@ export const applyFeatureTransformations = ({
       
       // Set up timeout to handle worker not responding
       timeoutId = window.setTimeout(() => {
-        console.warn("Worker processing timed out");
+        console.warn("Worker processing timed out, falling back to main thread");
         worker.removeEventListener('message', onMessage);
+        // Apply basic transformations as fallback
+        applyBasicTransformations(ctx, originalImage, sliderValues);
       }, timeout);
       
       // Send the image data to the worker
@@ -164,6 +168,8 @@ function applyBasicTransformations(
       ctx.filter = 'none';
     } catch (error) {
       console.error("Error applying basic transformations:", error);
+      // Ensure we still have the original image
+      ctx.drawImage(originalImage, 0, 0);
     }
   }
 }
