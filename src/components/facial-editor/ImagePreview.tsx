@@ -45,6 +45,25 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
   const [isShowingCanvas, setIsShowingCanvas] = useState(false);
   const [canvasCheckTimer, setCanvasCheckTimer] = useState<number | null>(null);
+  const wheelEvtOpts = useRef<AddEventListenerOptions>({ passive: false });
+
+  // Add wheel event listener with non-passive option
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !enableZoom) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      setScale(prevScale => Math.min(Math.max(prevScale + delta, 0.5), 3));
+    };
+
+    canvas.addEventListener('wheel', handleWheel, wheelEvtOpts.current);
+    
+    return () => {
+      canvas.removeEventListener('wheel', handleWheel, wheelEvtOpts.current);
+    };
+  }, [canvasRef, enableZoom]);
 
   // Check if the canvas has content - with improved checking
   useEffect(() => {
@@ -136,15 +155,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
     } catch (e) {
       console.error("Error in checkCanvasContent:", e);
       setIsShowingCanvas(!!originalImage);
-    }
-  };
-
-  // Handle zooming with mouse wheel
-  const handleWheel = (e: React.WheelEvent) => {
-    if (enableZoom) {
-      e.preventDefault();
-      const delta = e.deltaY < 0 ? 0.1 : -0.1;
-      setScale(prevScale => Math.min(Math.max(prevScale + delta, 0.5), 3));
     }
   };
 
@@ -331,7 +341,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           style={{
             transform: `scale(${scale})`,
           }}
-          onWheel={enableZoom ? handleWheel : undefined}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
