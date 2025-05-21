@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Upload, ImageIcon } from "lucide-react";
-import EditorContent from './EditorContent';
+import { EditorContent } from './editor-content'; // Updated import path
 import ImageUploader from './ImageUploader';
 import WebcamCapture from './WebcamCapture';
 import FacialRecognitionResources from './FacialRecognitionResources';
