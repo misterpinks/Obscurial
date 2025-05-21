@@ -32,6 +32,7 @@ export const useFaceAnalysis = ({
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [lastProcessedValues, setLastProcessedValues] = useState<string>('');
   const [analysisAttempts, setAnalysisAttempts] = useState(0);
+  const [analysisState, setAnalysisState] = useState<'idle' | 'detecting' | 'analyzing'>('idle');
   
   // Add console log only during first initialization
   if (!hasInitialized.current) {
@@ -59,7 +60,7 @@ export const useFaceAnalysis = ({
   // Use the extracted modified face analysis hook
   const {
     facialDifference,
-    analyzeModifiedImage,
+    analyzeModifiedImage: originalAnalyzeModifiedImage,
     requestAutoAnalysis,
     isAnalyzing: isAnalyzingModified
   } = useModifiedFaceAnalysis(
@@ -69,6 +70,26 @@ export const useFaceAnalysis = ({
     setFaceDetection,
     toast
   );
+  
+  // Wrap analyzeModifiedImage to add state management
+  const analyzeModifiedImage = useCallback(() => {
+    // Only allow analysis if we're not already analyzing
+    if (analysisState !== 'idle') {
+      console.log("[DEBUG-useFaceAnalysis] Analysis already in progress, skipping");
+      return;
+    }
+    
+    // Set state to analyzing
+    setAnalysisState('analyzing');
+    
+    // Call the original function
+    originalAnalyzeModifiedImage();
+    
+    // Set a timeout to reset the state after a while
+    setTimeout(() => {
+      setAnalysisState('idle');
+    }, 5000);
+  }, [analysisState, originalAnalyzeModifiedImage]);
   
   // Only log when analysis attempts change, not on every render
   useEffect(() => {
@@ -92,11 +113,11 @@ export const useFaceAnalysis = ({
   // Processing complete callback with proper memoization and state tracking
   const onProcessingComplete = useCallback(() => {
     // Implement strict rate limiting for processing callback
-    if (autoAnalyze) {
+    if (autoAnalyze && analysisState === 'idle') {
       requestAutoAnalysis();
       setAnalysisAttempts(prev => prev + 1);
     }
-  }, [autoAnalyze, requestAutoAnalysis]);
+  }, [autoAnalyze, requestAutoAnalysis, analysisState]);
 
   return { 
     isAnalyzing: isAnalyzing || isAnalyzingModified, 

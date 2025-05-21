@@ -4,8 +4,15 @@ import { useState, useEffect, useRef } from 'react';
 export const useWorkerSetup = () => {
   const [isWorkerReady, setIsWorkerReady] = useState(false);
   const workerRef = useRef<Worker | null>(null);
+  const workerInitializedRef = useRef(false);
 
   useEffect(() => {
+    // Don't recreate the worker if it already exists
+    if (workerInitializedRef.current) {
+      return;
+    }
+    workerInitializedRef.current = true;
+    
     // Check if the Worker API is available
     if (typeof Worker === 'undefined') {
       console.log('Web Workers are not supported in this environment');
@@ -45,6 +52,7 @@ export const useWorkerSetup = () => {
         worker.terminate();
         setIsWorkerReady(false);
         workerRef.current = null;
+        workerInitializedRef.current = false;
       };
     } catch (error) {
       console.error('Failed to create image processing worker:', error);

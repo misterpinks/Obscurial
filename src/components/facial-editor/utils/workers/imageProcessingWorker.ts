@@ -28,7 +28,7 @@ function processImage(data) {
     const imageData = new Uint8ClampedArray(originalImageData.data);
     
     // Process the image (apply transformations, effects, etc.)
-    const processedData = processImageData(imageData, width, height, params);
+    const processedData = processImageData(imageData, width, height, params || {});
     
     // Calculate processing time
     const processingTime = performance.now() - startTime;
@@ -49,11 +49,11 @@ function processImage(data) {
 }
 
 // Image processing function - can be expanded with more sophisticated algorithms
-function processImageData(data, width, height, params = {}) {
+function processImageData(data: Uint8ClampedArray, width: number, height: number, params: any = {}) {
   // Extract parameters with defaults
-  const brightness = params?.sliderValues?.brightness || 0;
-  const contrast = params?.sliderValues?.contrast || 0;
-  const saturation = params?.sliderValues?.saturation || 0;
+  const brightness = params.sliderValues?.brightness || 0;
+  const contrast = params.sliderValues?.contrast || 0;
+  const saturation = params.sliderValues?.saturation || 0;
   
   // Create a copy of the data to modify
   const processedData = new Uint8ClampedArray(data.length);

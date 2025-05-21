@@ -38,6 +38,13 @@ export function useImageProcessingHandler({
   const processingDisabledRef = useRef<boolean>(false);
   const processingLockoutTimeRef = useRef<number>(0);
   const initializedRef = useRef<boolean>(false);
+  const processingStateRef = useRef<string>('idle');
+
+  // Store information about the last processing operation
+  const lastProcessingInfoRef = useRef({
+    originalHash: '',
+    sliderValuesHash: ''
+  });
   
   console.log("[DEBUG-useImageProcessingHandler] Initializing hook, autoAnalyze:", autoAnalyze);
   
@@ -57,6 +64,12 @@ export function useImageProcessingHandler({
       console.log("[DEBUG-useImageProcessingHandler] Processing locked out for cooldown");
       return undefined;
     }
+
+    // Check if we're already processing
+    if (processingStateRef.current === 'processing') {
+      console.log("[DEBUG-useImageProcessingHandler] Already processing, skipping");
+      return undefined;
+    }
     
     // Reset lockout if it's been long enough
     if (processingDisabledRef.current && now - processingLockoutTimeRef.current >= 5000) {
@@ -64,7 +77,29 @@ export function useImageProcessingHandler({
       processingDisabledRef.current = false;
     }
     
+    // Generate a hash of the original image and slider values to detect changes
+    const imageHash = originalImage.src.substring(originalImage.src.length - 20);
+    const sliderValuesHash = JSON.stringify(faceEffectOptions || {});
+    
+    // Skip processing if we've already processed this exact image with these exact settings
+    if (
+      lastProcessingInfoRef.current.originalHash === imageHash && 
+      lastProcessingInfoRef.current.sliderValuesHash === sliderValuesHash
+    ) {
+      console.log("[DEBUG-useImageProcessingHandler] Skipping processing - same image and settings");
+      return cleanProcessedCanvasRef.current;
+    }
+    
+    // Update processing state
+    processingStateRef.current = 'processing';
     console.log("[DEBUG-useImageProcessingHandler] Starting image transformation");
+    
+    // Update our tracking refs
+    lastProcessingInfoRef.current = {
+      originalHash: imageHash,
+      sliderValuesHash: sliderValuesHash
+    };
+    
     const cleanCanvas = cleanProcessedCanvasRef.current;
     const cleanCtx = cleanCanvas.getContext('2d');
     if (!cleanCtx) return undefined;
@@ -105,6 +140,8 @@ export function useImageProcessingHandler({
         setTimeout(() => {
           callbackScheduledRef.current = false;
           console.log("[DEBUG-useImageProcessingHandler] Invoking processing complete callback");
+          // Reset processing state just before calling the callback
+          processingStateRef.current = 'idle';
           if (onProcessingCompleteRef.current) {
             onProcessingCompleteRef.current();
           }
@@ -121,7 +158,13 @@ export function useImageProcessingHandler({
           processingLockoutTimeRef.current = now;
           // We'll reset this counter after the lockout period
         }
+        
+        // Reset processing state
+        processingStateRef.current = 'idle';
       }
+    } else {
+      // Reset processing state if not scheduling a callback
+      processingStateRef.current = 'idle';
     }
     
     return cleanCanvas;
@@ -134,6 +177,7 @@ export function useImageProcessingHandler({
     
     return () => {
       initializedRef.current = false;
+      processingStateRef.current = 'idle';
     };
   }, []);
   

@@ -39,6 +39,14 @@ export const applyFeatureTransformations = ({
   // Draw original to canvas first (as a base)
   ctx.drawImage(originalImage, 0, 0);
 
+  // Check if we need to do any processing at all
+  const needsProcessing = Object.keys(sliderValues).some(key => sliderValues[key] !== 0);
+  
+  // If no slider values are set, just return with the original image
+  if (!needsProcessing && faceEffectOptions.effectType === 'none') {
+    return;
+  }
+
   // Try to use the worker if available, otherwise process in main thread
   if (worker) {
     try {
@@ -63,13 +71,13 @@ export const applyFeatureTransformations = ({
         if (e.data.error) {
           console.error("Worker processing error:", e.data.error);
           // No need to redraw - we already drew the original image
-        } else if (e.data.processedData) {
+        } else if (e.data.processedData && e.data.width && e.data.height) {
           console.log("Worker processing completed in", e.data.processingTime, "ms");
           
           try {
-            // Create a new image data object
+            // Create a new image data object from the processed data
             const processedImageData = new ImageData(
-              e.data.processedData,
+              new Uint8ClampedArray(e.data.processedData),
               e.data.width,
               e.data.height
             );
