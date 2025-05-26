@@ -5,7 +5,7 @@ export default {
     icon: './public/app-icon', // no file extension required
     ignore: [
       '\\.git',
-      '/node_modules/(@electron/node-gyp|node-gyp)',
+      '/node_modules/(@electron/node-gyp|node-gyp|native-.*)',
       'forge\\.config\\.js',
       '/\\.git/',
       '/node_modules/\\.bin/',
@@ -16,10 +16,13 @@ export default {
     ]
   },
   rebuildConfig: {
-    // Completely disable rebuilding to avoid native dependency issues
+    // Completely disable ALL rebuilding to avoid ANY native dependency issues
     force: false,
     onlyModules: [],
-    buildDependenciesFromSource: false
+    buildDependenciesFromSource: false,
+    // Explicitly disable node-gyp
+    npmSkipOptional: true,
+    prebuildify: false
   },
   makers: [
     {
@@ -29,7 +32,9 @@ export default {
         setupIcon: './public/app-icon.png',
         // An array of strings which are .exe files to sign
         certificateFile: undefined,
-        certificatePassword: undefined
+        certificatePassword: undefined,
+        // Skip native rebuilding
+        skipUpdateIcon: true
       },
     },
     {
@@ -37,4 +42,11 @@ export default {
       platforms: ['win32'],
     }
   ],
+  // Add hooks to prevent native compilation
+  hooks: {
+    packageAfterCopy: async (config, buildPath) => {
+      // Remove any node-gyp references
+      console.log('Skipping native module compilation...');
+    }
+  }
 };

@@ -9,7 +9,9 @@
     "dist/**/*",
     "electron/**/*",
     "index.js",
-    "public/**/*"
+    "public/**/*",
+    "!**/node_modules/@electron/node-gyp/**/*",
+    "!**/node_modules/node-gyp/**/*"
   ],
   "extraMetadata": {
     "main": "index.js",
@@ -33,6 +35,8 @@
   "npmRebuild": false,
   "buildDependenciesFromSource": false,
   "includeSubNodeModules": false,
+  "removePackageScripts": true,
+  "removePackageKeywords": true,
   "win": {
     "target": [
       "portable",
@@ -61,5 +65,6 @@
     "icon": "public/app-icon.png",
     "category": "Graphics"
   },
-  "publish": null
+  "publish": null,
+  "beforeBuild": "scripts/clean-native-modules.js"
 }
