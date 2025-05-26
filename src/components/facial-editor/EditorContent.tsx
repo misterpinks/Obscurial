@@ -2,7 +2,7 @@
 import React, { RefObject } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Eye, EyeOff } from "lucide-react";
-import ImagePreview from './ImagePreview';
+import ImagePreview from './image-preview/ImagePreview';
 import FaceAnalysis from './FaceAnalysis';
 import AdjustmentSliders from './AdjustmentSliders';
 import RandomizeButton from './RandomizeButton';
@@ -147,7 +147,7 @@ const EditorContent: React.FC<EditorContentProps> = ({
           />
         </div>
         
-        {/* Analysis information below images - always show if we have an image */}
+        {/* Analysis information below images */}
         <FaceAnalysis 
           confidence={faceDetection?.confidence} 
           facialDifference={facialDifference}

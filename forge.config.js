@@ -32,25 +32,4 @@ export default {
       platforms: ['win32'],
     }
   ],
-  plugins: [
-    {
-      name: '@electron-forge/plugin-vite',
-      config: {
-        // Plugin config
-        build: [
-          {
-            // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
-            entry: 'src/main.tsx',
-            config: 'vite.config.ts',
-          },
-        ],
-        renderer: [
-          {
-            name: 'main_window',
-            config: 'vite.config.ts',
-          },
-        ],
-      },
-    },
-  ],
 };
