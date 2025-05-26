@@ -5,8 +5,14 @@ export default {
     icon: './public/app-icon', // no file extension required
     ignore: [
       '\\.git',
-      '/node_modules/(@electron/node-gyp)',
-      'forge\\.config\\.js'
+      '/node_modules/(@electron/node-gyp|node-gyp)',
+      'forge\\.config\\.js',
+      '/\\.git/',
+      '/node_modules/\\.bin/',
+      '/src/',
+      '/public/(?!app-icon|favicon)',
+      '\\.md$',
+      '\\.txt$'
     ]
   },
   rebuildConfig: {},
@@ -25,5 +31,26 @@ export default {
       name: '@electron-forge/maker-zip',
       platforms: ['win32'],
     }
+  ],
+  plugins: [
+    {
+      name: '@electron-forge/plugin-vite',
+      config: {
+        // Plugin config
+        build: [
+          {
+            // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
+            entry: 'src/main.tsx',
+            config: 'vite.config.ts',
+          },
+        ],
+        renderer: [
+          {
+            name: 'main_window',
+            config: 'vite.config.ts',
+          },
+        ],
+      },
+    },
   ],
 };
