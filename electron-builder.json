@@ -32,6 +32,7 @@
   "nodeGypRebuild": false,
   "npmRebuild": false,
   "buildDependenciesFromSource": false,
+  "includeSubNodeModules": false,
   "win": {
     "target": [
       "portable",

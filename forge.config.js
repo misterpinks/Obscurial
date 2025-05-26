@@ -15,7 +15,11 @@ export default {
       '\\.txt$'
     ]
   },
-  rebuildConfig: {},
+  rebuildConfig: {
+    // Disable rebuilding to avoid native dependency issues
+    force: false,
+    onlyModules: []
+  },
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
