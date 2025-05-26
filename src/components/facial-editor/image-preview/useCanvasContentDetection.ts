@@ -47,6 +47,7 @@ export const useCanvasContentDetection = (
         return;
       }
       
+      // Add willReadFrequently attribute to improve performance
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) {
         console.error('Could not get canvas context');

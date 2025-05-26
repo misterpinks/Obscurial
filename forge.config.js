@@ -16,9 +16,10 @@ export default {
     ]
   },
   rebuildConfig: {
-    // Disable rebuilding to avoid native dependency issues
+    // Completely disable rebuilding to avoid native dependency issues
     force: false,
-    onlyModules: []
+    onlyModules: [],
+    buildDependenciesFromSource: false
   },
   makers: [
     {
