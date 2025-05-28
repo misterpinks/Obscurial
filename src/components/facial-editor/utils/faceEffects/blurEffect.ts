@@ -12,10 +12,9 @@ export const applyBlur = (
 ) => {
   if (blurAmount <= 0) return;
   
-  // Linear mapping of blur intensity (1-100) to actual blur pixels (1-30)
-  // This ensures a more consistent and predictable blur effect
-  const maxBlurPixels = 30;
-  const enhancedBlurAmount = (blurAmount / 100) * maxBlurPixels;
+  // Make blur much more pronounced - multiply by 2 for stronger effect
+  // Linear mapping of blur intensity (1-30) to actual blur pixels (2-60)
+  const enhancedBlurAmount = Math.max(2, blurAmount * 2);
   
   // Save the current canvas state
   ctx.save();
@@ -42,7 +41,7 @@ export const applyBlur = (
     // Draw the blurred version back to the original canvas
     ctx.drawImage(tempCanvas, x, y);
     
-    console.log(`Applied blur effect with amount: ${blurAmount}, pixels: ${enhancedBlurAmount}`);
+    console.log(`Applied enhanced blur effect with amount: ${blurAmount}, pixels: ${enhancedBlurAmount}`);
   } catch (error) {
     console.error("Error applying blur effect:", error);
   } finally {

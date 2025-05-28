@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import * as faceapi from 'face-api.js';
 import { useToast } from "@/components/ui/use-toast";
 import { createImageFromCanvas } from '../utils/canvasUtils';
@@ -13,16 +13,16 @@ export const useModifiedFaceAnalysis = (
 ) => {
   const { toast } = useToast();
   const [facialDifference, setFacialDifference] = useState<number | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const analyzeModifiedImage = async () => {
-    if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded) {
-      toast({
-        variant: "destructive",
-        title: "Analysis Error",
-        description: "Required resources are not available."
-      });
+  const analyzeModifiedImage = useCallback(async () => {
+    if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded || isAnalyzing) {
+      console.log('Analysis skipped - missing requirements or already analyzing');
       return;
     }
+    
+    console.log('Starting modified face analysis');
+    setIsAnalyzing(true);
     
     try {
       const processedImage = await createImageFromCanvas(cleanProcessedCanvasRef.current);
@@ -35,7 +35,6 @@ export const useModifiedFaceAnalysis = (
         
       if (detections && faceDetection) {
         // Update state with modified face descriptor
-        // Fix: Create a new object instead of using a function updater
         const updatedFaceDetection: FaceDetection = {
           ...faceDetection,
           modified: detections.descriptor
@@ -45,22 +44,16 @@ export const useModifiedFaceAnalysis = (
         
         // Calculate similarity between original and modified faces
         if (faceDetection.original) {
-          // Improved facial difference calculation
-          // The euclideanDistance typically returns values between 0-1 for similar faces
-          // and larger values for different faces. We need to enhance this difference
-          // to better reflect visual changes
           const distance = faceapi.euclideanDistance(
             faceDetection.original, 
             detections.descriptor
           );
           
           // Apply a non-linear transformation to emphasize differences
-          // This will make small changes more noticeable in the score
           const enhancedDistance = Math.pow(distance * 4, 1.5);
           const clampedDistance = Math.min(enhancedDistance, 2.0);
           
-          console.log("Raw facial difference:", distance);
-          console.log("Enhanced facial difference:", clampedDistance);
+          console.log("Facial analysis complete - distance:", clampedDistance);
           setFacialDifference(clampedDistance);
           
           toast({
@@ -69,12 +62,11 @@ export const useModifiedFaceAnalysis = (
           });
         }
       } else {
-        console.log("No face detected in modified image - this is good for anti-recognition");
-        // If no face is detected in the modified image, that's actually good for defeating recognition
-        setFacialDifference(2.0); // Maximum difference - recognition fully defeated
+        console.log("No face detected in modified image - recognition defeated");
+        setFacialDifference(2.0); // Maximum difference
         toast({
           title: "Recognition Defeated",
-          description: "The face is no longer detectable by AI - excellent privacy protection!"
+          description: "The face is no longer detectable by AI!"
         });
       }
     } catch (error) {
@@ -84,11 +76,14 @@ export const useModifiedFaceAnalysis = (
         title: "Analysis Error",
         description: "Could not analyze facial differences."
       });
+    } finally {
+      setIsAnalyzing(false);
     }
-  };
+  }, [cleanProcessedCanvasRef, isFaceApiLoaded, faceDetection, setFaceDetection, toast, isAnalyzing]);
 
   return {
     facialDifference,
-    analyzeModifiedImage
+    analyzeModifiedImage,
+    isAnalyzing
   };
 };

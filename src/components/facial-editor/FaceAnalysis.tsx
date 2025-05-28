@@ -32,6 +32,13 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
     return 'Easily recognizable';
   };
 
+  // Prevent the analysis button from being clicked too frequently
+  const handleAnalysisClick = () => {
+    if (isAnalyzing || !onRunAnalysis) return;
+    console.log('Manual analysis triggered');
+    onRunAnalysis();
+  };
+
   return (
     <Card className="mt-3">
       <CardContent className="p-4">
@@ -49,9 +56,9 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
                   />
                 </div>
                 <Button 
-                  onClick={onRunAnalysis} 
+                  onClick={handleAnalysisClick}
                   size="sm"
-                  disabled={isAnalyzing || autoAnalyze}
+                  disabled={isAnalyzing}
                   className="bg-editor-purple hover:bg-editor-accent"
                 >
                   {isAnalyzing ? 'Analyzing...' : 'Run Analysis'}
@@ -70,7 +77,7 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
                   {isAnalyzing ? 'Analyzing...' : 
                     (facialDifference !== undefined && facialDifference !== null ? 
                       `${facialDifference.toFixed(2)} (${getFacialDifferenceStatus(facialDifference)})` 
-                      : (confidence !== undefined && confidence !== null ? 'Not analyzed yet' : 'N/A'))}
+                      : (confidence !== undefined && confidence !== null ? 'Click to analyze' : 'N/A'))}
                 </span>
               </li>
               {imageDimensions && (imageDimensions.width > 0 || imageDimensions.height > 0) && (

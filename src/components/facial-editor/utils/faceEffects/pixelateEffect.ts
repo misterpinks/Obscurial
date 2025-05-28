@@ -1,7 +1,6 @@
 
 /**
- * Apply pixelation effect to a region with optimized performance
- * and robust error handling to prevent crashes
+ * Apply pixelation effect to a region with improved visibility
  */
 export const applyPixelation = (
   ctx: CanvasRenderingContext2D,
@@ -28,17 +27,15 @@ export const applyPixelation = (
   // Additional safety check after adjustments
   if (safeWidth <= 0 || safeHeight <= 0) return;
   
-  // Make pixel size more significant and ensure it's an integer
-  // Scale the pixel size linearly (1-100) to (2-25) for better control
-  const maxPixelSize = 25;
-  const effectivePixelSize = Math.max(2, Math.round((pixelSize / 100) * maxPixelSize));
+  // Make pixelation more pronounced - scale the pixel size up significantly
+  // Scale the pixel size linearly (1-30) to (4-40) for better visibility
+  const effectivePixelSize = Math.max(4, Math.round(pixelSize * 1.5));
   
   // Save the current canvas state
   ctx.save();
   
   try {
-    // Method 1: Using standard canvas operations (more compatible with Electron)
-    // Step down the resolution of the area by drawing it smaller then scaling back up
+    // Create temporary canvas for pixelation
     const tempCanvas = document.createElement('canvas');
     const scaleFactor = 1 / effectivePixelSize;
     
@@ -72,10 +69,9 @@ export const applyPixelation = (
     );
     ctx.imageSmoothingEnabled = true; // Reset to default
     
-    console.log(`Applied pixelation with size: ${pixelSize}, effective size: ${effectivePixelSize}`);
+    console.log(`Applied enhanced pixelation with size: ${pixelSize}, effective size: ${effectivePixelSize}`);
   } catch (error) {
     console.error("Error in pixelation effect:", error);
-    // In case of error, we'll just exit gracefully without applying the effect
   } finally {
     // Restore the canvas state
     ctx.restore();
