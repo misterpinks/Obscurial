@@ -21,7 +21,7 @@ export const useFaceAnalysis = (
   
   // Use the extracted face detection hook
   const {
-    isAnalyzing,
+    isAnalyzing: isDetecting,
     faceDetection,
     setFaceDetection,
     detectFaces,
@@ -37,13 +37,17 @@ export const useFaceAnalysis = (
   // Use the extracted modified face analysis hook
   const {
     facialDifference,
-    analyzeModifiedImage
+    analyzeModifiedImage,
+    isAnalyzing: isAnalyzingModified
   } = useModifiedFaceAnalysis(
     isFaceApiLoaded,
     cleanProcessedCanvasRef,
     faceDetection,
     setFaceDetection
   );
+
+  // Combine both analyzing states
+  const isAnalyzing = isDetecting || isAnalyzingModified;
 
   // Toggle auto-analyze feature
   const toggleAutoAnalyze = useCallback(() => {

@@ -16,8 +16,13 @@ export const useModifiedFaceAnalysis = (
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const analyzeModifiedImage = useCallback(async () => {
-    if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded || isAnalyzing) {
-      console.log('Analysis skipped - missing requirements or already analyzing');
+    if (!cleanProcessedCanvasRef.current || !isFaceApiLoaded) {
+      console.log('Analysis skipped - missing requirements');
+      return;
+    }
+    
+    if (isAnalyzing) {
+      console.log('Analysis already in progress, skipping');
       return;
     }
     
@@ -79,7 +84,7 @@ export const useModifiedFaceAnalysis = (
     } finally {
       setIsAnalyzing(false);
     }
-  }, [cleanProcessedCanvasRef, isFaceApiLoaded, faceDetection, setFaceDetection, toast, isAnalyzing]);
+  }, [cleanProcessedCanvasRef, isFaceApiLoaded, faceDetection?.original, setFaceDetection, toast]);
 
   return {
     facialDifference,

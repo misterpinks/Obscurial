@@ -43,6 +43,7 @@ export const useImageProcessingEffects = ({
 }: UseImageProcessingEffectsProps) => {
   // Use ref to track if the component is mounted
   const isMounted = useRef(true);
+  const hasTriggeredInitialDetection = useRef(false);
   
   // Cleanup function for unmounting
   useEffect(() => {
@@ -83,9 +84,9 @@ export const useImageProcessingEffects = ({
     }
   }, [sliderValues, faceEffectOptions, originalImage, initialProcessingDone, lastProcessedValues, throttledProcess, setLastProcessedValues]);
 
-  // Display the original image on canvas after loading
+  // Display the original image on canvas after loading - ONLY ONCE
   useEffect(() => {
-    if (originalImage && originalCanvasRef.current) {
+    if (originalImage && originalCanvasRef.current && !hasTriggeredInitialDetection.current) {
       console.log("Original image provided, rendering to canvas");
       
       const origCtx = originalCanvasRef.current.getContext("2d");
@@ -103,18 +104,19 @@ export const useImageProcessingEffects = ({
         origCtx.drawImage(originalImage, 0, 0);
       }
       
-      // After displaying original image, detect faces if needed
+      // After displaying original image, detect faces if needed - ONLY ONCE
       if (isFaceApiLoaded && !initialProcessingDone) {
         console.log("Detecting faces after image loaded");
+        hasTriggeredInitialDetection.current = true;
         detectFaces();
       }
     }
   }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
-  // Process image after face detection completes
+  // Process image after face detection completes - but prevent loops
   useEffect(() => {
-    if (originalImage && initialProcessingDone) {
-      console.log("Processing image after face detection or initialProcessingDone changed");
+    if (originalImage && initialProcessingDone && !processingQueued) {
+      console.log("Processing image after face detection completed");
       
       // Use requestAnimationFrame for smooth UI
       window.requestAnimationFrame(() => {
@@ -131,33 +133,5 @@ export const useImageProcessingEffects = ({
         }
       });
     }
-  }, [faceDetection, initialProcessingDone, originalImage, processImage, setLastProcessedValues, sliderValues, faceEffectOptions]);
-  
-  // Force process image when initially loaded
-  useEffect(() => {
-    if (originalImage && initialProcessingDone) {
-      console.log("Initial processing - forcing image display");
-      
-      window.requestAnimationFrame(() => {
-        if (isMounted.current) {
-          console.log("Force processing image on initial load");
-          processImage();
-        }
-      });
-    }
-  }, [initialProcessingDone, originalImage, processImage]);
-
-  // Ensure image is processed even if no face is detected
-  useEffect(() => {
-    if (originalImage && initialProcessingDone && !faceDetection) {
-      console.log("No face detected but still processing image");
-      
-      window.requestAnimationFrame(() => {
-        if (isMounted.current) {
-          console.log("Processing image without face detection");
-          processImage();
-        }
-      });
-    }
-  }, [originalImage, initialProcessingDone, faceDetection, processImage]);
+  }, [initialProcessingDone, originalImage]);
 };
