@@ -1,7 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { useToast } from "@/components/ui/use-toast";
-import { type FeatureSlider } from './useFeatureSliders';
+import { useToast } from '@/components/ui/use-toast';
 
 export interface Preset {
   id: string;
@@ -10,86 +9,133 @@ export interface Preset {
   description?: string;
 }
 
-interface UsePresetsOptions {
-  featureSliders: FeatureSlider[];
-  sliderValues: Record<string, number>;
-  onChange: (values: Record<string, number>) => void;
-}
-
-export const usePresets = ({ featureSliders, sliderValues, onChange }: UsePresetsOptions) => {
+export const usePresets = (
+  featureSliders: any[], 
+  sliderValues: Record<string, number>,
+  setSliderValues: (values: Record<string, number>) => void
+) => {
   const { toast } = useToast();
-  const [presets, setPresets] = useState<Preset[]>(() => {
-    try {
-      const savedPresets = localStorage.getItem('facialEditorPresets');
-      return savedPresets ? JSON.parse(savedPresets) : [];
-    } catch (e) {
-      console.error('Error loading presets:', e);
-      return [];
-    }
-  });
+  const [presets, setPresets] = useState<Preset[]>([
+    {
+      id: 'privacy-basic',
+      name: 'Basic Privacy',
+      values: {
+        eyeSize: 10,
+        eyeSpacing: 5,
+        eyebrowHeight: 10,
+        noseWidth: 15,
+        noseLength: 5,
+        mouthWidth: 10,
+        mouthHeight: 5,
+        faceWidth: 15,
+        chinShape: 10,
+        jawline: 8,
+      },
+      description: 'Subtle changes that help defeat facial recognition'
+    },
+    {
+      id: 'privacy-strong',
+      name: 'Strong Privacy',
+      values: {
+        eyeSize: 25,
+        eyeSpacing: 20,
+        eyebrowHeight: 30,
+        noseWidth: 30,
+        noseLength: 20,
+        mouthWidth: 25,
+        mouthHeight: 15,
+        faceWidth: 30,
+        chinShape: 25,
+        jawline: 20,
+      },
+      description: 'Stronger changes to maximize privacy'
+    },
+    {
+      id: 'alien',
+      name: 'Alien Look',
+      values: {
+        eyeSize: 40,
+        eyeSpacing: 30,
+        eyebrowHeight: -30,
+        noseWidth: -35,
+        noseLength: -40,
+        mouthWidth: -15,
+        mouthHeight: -30,
+        faceWidth: -45,
+        chinShape: 50,
+        jawline: -40,
+      },
+      description: 'Create an alien-like appearance'
+    },
+    {
+      id: 'cartoon',
+      name: 'Cartoon Style',
+      values: {
+        eyeSize: 35,
+        eyeSpacing: -10,
+        eyebrowHeight: 20,
+        noseWidth: -25,
+        noseLength: -15,
+        mouthWidth: 35,
+        mouthHeight: 20,
+        faceWidth: 10,
+        chinShape: -20,
+        jawline: 15,
+      },
+      description: 'Cartoon-inspired facial features'
+    },
+  ]);
 
-  // Save presets to local storage whenever they change
-  const savePresetsToStorage = useCallback((updatedPresets: Preset[]) => {
-    try {
-      localStorage.setItem('facialEditorPresets', JSON.stringify(updatedPresets));
-    } catch (e) {
-      console.error('Error saving presets:', e);
-    }
-  }, []);
-
-  // Apply a preset to the current sliders
   const applyPreset = useCallback((presetId: string) => {
     const preset = presets.find(p => p.id === presetId);
+    
     if (preset) {
-      onChange(preset.values);
+      // Create new sliders object with preset values
+      const newSliderValues = { ...sliderValues };
+      
+      // Apply preset values to each slider
+      Object.keys(preset.values).forEach(key => {
+        if (key in newSliderValues) {
+          newSliderValues[key] = preset.values[key];
+        }
+      });
+      
+      // Update slider values
+      setSliderValues(newSliderValues);
       
       toast({
-        title: "Preset Applied",
-        description: `Applied preset: ${preset.name}`
+        title: `Applied "${preset.name}" preset`,
+        description: preset.description || "Preset applied successfully"
       });
     }
-  }, [presets, onChange, toast]);
+  }, [presets, sliderValues, setSliderValues, toast]);
 
-  // Save current slider values as a new preset
   const saveCurrentAsPreset = useCallback((name: string, description?: string) => {
-    if (!name) return;
-    
     const newPreset: Preset = {
-      id: `preset-${Date.now()}`,
+      id: `custom-${Date.now()}`,
       name,
       values: { ...sliderValues },
       description
     };
     
-    const updatedPresets = [...presets, newPreset];
-    setPresets(updatedPresets);
-    savePresetsToStorage(updatedPresets);
+    setPresets(prev => [...prev, newPreset]);
     
     toast({
       title: "Preset Saved",
-      description: `Saved preset: ${name}`
+      description: `"${name}" has been added to your presets`
     });
-  }, [sliderValues, presets, savePresetsToStorage, toast]);
+    
+    return newPreset;
+  }, [sliderValues, toast]);
 
-  // Delete a preset
   const deletePreset = useCallback((presetId: string) => {
-    const preset = presets.find(p => p.id === presetId);
-    if (preset) {
-      const updatedPresets = presets.filter(p => p.id !== presetId);
-      setPresets(updatedPresets);
-      savePresetsToStorage(updatedPresets);
-      
-      toast({
-        title: "Preset Deleted",
-        description: `Deleted preset: ${preset.name}`
-      });
-    }
-  }, [presets, savePresetsToStorage, toast]);
+    setPresets(prev => prev.filter(p => p.id !== presetId));
+    
+    toast({
+      title: "Preset Deleted",
+      description: "The preset has been removed"
+    });
+  }, [toast]);
 
-  return {
-    presets,
-    applyPreset,
-    saveCurrentAsPreset,
-    deletePreset
-  };
+  return { presets, applyPreset, saveCurrentAsPreset, deletePreset };
 };

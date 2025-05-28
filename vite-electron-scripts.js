@@ -11,18 +11,6 @@ const __dirname = path.dirname(__filename);
 const packageJsonPath = path.join(__dirname, 'package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
 
-// Fix: Ensure dependencies and devDependencies are initialized
-if (!packageJson.dependencies) {
-  packageJson.dependencies = {};
-}
-
-if (!packageJson.devDependencies) {
-  packageJson.devDependencies = {};
-}
-
-// Ensure electron is properly specified as direct npm package
-packageJson.devDependencies.electron = "^36.1.0";
-
 // Add the Electron-specific scripts
 packageJson.scripts = {
   ...packageJson.scripts,

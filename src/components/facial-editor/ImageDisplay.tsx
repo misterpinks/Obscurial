@@ -89,7 +89,7 @@ const ImageDisplay = ({
       return;
     }
     
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.error('Could not get canvas context');
       return;

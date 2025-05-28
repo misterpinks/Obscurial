@@ -2,12 +2,11 @@
 import React, { RefObject } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Eye, EyeOff } from "lucide-react";
-import ImagePreview from './image-preview/ImagePreview';
+import ImagePreview from './ImagePreview';
 import FaceAnalysis from './FaceAnalysis';
 import AdjustmentSliders from './AdjustmentSliders';
 import RandomizeButton from './RandomizeButton';
 import EditorImageControls from './EditorImageControls';
-import FaceMirrorControls from './FaceMirrorControls';
 
 interface EditorContentProps {
   originalCanvasRef: RefObject<HTMLCanvasElement>;
@@ -41,17 +40,6 @@ interface EditorContentProps {
   onMaskPositionChange?: (newPosition: { x: number, y: number }) => void;
   onMaskScaleChange?: (newScale: number) => void;
   faceMaskSelector?: React.ReactNode;
-  onToggleMirror?: () => void;
-  onToggleMirrorSide?: () => void;
-  mirrorOffsetX?: number;
-  mirrorAngle?: number;
-  mirrorCutoffY?: number;
-  onMirrorOffsetChange?: (value: number) => void;
-  onMirrorOffsetChangeComplete?: () => void;
-  onMirrorAngleChange?: (value: number) => void;
-  onMirrorAngleChangeComplete?: () => void;
-  onMirrorCutoffChange?: (value: number) => void;
-  onMirrorCutoffChangeComplete?: () => void;
 }
 
 const EditorContent: React.FC<EditorContentProps> = ({
@@ -85,18 +73,7 @@ const EditorContent: React.FC<EditorContentProps> = ({
   maskScale,
   onMaskPositionChange,
   onMaskScaleChange,
-  faceMaskSelector,
-  onToggleMirror,
-  onToggleMirrorSide,
-  mirrorOffsetX = 0,
-  mirrorAngle = 0,
-  mirrorCutoffY = 1,
-  onMirrorOffsetChange,
-  onMirrorOffsetChangeComplete,
-  onMirrorAngleChange,
-  onMirrorAngleChangeComplete,
-  onMirrorCutoffChange,
-  onMirrorCutoffChangeComplete
+  faceMaskSelector
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -147,7 +124,7 @@ const EditorContent: React.FC<EditorContentProps> = ({
           />
         </div>
         
-        {/* Analysis information below images */}
+        {/* Analysis information below images - always show if we have an image */}
         <FaceAnalysis 
           confidence={faceDetection?.confidence} 
           facialDifference={facialDifference}
@@ -170,25 +147,6 @@ const EditorContent: React.FC<EditorContentProps> = ({
       {/* Right side - adjustment sliders */}
       <div className="space-y-4">
         <RandomizeButton onRandomize={onRandomizeSliders} />
-        
-        {/* Add Face Mirroring Controls with advanced options */}
-        {onToggleMirror && onToggleMirrorSide && (
-          <FaceMirrorControls
-            mirrorEnabled={Boolean(sliderValues.mirrorFace) && sliderValues.mirrorFace > 0}
-            mirrorSide={sliderValues.mirrorSide || 0}
-            mirrorOffsetX={mirrorOffsetX}
-            mirrorAngle={mirrorAngle}
-            mirrorCutoffY={mirrorCutoffY}
-            onToggleMirror={onToggleMirror}
-            onToggleSide={onToggleMirrorSide}
-            onOffsetChange={onMirrorOffsetChange}
-            onOffsetChangeComplete={onMirrorOffsetChangeComplete}
-            onAngleChange={onMirrorAngleChange}
-            onAngleChangeComplete={onMirrorAngleChangeComplete}
-            onCutoffChange={onMirrorCutoffChange}
-            onCutoffChangeComplete={onMirrorCutoffChangeComplete}
-          />
-        )}
         
         <AdjustmentSliders 
           featureSliders={featureSliders}

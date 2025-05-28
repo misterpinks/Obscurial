@@ -11,15 +11,6 @@ declare global {
   interface Window extends WorkerGlobalScopeInterface {}
 }
 
-// Mirror options interface
-export interface MirrorOptions {
-  enabled: boolean;
-  side: number;
-  offsetX: number;
-  angle: number;
-  cutoffY: number;
-}
-
 // Face effect options interface
 export interface FaceEffectOptions {
   effectType: 'blur' | 'pixelate' | 'mask' | 'none';

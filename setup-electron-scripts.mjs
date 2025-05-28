@@ -11,56 +11,25 @@ const __dirname = path.dirname(__filename);
 const packageJsonPath = path.join(__dirname, 'package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
 
-// Fix: Ensure dependencies and devDependencies are initialized
-if (!packageJson.dependencies) {
-  packageJson.dependencies = {};
-}
-
-if (!packageJson.devDependencies) {
-  packageJson.devDependencies = {};
-}
-
-// Ensure electron is properly specified in devDependencies (specific npm version)
-packageJson.devDependencies.electron = "^36.1.0";
-
-// CRITICAL: Add overrides to completely prevent @electron/node-gyp installation
-// Use both npm and bun override formats
-packageJson.overrides = {
-  "@electron/node-gyp": false,
-  "node-gyp": false,
-  "electron": {
-    "@electron/node-gyp": false,
-    "node-gyp": false
+// Fix: Move electron and electron-builder to devDependencies if they exist in dependencies
+if (packageJson.dependencies && packageJson.dependencies.electron) {
+  // Create devDependencies if it doesn't exist
+  if (!packageJson.devDependencies) {
+    packageJson.devDependencies = {};
   }
-};
-
-// Also add resolutions for yarn/pnpm compatibility
-packageJson.resolutions = {
-  "@electron/node-gyp": false,
-  "node-gyp": false,
-  "electron/@electron/node-gyp": false
-};
-
-// Add bun-specific overrides
-if (!packageJson.trustedDependencies) {
-  packageJson.trustedDependencies = [];
-}
-
-// Explicitly remove any git repository references
-if (packageJson.dependencies['@electron/node-gyp']) {
-  delete packageJson.dependencies['@electron/node-gyp'];
-}
-
-if (packageJson.dependencies['node-gyp']) {
-  delete packageJson.dependencies['node-gyp'];
-}
-
-// Move electron and electron-builder to devDependencies if they exist in dependencies
-if (packageJson.dependencies.electron) {
+  
+  // Move electron to devDependencies
+  packageJson.devDependencies.electron = packageJson.dependencies.electron;
   delete packageJson.dependencies.electron;
 }
 
-if (packageJson.dependencies['electron-builder']) {
+if (packageJson.dependencies && packageJson.dependencies['electron-builder']) {
+  // Create devDependencies if it doesn't exist
+  if (!packageJson.devDependencies) {
+    packageJson.devDependencies = {};
+  }
+  
+  // Move electron-builder to devDependencies
   packageJson.devDependencies['electron-builder'] = packageJson.dependencies['electron-builder'];
   delete packageJson.dependencies['electron-builder'];
 }
@@ -76,16 +45,15 @@ const electronBuildScript = packageJson.scripts.build.includes('ELECTRON_RUN=tru
   ? packageJson.scripts.build 
   : `cross-env ELECTRON_RUN=true ${packageJson.scripts.build}`;
 
-// Add the Electron-specific scripts with --no-rebuild flag to skip native dependencies
+// Add the Electron-specific scripts
 packageJson.scripts = {
   ...packageJson.scripts,
-  "preinstall": "node scripts/clean-native-modules.js",
   "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"npm run electron:start\"",
   "electron:start": "wait-on tcp:8080 && cross-env IS_DEV=true electron electron/main.js",
-  "electron:build": `${electronBuildScript} && electron-builder build -c electron-builder.json --no-rebuild`,
-  "electron:build:win": `${electronBuildScript} && electron-builder build --win -c electron-builder.json --no-rebuild`,
-  "electron:build:mac": `${electronBuildScript} && electron-builder build --mac -c electron-builder.json --no-rebuild`,
-  "electron:build:linux": `${electronBuildScript} && electron-builder build --linux -c electron-builder.json --no-rebuild`
+  "electron:build": `${electronBuildScript} && electron-builder build -c electron-builder.json`,
+  "electron:build:win": `${electronBuildScript} && electron-builder build --win -c electron-builder.json`,
+  "electron:build:mac": `${electronBuildScript} && electron-builder build --mac -c electron-builder.json`,
+  "electron:build:linux": `${electronBuildScript} && electron-builder build --linux -c electron-builder.json`
 };
 
 // Add basic package information if missing
@@ -100,12 +68,6 @@ if (!packageJson.author) {
   };
 }
 
-// Add explicit engines to help with compatibility
-packageJson.engines = {
-  "node": ">=18.0.0",
-  "npm": ">=7.0.0"
-};
-
 // Explicitly set type to CommonJS to avoid ES module errors in Electron
 packageJson.type = "commonjs";
 
@@ -113,6 +75,5 @@ packageJson.type = "commonjs";
 fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
 console.log('Successfully updated package.json for Electron build');
-console.log('IMPORTANT: @electron/node-gyp has been completely blocked via overrides');
 console.log('Run "npm run electron:dev" to start the development environment');
 console.log('Run "npm run electron:build" to build for your current platform');

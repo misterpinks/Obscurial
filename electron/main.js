@@ -1,3 +1,4 @@
+
 'use strict';
 
 const { app, BrowserWindow, ipcMain } = require('electron');
@@ -125,11 +126,6 @@ function createWindow() {
       });
     }, 1500);
   });
-
-  // Handle beforeunload event properly to avoid deprecation warnings
-  mainWindow.webContents.on('before-input-event', (event, input) => {
-    // Handle keyboard shortcuts or other input events if needed
-  });
 }
 
 // Create window when Electron has finished initialization
@@ -156,13 +152,6 @@ app.on('activate', () => {
 // Handle unhandled errors
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-});
-
-// Prevent new window creation (security)
-app.on('web-contents-created', (event, contents) => {
-  contents.on('new-window', (event, navigationUrl) => {
-    event.preventDefault();
-  });
 });
 
 // IPC handlers for any application-specific functionality can go here

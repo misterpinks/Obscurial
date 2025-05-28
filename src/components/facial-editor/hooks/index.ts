@@ -13,11 +13,6 @@ import { useFaceEffects } from './useFaceEffects';
 import { useBatchUpload } from './useBatchUpload';
 import { useEditorState } from './useEditorState';
 import { useEditorActions } from './useEditorActions';
-import { useSlidersWithHistory } from './useSlidersWithHistory';
-import { useMirroringAndEffects } from './useMirroringAndEffects';
-import { useImageProcessingHandler } from './useImageProcessingHandler';
-import { useWebcamCapture } from './useWebcamCapture';
-import { useBatchProcessingHandler } from './useBatchProcessingHandler';
 
 export {
   useFaceApiModels,
@@ -34,11 +29,6 @@ export {
   useBatchUpload,
   useEditorState,
   useEditorActions,
-  useSlidersWithHistory,
-  useMirroringAndEffects,
-  useImageProcessingHandler,
-  useWebcamCapture,
-  useBatchProcessingHandler,
   type FeatureSlider,
   type FaceDetection,
   type BatchJob

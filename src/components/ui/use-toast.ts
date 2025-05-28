@@ -1,10 +1,3 @@
+import { useToast, toast } from "@/hooks/use-toast";
 
-import { toast } from "@/hooks/use-toast";
-
-export { toast };
-
-export const useToast = () => {
-  return {
-    toast
-  };
-};
+export { useToast, toast };

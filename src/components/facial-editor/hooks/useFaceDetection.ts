@@ -1,96 +1,159 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useFaceDetectionContext } from '../context/FaceDetectionContext';
+import { useState } from 'react';
+import * as faceapi from 'face-api.js';
+import { useToast } from "@/components/ui/use-toast";
+import { createImageFromCanvas } from '../utils/canvasUtils';
+import { FaceDetection } from './types';
 
 export const useFaceDetection = (
+  isFaceApiLoaded: boolean,
   originalImage: HTMLImageElement | null,
-  initialProcessingDone: boolean,
   setInitialProcessingDone: (value: boolean) => void,
+  setHasShownNoFaceToast: (value: boolean) => void,
+  hasShownNoFaceToast: boolean
 ) => {
-  const faceDetectionContext = useFaceDetectionContext();
-  const detectionTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const detectionAttemptRef = useRef<number>(0);
-  const lastDetectionTimeRef = useRef<number>(0);
-  
-  // Clear any existing timers when component unmounts
-  useEffect(() => {
-    return () => {
-      if (detectionTimerRef.current) {
-        clearTimeout(detectionTimerRef.current);
-      }
-    };
-  }, []);
+  const { toast } = useToast();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [faceDetection, setFaceDetection] = useState<FaceDetection | null>(null);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  const [detectionAttempts, setDetectionAttempts] = useState(0);
 
-  // Enhanced face detection with retry logic and debouncing
-  const enhancedDetectFaces = useCallback(() => {
-    if (originalImage && !faceDetectionContext.isAnalyzing) {
-      // Prevent multiple detection requests in quick succession
-      const now = Date.now();
-      if (now - lastDetectionTimeRef.current < 1000 && detectionAttemptRef.current > 0) {
-        console.log("Detection request throttled");
+  // Use a more sensitive detection option with a MUCH lower threshold to catch more faces
+  const detectionOptions = () => {
+    // Reduce threshold further to 0.1 for better face detection
+    return new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.1 });
+  };
+
+  const detectFaces = async () => {
+    if (!originalImage || !isFaceApiLoaded) {
+      console.log("Cannot detect faces: missing image or face API not loaded");
+      return;
+    }
+    
+    try {
+      setIsAnalyzing(true);
+      console.log("Starting face detection attempt:", detectionAttempts + 1);
+      
+      // Log the image dimensions to help with debugging
+      console.log("Image dimensions:", originalImage.width, "x", originalImage.height);
+      
+      // Update image dimensions when detecting faces
+      setImageDimensions({
+        width: originalImage.width,
+        height: originalImage.height
+      });
+      
+      // Verify the image is valid and loaded
+      if (originalImage.width === 0 || originalImage.height === 0) {
+        console.error("Image has zero width or height, cannot detect faces");
+        setIsAnalyzing(false);
+        setInitialProcessingDone(true);
         return;
       }
+
+      // Detect faces with better options and lower threshold
+      const detections = await faceapi
+        .detectSingleFace(originalImage, detectionOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
       
-      lastDetectionTimeRef.current = now;
-      console.log(`Starting face detection attempt: ${detectionAttemptRef.current + 1}`);
-      console.log(`Image dimensions: ${originalImage.width} x ${originalImage.height}`);
-      
-      detectionAttemptRef.current += 1;
-      
-      // Only proceed with detection if we have a valid image and aren't already analyzing
-      return faceDetectionContext.detectFaces(originalImage)
-        .then(() => {
-          // If successful, mark processing as complete
-          setInitialProcessingDone(true);
-          detectionAttemptRef.current = 0; // Reset attempts counter on success
-          console.log("Face detection completed successfully");
-        })
-        .catch(error => {
-          console.error("Face detection error:", error);
-          
-          // If we've tried less than 3 times, try again after a delay
-          if (detectionAttemptRef.current < 3) {
-            console.log(`Scheduling retry #${detectionAttemptRef.current + 1} for face detection...`);
-            detectionTimerRef.current = setTimeout(() => {
-              enhancedDetectFaces();
-            }, 1000);
-          } else {
-            // After multiple failures, just proceed without face detection
-            console.log("Multiple face detection attempts failed, proceeding without detection");
-            setInitialProcessingDone(true);
-          }
+      if (detections) {
+        console.log("Face detected with confidence:", detections.detection.score);
+        
+        // Store detection data
+        setFaceDetection({
+          landmarks: detections.landmarks,
+          detection: detections.detection,
+          confidence: detections.detection.score,
+          original: detections.descriptor
         });
-    } else {
-      // If we can't detect faces, still mark processing as done so UI doesn't hang
-      if (!initialProcessingDone) {
-        console.log("Can't detect faces, marking processing as done anyway");
+        
+        // Reset attempts counter
+        setDetectionAttempts(0);
+        setHasShownNoFaceToast(false);
         setInitialProcessingDone(true);
-      }
-      return Promise.resolve();
-    }
-  }, [originalImage, faceDetectionContext, setInitialProcessingDone, initialProcessingDone]);
-
-  // Trigger face detection when image changes but only once
-  useEffect(() => {
-    if (originalImage && !initialProcessingDone) {
-      // Use a small delay to ensure the image is fully loaded
-      detectionTimerRef.current = setTimeout(() => {
-        // Reset attempt counter
-        detectionAttemptRef.current = 0;
-        enhancedDetectFaces();
-      }, 500);
-      
-      return () => {
-        if (detectionTimerRef.current) {
-          clearTimeout(detectionTimerRef.current);
+      } else {
+        console.log("No face detected in the image");
+        
+        // Try one more time with even lower threshold if this is the first attempt
+        if (detectionAttempts < 2) {
+          setDetectionAttempts(prev => prev + 1);
+          
+          console.log("Retrying face detection with fallback method");
+          
+          // Try a different detector as fallback
+          try {
+            const fallbackDetections = await faceapi
+              .detectSingleFace(originalImage, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.1 }))
+              .withFaceLandmarks()
+              .withFaceDescriptor();
+              
+            if (fallbackDetections) {
+              console.log("Face detected with fallback method, confidence:", fallbackDetections.detection.score);
+              
+              setFaceDetection({
+                landmarks: fallbackDetections.landmarks,
+                detection: fallbackDetections.detection,
+                confidence: fallbackDetections.detection.score,
+                original: fallbackDetections.descriptor
+              });
+              
+              setHasShownNoFaceToast(false);
+              setInitialProcessingDone(true);
+              setDetectionAttempts(0);
+            } else {
+              setFaceDetection(null);
+              
+              if (!hasShownNoFaceToast) {
+                toast({
+                  variant: "destructive",
+                  title: "No Face Detected",
+                  description: "Try uploading a clearer image with a face."
+                });
+                setHasShownNoFaceToast(true);
+              }
+              
+              setInitialProcessingDone(true);
+            }
+          } catch (fallbackError) {
+            console.error("Fallback face detection failed:", fallbackError);
+            handleDetectionFailure();
+          }
+        } else {
+          handleDetectionFailure();
         }
-      };
+      }
+    } catch (error) {
+      console.error("Error detecting face:", error);
+      handleDetectionFailure();
+    } finally {
+      setIsAnalyzing(false);
     }
-  }, [originalImage, initialProcessingDone, enhancedDetectFaces]);
+  };
+  
+  // Helper function to handle detection failure
+  const handleDetectionFailure = () => {
+    setFaceDetection(null);
+    
+    if (!hasShownNoFaceToast) {
+      toast({
+        variant: "destructive",
+        title: "Face Detection Error",
+        description: "Could not analyze facial features."
+      });
+      setHasShownNoFaceToast(true);
+    }
+    
+    setInitialProcessingDone(true);
+    setDetectionAttempts(0);
+  };
 
-  return { 
-    ...faceDetectionContext,
-    detectFaces: enhancedDetectFaces,
-    detectionAttempts: detectionAttemptRef.current
+  return {
+    isAnalyzing,
+    faceDetection,
+    setFaceDetection,
+    detectFaces,
+    imageDimensions,
+    detectionAttempts
   };
 };

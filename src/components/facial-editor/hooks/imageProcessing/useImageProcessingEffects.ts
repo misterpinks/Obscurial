@@ -1,6 +1,6 @@
 
 import { useEffect, RefObject, useCallback, useRef } from 'react';
-import { throttle, debounce } from 'lodash';
+import { throttle } from 'lodash';
 
 interface UseImageProcessingEffectsProps {
   originalImage: HTMLImageElement | null;
@@ -43,59 +43,25 @@ export const useImageProcessingEffects = ({
 }: UseImageProcessingEffectsProps) => {
   // Use ref to track if the component is mounted
   const isMounted = useRef(true);
-  const processingTimerRef = useRef<number | null>(null);
-  const processingRequestIdRef = useRef<number | null>(null);
   
   // Cleanup function for unmounting
   useEffect(() => {
     return () => {
       isMounted.current = false;
-      if (processingTimerRef.current !== null) {
-        clearTimeout(processingTimerRef.current);
-      }
-      if (processingRequestIdRef.current !== null) {
-        cancelAnimationFrame(processingRequestIdRef.current);
-      }
     };
   }, []);
 
-  // More aggressive throttling with better frame timing
+  // Throttle processing for smoother UI during rapid changes
   const throttledProcess = useCallback(
     throttle(() => {
       if (isMounted.current) {
-        // Cancel any existing processing
-        if (processingTimerRef.current !== null) {
-          clearTimeout(processingTimerRef.current);
-        }
-        if (processingRequestIdRef.current !== null) {
-          cancelAnimationFrame(processingRequestIdRef.current);
-        }
-        
-        // Use requestAnimationFrame for better frame timing
-        processingRequestIdRef.current = requestAnimationFrame(() => {
-          // Use a short timeout to batch rapid changes
-          processingTimerRef.current = window.setTimeout(() => {
-            processImage();
-            processingTimerRef.current = null;
-            processingRequestIdRef.current = null;
-          }, 100);
-        });
-      }
-    }, 300), // Increased throttle time for better performance
-    [processImage]
-  );
-  
-  // Improved debounced processor for slider interactions
-  const debouncedProcessing = useCallback(
-    debounce(() => {
-      if (isMounted.current) {
         processImage();
       }
-    }, 200),
+    }, 100),
     [processImage]
   );
 
-  // Process the image whenever slider values change - with optimizations
+  // Process the image whenever slider values change
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
       // Check if values actually changed
@@ -106,77 +72,92 @@ export const useImageProcessingEffects = ({
       
       // Prevent unnecessary processing if values haven't changed
       if (currentValuesString !== lastProcessedValues) {
+        console.log("Slider values changed, processing image");
+        
         // Use throttled processing for smoother UI
         throttledProcess();
         
-        // Update last processed values to prevent reprocessing
+        // Update last processed values
         setLastProcessedValues(currentValuesString);
       }
     }
   }, [sliderValues, faceEffectOptions, originalImage, initialProcessingDone, lastProcessedValues, throttledProcess, setLastProcessedValues]);
 
-  // Display the original image on canvas after loading - optimized
+  // Display the original image on canvas after loading
   useEffect(() => {
     if (originalImage && originalCanvasRef.current) {
-      // Use requestAnimationFrame for smoother rendering
-      requestAnimationFrame(() => {
-        const origCtx = originalCanvasRef.current?.getContext("2d");
-        if (origCtx) {
-          // Set canvas dimensions to match image
-          originalCanvasRef.current!.width = originalImage.width;
-          originalCanvasRef.current!.height = originalImage.height;
-          
-          // Clear any previous content
-          origCtx.clearRect(0, 0, originalCanvasRef.current!.width, originalCanvasRef.current!.height);
-          
-          // Draw the image to canvas with better performance
-          origCtx.imageSmoothingQuality = 'medium'; // Balance between quality and speed
-          origCtx.drawImage(originalImage, 0, 0);
-          
-          // After displaying original image, detect faces if needed but with a slight delay
-          if (isFaceApiLoaded && !initialProcessingDone) {
-            // Use timeout to ensure UI remains responsive
-            setTimeout(detectFaces, 20);
-          }
-        }
-      });
+      console.log("Original image provided, rendering to canvas");
+      
+      const origCtx = originalCanvasRef.current.getContext("2d");
+      if (origCtx) {
+        console.log("Drawing original image to canvas, dimensions:", originalImage.width, "x", originalImage.height);
+        
+        // Set canvas dimensions to match image
+        originalCanvasRef.current.width = originalImage.width;
+        originalCanvasRef.current.height = originalImage.height;
+        
+        // Clear any previous content
+        origCtx.clearRect(0, 0, originalCanvasRef.current.width, originalCanvasRef.current.height);
+        
+        // Draw the image to canvas
+        origCtx.drawImage(originalImage, 0, 0);
+      }
+      
+      // After displaying original image, detect faces if needed
+      if (isFaceApiLoaded && !initialProcessingDone) {
+        console.log("Detecting faces after image loaded");
+        detectFaces();
+      }
     }
   }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
-  // Process image after face detection completes - with performance optimization
+  // Process image after face detection completes
   useEffect(() => {
     if (originalImage && initialProcessingDone) {
-      // Clear existing animation frame and timer
-      if (processingRequestIdRef.current !== null) {
-        cancelAnimationFrame(processingRequestIdRef.current);
-      }
-      if (processingTimerRef.current !== null) {
-        clearTimeout(processingTimerRef.current);
-      }
+      console.log("Processing image after face detection or initialProcessingDone changed");
       
-      // Use requestAnimationFrame for better frame timing
-      processingRequestIdRef.current = requestAnimationFrame(() => {
-        // Use a short timeout to allow UI to render
-        processingTimerRef.current = window.setTimeout(() => {
-          if (isMounted.current) {
-            processImage();
-            
-            // Save current state to prevent reprocessing the same values
-            const currentValuesString = JSON.stringify({
-              sliders: sliderValues,
-              effects: faceEffectOptions
-            });
-            setLastProcessedValues(currentValuesString);
-          }
-          processingTimerRef.current = null;
-          processingRequestIdRef.current = null;
-        }, 50);
+      // Use requestAnimationFrame for smooth UI
+      window.requestAnimationFrame(() => {
+        if (isMounted.current) {
+          console.log("Processing image after detection completed");
+          processImage();
+          
+          // Save current state to prevent reprocessing the same values
+          const currentValuesString = JSON.stringify({
+            sliders: sliderValues,
+            effects: faceEffectOptions
+          });
+          setLastProcessedValues(currentValuesString);
+        }
       });
     }
   }, [faceDetection, initialProcessingDone, originalImage, processImage, setLastProcessedValues, sliderValues, faceEffectOptions]);
   
-  return {
-    throttledProcess,
-    debouncedProcessing
-  };
+  // Force process image when initially loaded
+  useEffect(() => {
+    if (originalImage && initialProcessingDone) {
+      console.log("Initial processing - forcing image display");
+      
+      window.requestAnimationFrame(() => {
+        if (isMounted.current) {
+          console.log("Force processing image on initial load");
+          processImage();
+        }
+      });
+    }
+  }, [initialProcessingDone, originalImage, processImage]);
+
+  // Ensure image is processed even if no face is detected
+  useEffect(() => {
+    if (originalImage && initialProcessingDone && !faceDetection) {
+      console.log("No face detected but still processing image");
+      
+      window.requestAnimationFrame(() => {
+        if (isMounted.current) {
+          console.log("Processing image without face detection");
+          processImage();
+        }
+      });
+    }
+  }, [originalImage, initialProcessingDone, faceDetection, processImage]);
 };

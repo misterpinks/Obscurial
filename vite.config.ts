@@ -42,22 +42,13 @@ export default defineConfig(({ mode }) => ({
   publicDir: 'public',
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'face-api.js'],
-    // Completely exclude all native compilation modules
-    exclude: process.env.ELECTRON_RUN ? [
-      'fsevents', 
-      '@electron/node-gyp', 
-      'node-gyp',
-      'native-modules',
-      'rebuild'
-    ] : []
+    // Skip optimization of certain dependencies in Electron
+    exclude: process.env.ELECTRON_RUN ? ['fsevents'] : []
   },
   // Fix for Electron - provide Node.js polyfills for browser environment
   define: {
     'process.env': process.env,
     'global': 'globalThis',
-    // Disable native module compilation
-    'process.env.npm_config_node_gyp': JSON.stringify(''),
-    'process.env.npm_config_rebuild': JSON.stringify('false'),
   },
   // Electron-specific performance optimizations
   esbuild: {

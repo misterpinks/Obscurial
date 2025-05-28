@@ -60,11 +60,12 @@ export const processImageInChunks = async (
       };
       
       try {
-        // Use the worker to process the image with simplified error handling
+        // Use the worker to process the image
         const processedImageData = await processImageWithWorker(
           worker,
           originalData,
-          workerParams
+          workerParams,
+          10000 // 10 second timeout
         );
         
         // Put the processed image data on the canvas

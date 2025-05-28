@@ -1,10 +1,9 @@
 
 /**
- * Optimized face effects module that re-exports functionality
- * from the modular face effects system.
+ * This file is now just a re-export from the modular face effects system.
+ * It maintains backward compatibility with the old code.
  */
 
-// We're exporting exactly what we need for better tree-shaking
 export { 
   applyFaceEffect,
   applyBlur,
