@@ -1,0 +1,18 @@
+
+[install]
+# Completely disable git dependencies
+git = false
+
+# Skip optional dependencies that might pull in native modules
+optional = false
+
+# Disable scripts that might try to compile native modules
+scripts = false
+
+# Cache settings
+cache = true
+registry = "https://registry.npmjs.org/"
+
+[install.scopes]
+# Block electron scope from using git
+"@electron" = { registry = "https://registry.npmjs.org/" }

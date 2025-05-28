@@ -24,20 +24,35 @@ if (!packageJson.devDependencies) {
 packageJson.devDependencies.electron = "^36.1.0";
 
 // CRITICAL: Add overrides to completely prevent @electron/node-gyp installation
+// Use both npm and bun override formats
 packageJson.overrides = {
   "@electron/node-gyp": false,
-  "node-gyp": false
+  "node-gyp": false,
+  "electron": {
+    "@electron/node-gyp": false,
+    "node-gyp": false
+  }
 };
 
 // Also add resolutions for yarn/pnpm compatibility
 packageJson.resolutions = {
   "@electron/node-gyp": false,
-  "node-gyp": false
+  "node-gyp": false,
+  "electron/@electron/node-gyp": false
 };
+
+// Add bun-specific overrides
+if (!packageJson.trustedDependencies) {
+  packageJson.trustedDependencies = [];
+}
 
 // Explicitly remove any git repository references
 if (packageJson.dependencies['@electron/node-gyp']) {
   delete packageJson.dependencies['@electron/node-gyp'];
+}
+
+if (packageJson.dependencies['node-gyp']) {
+  delete packageJson.dependencies['node-gyp'];
 }
 
 // Move electron and electron-builder to devDependencies if they exist in dependencies
