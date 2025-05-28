@@ -23,6 +23,18 @@ if (!packageJson.devDependencies) {
 // Ensure electron is properly specified in devDependencies (specific npm version)
 packageJson.devDependencies.electron = "^36.1.0";
 
+// CRITICAL: Add overrides to completely prevent @electron/node-gyp installation
+packageJson.overrides = {
+  "@electron/node-gyp": false,
+  "node-gyp": false
+};
+
+// Also add resolutions for yarn/pnpm compatibility
+packageJson.resolutions = {
+  "@electron/node-gyp": false,
+  "node-gyp": false
+};
+
 // Explicitly remove any git repository references
 if (packageJson.dependencies['@electron/node-gyp']) {
   delete packageJson.dependencies['@electron/node-gyp'];
@@ -52,6 +64,7 @@ const electronBuildScript = packageJson.scripts.build.includes('ELECTRON_RUN=tru
 // Add the Electron-specific scripts with --no-rebuild flag to skip native dependencies
 packageJson.scripts = {
   ...packageJson.scripts,
+  "preinstall": "node scripts/clean-native-modules.js",
   "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"npm run electron:start\"",
   "electron:start": "wait-on tcp:8080 && cross-env IS_DEV=true electron electron/main.js",
   "electron:build": `${electronBuildScript} && electron-builder build -c electron-builder.json --no-rebuild`,
@@ -85,5 +98,6 @@ packageJson.type = "commonjs";
 fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
 console.log('Successfully updated package.json for Electron build');
+console.log('IMPORTANT: @electron/node-gyp has been completely blocked via overrides');
 console.log('Run "npm run electron:dev" to start the development environment');
 console.log('Run "npm run electron:build" to build for your current platform');
