@@ -37,6 +37,7 @@ export const useFaceAnalysis = (
   // Use the extracted modified face analysis hook
   const {
     facialDifference,
+    facialTelemetryDelta,
     analyzeModifiedImage,
     isAnalyzing: isAnalyzingModified
   } = useModifiedFaceAnalysis(
@@ -57,7 +58,8 @@ export const useFaceAnalysis = (
   return { 
     isAnalyzing, 
     faceDetection, 
-    facialDifference, 
+    facialDifference,
+    facialTelemetryDelta,
     initialProcessingDone, 
     detectFaces, 
     analyzeModifiedImage,
