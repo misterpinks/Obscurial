@@ -30,146 +30,178 @@ export const applyFeatureTransformations = ({
   faceEffectOptions = { effectType: 'none', effectIntensity: 0 },
   worker
 }: TransformationParams): void => {
-  console.log("Applying feature transformations");
+  console.log("Applying feature transformations with simplified approach");
   
   // Set canvas dimensions to match image
   ctx.canvas.width = width;
   ctx.canvas.height = height;
   
-  // Draw original to canvas first (as a base)
+  // Always start by drawing the original image
   ctx.drawImage(originalImage, 0, 0);
+  console.log("Original image drawn to canvas");
 
   // Check if we need to do any processing at all
   const needsProcessing = Object.keys(sliderValues).some(key => sliderValues[key] !== 0);
   
   // If no slider values are set and no effects are applied, just return with the original image
   if (!needsProcessing && faceEffectOptions.effectType === 'none') {
+    console.log("No processing needed, displaying original image");
     return;
   }
 
-  // Try to use the worker if available, otherwise process in main thread
-  if (worker) {
-    try {
-      console.log("Using worker for image processing with values:", sliderValues);
-      
-      // Get image data for processing
-      const imageData = ctx.getImageData(0, 0, width, height);
-      
-      // Define a timeout for worker processing - increased to prevent hangs
-      const timeout = 8000; // 8 seconds
-      let timeoutId: number | null = null;
-      
-      // Set up one-time message handler
-      const onMessage = (e: MessageEvent) => {
-        // Clear the timeout
-        if (timeoutId !== null) {
-          clearTimeout(timeoutId);
-        }
-        
-        worker.removeEventListener('message', onMessage);
-        
-        if (e.data.error) {
-          console.error("Worker processing error:", e.data.error);
-          // No need to redraw - we already drew the original image
-        } else if (e.data.processedData && e.data.width && e.data.height) {
-          console.log("Worker processing completed in", e.data.processingTime, "ms");
-          
-          try {
-            // Create a new image data object from the processed data
-            const processedImageData = new ImageData(
-              new Uint8ClampedArray(e.data.processedData),
-              e.data.width,
-              e.data.height
-            );
-            
-            // Put the processed image data to the canvas
-            ctx.putImageData(processedImageData, 0, 0);
-            console.log("Successfully applied processed image to canvas");
-          } catch (err) {
-            console.error("Error applying processed image to canvas:", err);
-            // On error, ensure we have at least the original image displayed
-            ctx.drawImage(originalImage, 0, 0);
-          }
-        }
-      };
-      
-      // Listen for the response
-      worker.addEventListener('message', onMessage);
-      
-      // Set up timeout to handle worker not responding
-      timeoutId = window.setTimeout(() => {
-        console.warn("Worker processing timed out, falling back to main thread");
-        worker.removeEventListener('message', onMessage);
-        // Apply basic transformations as fallback
-        applyBasicTransformations(ctx, originalImage, sliderValues);
-      }, timeout);
-      
-      // Send the image data to the worker
-      worker.postMessage({
-        command: 'process',
-        originalImageData: {
-          data: imageData.data,
-          width,
-          height
-        },
-        params: {
-          sliderValues,
-          faceDetection: faceDetection ? {
-            landmarks: faceDetection.landmarks ? true : false,
-            detection: faceDetection.detection ? {
-              box: faceDetection.detection.box
-            } : null
-          } : null,
-          faceEffectOptions
-        }
-      });
-    } catch (error) {
-      console.error("Error setting up worker:", error);
-      // Process in main thread as fallback
-      applyBasicTransformations(ctx, originalImage, sliderValues);
-    }
-  } else {
-    console.log("No worker available, processing in main thread");
-    // Apply basic transformations in the main thread
-    applyBasicTransformations(ctx, originalImage, sliderValues);
+  // Apply transformations directly in main thread for reliability
+  console.log("Applying transformations in main thread");
+  applyDirectTransformations(ctx, originalImage, sliderValues, width, height);
+  
+  // Apply face effects if needed
+  if (faceEffectOptions.effectType !== 'none' && faceDetection && faceEffectOptions.effectIntensity > 0) {
+    console.log("Applying face effects:", faceEffectOptions.effectType);
+    applyBasicFaceEffect(ctx, faceDetection, faceEffectOptions);
   }
+  
+  console.log("Feature transformations completed");
 };
 
-// Apply very basic transformations in the main thread (fallback)
-function applyBasicTransformations(
+// Apply transformations directly without worker dependency
+function applyDirectTransformations(
+  ctx: CanvasRenderingContext2D, 
+  originalImage: HTMLImageElement,
+  sliderValues: Record<string, number>,
+  width: number,
+  height: number
+) {
+  console.log("Applying direct transformations with values:", sliderValues);
+  
+  try {
+    // Get image data for pixel manipulation
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    
+    // Apply basic color adjustments
+    const brightness = (sliderValues.brightness || 0) * 2.55; // Convert percentage to 0-255 range
+    const contrast = 1 + (sliderValues.contrast || 0) / 100;
+    const saturation = 1 + (sliderValues.saturation || 0) / 100;
+    
+    // Process each pixel
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i];
+      let g = data[i + 1];
+      let b = data[i + 2];
+      
+      // Apply brightness
+      r += brightness;
+      g += brightness;
+      b += brightness;
+      
+      // Apply contrast
+      r = ((r / 255 - 0.5) * contrast + 0.5) * 255;
+      g = ((g / 255 - 0.5) * contrast + 0.5) * 255;
+      b = ((b / 255 - 0.5) * contrast + 0.5) * 255;
+      
+      // Apply saturation
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      r = gray + saturation * (r - gray);
+      g = gray + saturation * (g - gray);
+      b = gray + saturation * (b - gray);
+      
+      // Clamp values
+      data[i] = Math.max(0, Math.min(255, r));
+      data[i + 1] = Math.max(0, Math.min(255, g));
+      data[i + 2] = Math.max(0, Math.min(255, b));
+    }
+    
+    // Put the processed image data back to canvas
+    ctx.putImageData(imageData, 0, 0);
+    console.log("Direct transformations applied successfully");
+    
+  } catch (error) {
+    console.error("Error in direct transformations:", error);
+    // Fallback to CSS filters if pixel manipulation fails
+    applyFallbackFilters(ctx, originalImage, sliderValues);
+  }
+}
+
+// Fallback using CSS filters
+function applyFallbackFilters(
   ctx: CanvasRenderingContext2D, 
   originalImage: HTMLImageElement,
   sliderValues: Record<string, number>
 ) {
-  // Get current canvas size
-  const width = ctx.canvas.width;
-  const height = ctx.canvas.height;
+  console.log("Using CSS filter fallback");
   
-  // Just draw the original image first
+  const brightness = 1 + (sliderValues.brightness || 0) / 100;
+  const contrast = 1 + (sliderValues.contrast || 0) / 100;
+  const saturation = 1 + (sliderValues.saturation || 0) / 100;
+  const blur = Math.max(0, (sliderValues.blur || 0) / 10);
+  
+  // Apply filters using CSS filter
+  ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation}) blur(${blur}px)`;
+  
+  // Clear and redraw with filters
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.drawImage(originalImage, 0, 0);
   
-  // Only apply filters if we have slider values
-  if (Object.keys(sliderValues).length > 0) {
-    try {
-      // Apply simple CSS filters for quick visualization
-      const brightness = 1 + (sliderValues.brightness || 0) / 100;
-      const contrast = 1 + (sliderValues.contrast || 0) / 100;
-      const saturation = 1 + (sliderValues.saturation || 0) / 100;
-      const blur = (sliderValues.blur || 0) / 10;
+  // Reset filter
+  ctx.filter = 'none';
+}
+
+// Basic face effect application
+function applyBasicFaceEffect(
+  ctx: CanvasRenderingContext2D,
+  faceDetection: any,
+  faceEffectOptions: any
+) {
+  if (!faceDetection?.detection?.box) return;
+  
+  const box = faceDetection.detection.box;
+  const { effectType, effectIntensity } = faceEffectOptions;
+  
+  try {
+    switch (effectType) {
+      case 'blur':
+        ctx.filter = `blur(${effectIntensity * 0.5}px)`;
+        ctx.drawImage(ctx.canvas, box.x, box.y, box.width, box.height, box.x, box.y, box.width, box.height);
+        ctx.filter = 'none';
+        break;
+      case 'pixelate':
+        // Simple pixelation effect
+        const pixelSize = Math.max(2, Math.floor(effectIntensity * 0.3));
+        const imageData = ctx.getImageData(box.x, box.y, box.width, box.height);
+        const pixelatedData = pixelateImageData(imageData, pixelSize);
+        ctx.putImageData(pixelatedData, box.x, box.y);
+        break;
+    }
+  } catch (error) {
+    console.error("Error applying face effect:", error);
+  }
+}
+
+// Simple pixelation function
+function pixelateImageData(imageData: ImageData, pixelSize: number): ImageData {
+  const { data, width, height } = imageData;
+  const pixelatedData = new ImageData(width, height);
+  
+  for (let y = 0; y < height; y += pixelSize) {
+    for (let x = 0; x < width; x += pixelSize) {
+      // Get the color of the top-left pixel in this block
+      const pixelIndex = (y * width + x) * 4;
+      const r = data[pixelIndex];
+      const g = data[pixelIndex + 1];
+      const b = data[pixelIndex + 2];
+      const a = data[pixelIndex + 3];
       
-      // Apply filters using CSS filter
-      ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation}) blur(${blur}px)`;
-      
-      // Redraw with filters
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(originalImage, 0, 0);
-      
-      // Reset filter
-      ctx.filter = 'none';
-    } catch (error) {
-      console.error("Error applying basic transformations:", error);
-      // Ensure we still have the original image
-      ctx.drawImage(originalImage, 0, 0);
+      // Fill the entire block with this color
+      for (let dy = 0; dy < pixelSize && y + dy < height; dy++) {
+        for (let dx = 0; dx < pixelSize && x + dx < width; dx++) {
+          const targetIndex = ((y + dy) * width + (x + dx)) * 4;
+          pixelatedData.data[targetIndex] = r;
+          pixelatedData.data[targetIndex + 1] = g;
+          pixelatedData.data[targetIndex + 2] = b;
+          pixelatedData.data[targetIndex + 3] = a;
+        }
+      }
     }
   }
+  
+  return pixelatedData;
 }
