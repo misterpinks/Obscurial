@@ -18,6 +18,7 @@ export const useFaceDetection = (
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const [detectionAttempts, setDetectionAttempts] = useState(0);
   const isDetectingRef = useRef(false);
+  const lastProcessedImageRef = useRef<HTMLImageElement | null>(null);
 
   // Use a more sensitive detection option with a MUCH lower threshold to catch more faces
   const detectionOptions = () => {
@@ -34,6 +35,12 @@ export const useFaceDetection = (
     // Prevent multiple simultaneous detections
     if (isDetectingRef.current) {
       console.log("Face detection already in progress, skipping");
+      return;
+    }
+
+    // Prevent reprocessing the same image
+    if (originalImage === lastProcessedImageRef.current) {
+      console.log("Face detection already completed for this image, skipping");
       return;
     }
     
@@ -78,6 +85,7 @@ export const useFaceDetection = (
         // Reset attempts counter
         setDetectionAttempts(0);
         setHasShownNoFaceToast(false);
+        lastProcessedImageRef.current = originalImage;
         setInitialProcessingDone(true);
       } else {
         console.log("No face detected in the image");
@@ -106,21 +114,11 @@ export const useFaceDetection = (
               });
               
               setHasShownNoFaceToast(false);
+              lastProcessedImageRef.current = originalImage;
               setInitialProcessingDone(true);
               setDetectionAttempts(0);
             } else {
-              setFaceDetection(null);
-              
-              if (!hasShownNoFaceToast) {
-                toast({
-                  variant: "destructive",
-                  title: "No Face Detected",
-                  description: "Try uploading a clearer image with a face."
-                });
-                setHasShownNoFaceToast(true);
-              }
-              
-              setInitialProcessingDone(true);
+              handleDetectionFailure();
             }
           } catch (fallbackError) {
             console.error("Fallback face detection failed:", fallbackError);
@@ -152,6 +150,7 @@ export const useFaceDetection = (
       setHasShownNoFaceToast(true);
     }
     
+    lastProcessedImageRef.current = originalImage;
     setInitialProcessingDone(true);
     setDetectionAttempts(0);
   };

@@ -45,6 +45,7 @@ export const useImageProcessingEffects = ({
   const isMounted = useRef(true);
   const hasTriggeredInitialDetection = useRef(false);
   const hasDrawnImageToCanvas = useRef(false);
+  const imageInstanceRef = useRef<HTMLImageElement | null>(null);
   
   // Cleanup function for unmounting
   useEffect(() => {
@@ -85,15 +86,23 @@ export const useImageProcessingEffects = ({
     }
   }, [sliderValues, faceEffectOptions, originalImage, initialProcessingDone, lastProcessedValues, throttledProcess, setLastProcessedValues]);
 
+  // Reset flags when a new image is loaded (different image instance)
+  useEffect(() => {
+    if (originalImage && originalImage !== imageInstanceRef.current) {
+      console.log("New image detected, resetting flags");
+      hasTriggeredInitialDetection.current = false;
+      hasDrawnImageToCanvas.current = false;
+      imageInstanceRef.current = originalImage;
+    }
+  }, [originalImage]);
+
   // Display the original image on canvas after loading - ONLY ONCE PER IMAGE
   useEffect(() => {
-    if (originalImage && originalCanvasRef.current && !hasDrawnImageToCanvas.current) {
-      console.log("Original image provided, rendering to canvas");
+    if (originalImage && originalCanvasRef.current && !hasDrawnImageToCanvas.current && originalImage === imageInstanceRef.current) {
+      console.log("Drawing original image to canvas, dimensions:", originalImage.width, "x", originalImage.height);
       
       const origCtx = originalCanvasRef.current.getContext("2d");
       if (origCtx) {
-        console.log("Drawing original image to canvas, dimensions:", originalImage.width, "x", originalImage.height);
-        
         // Set canvas dimensions to match image
         originalCanvasRef.current.width = originalImage.width;
         originalCanvasRef.current.height = originalImage.height;
@@ -106,28 +115,35 @@ export const useImageProcessingEffects = ({
         
         // Mark that we've drawn this image to prevent redrawing
         hasDrawnImageToCanvas.current = true;
-      }
-      
-      // After displaying original image, detect faces if needed - ONLY ONCE PER IMAGE
-      if (isFaceApiLoaded && !initialProcessingDone && !hasTriggeredInitialDetection.current) {
-        console.log("Detecting faces after image loaded");
-        hasTriggeredInitialDetection.current = true;
-        detectFaces();
+        console.log("Original image successfully drawn to canvas");
       }
     }
-  }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
+  }, [originalImage, originalCanvasRef]);
 
-  // Reset flags when a new image is loaded
+  // Trigger face detection ONLY ONCE per new image, and only after the image is drawn
   useEffect(() => {
-    if (originalImage) {
-      hasTriggeredInitialDetection.current = false;
-      hasDrawnImageToCanvas.current = false;
+    if (originalImage && 
+        originalCanvasRef.current && 
+        isFaceApiLoaded && 
+        !initialProcessingDone && 
+        !hasTriggeredInitialDetection.current &&
+        hasDrawnImageToCanvas.current &&
+        originalImage === imageInstanceRef.current) {
+      
+      console.log("Triggering face detection after drawing image to canvas");
+      hasTriggeredInitialDetection.current = true;
+      detectFaces();
     }
-  }, [originalImage]);
+  }, [originalImage, originalCanvasRef, isFaceApiLoaded, initialProcessingDone, hasDrawnImageToCanvas.current, detectFaces]);
 
   // Process image after face detection completes - but prevent loops
   useEffect(() => {
-    if (originalImage && initialProcessingDone && !processingQueued && hasDrawnImageToCanvas.current) {
+    if (originalImage && 
+        initialProcessingDone && 
+        !processingQueued && 
+        hasDrawnImageToCanvas.current &&
+        originalImage === imageInstanceRef.current) {
+      
       console.log("Processing image after face detection completed");
       
       // Use requestAnimationFrame for smooth UI
