@@ -44,6 +44,7 @@ export const useImageProcessingEffects = ({
   // Use ref to track if the component is mounted
   const isMounted = useRef(true);
   const hasTriggeredInitialDetection = useRef(false);
+  const hasDrawnImageToCanvas = useRef(false);
   
   // Cleanup function for unmounting
   useEffect(() => {
@@ -84,9 +85,9 @@ export const useImageProcessingEffects = ({
     }
   }, [sliderValues, faceEffectOptions, originalImage, initialProcessingDone, lastProcessedValues, throttledProcess, setLastProcessedValues]);
 
-  // Display the original image on canvas after loading - ONLY ONCE
+  // Display the original image on canvas after loading - ONLY ONCE PER IMAGE
   useEffect(() => {
-    if (originalImage && originalCanvasRef.current && !hasTriggeredInitialDetection.current) {
+    if (originalImage && originalCanvasRef.current && !hasDrawnImageToCanvas.current) {
       console.log("Original image provided, rendering to canvas");
       
       const origCtx = originalCanvasRef.current.getContext("2d");
@@ -102,10 +103,13 @@ export const useImageProcessingEffects = ({
         
         // Draw the image to canvas
         origCtx.drawImage(originalImage, 0, 0);
+        
+        // Mark that we've drawn this image to prevent redrawing
+        hasDrawnImageToCanvas.current = true;
       }
       
-      // After displaying original image, detect faces if needed - ONLY ONCE
-      if (isFaceApiLoaded && !initialProcessingDone) {
+      // After displaying original image, detect faces if needed - ONLY ONCE PER IMAGE
+      if (isFaceApiLoaded && !initialProcessingDone && !hasTriggeredInitialDetection.current) {
         console.log("Detecting faces after image loaded");
         hasTriggeredInitialDetection.current = true;
         detectFaces();
@@ -113,9 +117,17 @@ export const useImageProcessingEffects = ({
     }
   }, [originalImage, originalCanvasRef, isFaceApiLoaded, detectFaces, initialProcessingDone]);
 
+  // Reset flags when a new image is loaded
+  useEffect(() => {
+    if (originalImage) {
+      hasTriggeredInitialDetection.current = false;
+      hasDrawnImageToCanvas.current = false;
+    }
+  }, [originalImage]);
+
   // Process image after face detection completes - but prevent loops
   useEffect(() => {
-    if (originalImage && initialProcessingDone && !processingQueued) {
+    if (originalImage && initialProcessingDone && !processingQueued && hasDrawnImageToCanvas.current) {
       console.log("Processing image after face detection completed");
       
       // Use requestAnimationFrame for smooth UI

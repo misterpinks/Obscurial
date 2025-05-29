@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import * as faceapi from 'face-api.js';
 import { useToast } from "@/components/ui/use-toast";
 import { createImageFromCanvas } from '../utils/canvasUtils';
@@ -17,6 +17,7 @@ export const useFaceDetection = (
   const [faceDetection, setFaceDetection] = useState<FaceDetection | null>(null);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const [detectionAttempts, setDetectionAttempts] = useState(0);
+  const isDetectingRef = useRef(false);
 
   // Use a more sensitive detection option with a MUCH lower threshold to catch more faces
   const detectionOptions = () => {
@@ -30,7 +31,14 @@ export const useFaceDetection = (
       return;
     }
     
+    // Prevent multiple simultaneous detections
+    if (isDetectingRef.current) {
+      console.log("Face detection already in progress, skipping");
+      return;
+    }
+    
     try {
+      isDetectingRef.current = true;
       setIsAnalyzing(true);
       console.log("Starting face detection attempt:", detectionAttempts + 1);
       
@@ -46,7 +54,6 @@ export const useFaceDetection = (
       // Verify the image is valid and loaded
       if (originalImage.width === 0 || originalImage.height === 0) {
         console.error("Image has zero width or height, cannot detect faces");
-        setIsAnalyzing(false);
         setInitialProcessingDone(true);
         return;
       }
@@ -128,6 +135,7 @@ export const useFaceDetection = (
       handleDetectionFailure();
     } finally {
       setIsAnalyzing(false);
+      isDetectingRef.current = false;
     }
   };
   
