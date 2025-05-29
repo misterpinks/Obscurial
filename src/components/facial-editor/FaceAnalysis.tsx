@@ -5,35 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import FacialTelemetryDelta from './FacialTelemetryDelta';
 
-interface FacialTelemetryDelta {
-  overallDistance: number;
-  eyeDistances: {
-    leftEye: number;
-    rightEye: number;
-    eyeSpacing: number;
-  };
-  noseChanges: {
-    width: number;
-    length: number;
-    position: number;
-  };
-  mouthChanges: {
-    width: number;
-    height: number;
-    position: number;
-  };
-  faceShape: {
-    width: number;
-    jawline: number;
-    chin: number;
-  };
-  confidenceChange: number;
-}
-
 interface FaceAnalysisProps {
   confidence?: number | null;
   facialDifference?: number | null;
-  facialTelemetryDelta?: FacialTelemetryDelta | null;
+  facialTelemetryDelta?: any | null;
   isAnalyzing?: boolean;
   onRunAnalysis?: () => void;
   imageDimensions?: { width: number; height: number };

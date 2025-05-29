@@ -9,6 +9,7 @@ import { getAmplificationFactor } from './facialRegions';
 import { applyFaceEffect } from './faceEffects';
 import { adjustSliderValues, hasTransformations, hasEffects } from './transformation/sliderAdjuster';
 import { processImageInChunks } from './transformation/chunkedProcessor';
+import { applyEdgePreservingSmoothing } from './transformation/postProcessing';
 
 // Enhanced function to apply transformations with improved edge handling and performance
 export const applyFeatureTransformations = async ({
@@ -134,6 +135,18 @@ export const applyFeatureTransformations = async ({
     faceDetection,
     faceEffectOptions,
     worker // Pass the worker if available
+  );
+  
+  // Apply post-processing smoothing to eliminate boundary artifacts
+  console.log("Applying post-processing smoothing");
+  applyEdgePreservingSmoothing(
+    ctx,
+    width,
+    height,
+    centerX,
+    centerY,
+    faceWidth,
+    faceHeight
   );
   
   // After all transformations, apply any face effects if needed
