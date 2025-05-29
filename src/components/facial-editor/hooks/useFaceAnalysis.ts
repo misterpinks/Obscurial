@@ -38,7 +38,7 @@ export const useFaceAnalysis = (
   const {
     facialDifference,
     facialTelemetryDelta,
-    analyzeModifiedImage,
+    analyzeModifiedImage: baseAnalyzeModifiedImage,
     isAnalyzing: isAnalyzingModified
   } = useModifiedFaceAnalysis(
     isFaceApiLoaded,
@@ -46,6 +46,21 @@ export const useFaceAnalysis = (
     faceDetection,
     setFaceDetection
   );
+
+  // Wrap the analysis function to prevent automatic triggering
+  const analyzeModifiedImage = useCallback(async () => {
+    console.log('Manual analysis triggered');
+    try {
+      await baseAnalyzeModifiedImage();
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      toast({
+        variant: "destructive",
+        title: "Analysis Failed",
+        description: "Could not complete facial analysis. Please try again."
+      });
+    }
+  }, [baseAnalyzeModifiedImage, toast]);
 
   // Combine both analyzing states
   const isAnalyzing = isDetecting || isAnalyzingModified;

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,7 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
   // Prevent the analysis button from being clicked too frequently
   const handleAnalysisClick = () => {
     if (isAnalyzing || !onRunAnalysis) return;
-    console.log('Manual analysis triggered');
+    console.log('Manual analysis button clicked');
     onRunAnalysis();
   };
 
@@ -121,11 +120,13 @@ const FaceAnalysis: React.FC<FaceAnalysisProps> = ({
         </CardContent>
       </Card>
 
-      {/* Detailed Telemetry Delta Analysis */}
-      <FacialTelemetryDelta 
-        telemetryDelta={facialTelemetryDelta}
-        isAnalyzing={isAnalyzing}
-      />
+      {/* Detailed Telemetry Delta Analysis - Only show when we have data or are analyzing */}
+      {(facialTelemetryDelta || isAnalyzing) && (
+        <FacialTelemetryDelta 
+          telemetryDelta={facialTelemetryDelta}
+          isAnalyzing={isAnalyzing}
+        />
+      )}
     </>
   );
 };

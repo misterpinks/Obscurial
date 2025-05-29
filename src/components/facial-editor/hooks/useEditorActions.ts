@@ -20,19 +20,32 @@ export const useEditorActions = (
     });
   }, [resetSliders, resetEffects, toast]);
 
-  const handleRunAnalysis = useCallback(() => {
+  const handleRunAnalysis = useCallback(async () => {
+    if (!analyzeModifiedImage) {
+      console.error("analyzeModifiedImage function not provided to useEditorActions");
+      toast({
+        variant: "destructive",
+        title: "Analysis Error",
+        description: "Analysis function not available."
+      });
+      return;
+    }
+
+    console.log('Starting manual analysis...');
     toast({
       title: "Analysis Started",
       description: "Analyzing facial changes..."
     });
     
-    // Actually run the analysis if the function is provided
-    if (analyzeModifiedImage) {
-      setTimeout(() => {
-        analyzeModifiedImage();
-      }, 100); // Small delay to allow toast to render first
-    } else {
-      console.error("analyzeModifiedImage function not provided to useEditorActions");
+    try {
+      await analyzeModifiedImage();
+    } catch (error) {
+      console.error('Analysis failed in handleRunAnalysis:', error);
+      toast({
+        variant: "destructive",
+        title: "Analysis Failed",
+        description: "Could not complete analysis. Please try again."
+      });
     }
   }, [toast, analyzeModifiedImage]);
 
