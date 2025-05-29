@@ -38,7 +38,9 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
   telemetryDelta,
   isAnalyzing
 }) => {
-  if (!telemetryDelta && !isAnalyzing) {
+  // Only show the component if we're analyzing OR if we have telemetry data
+  // This prevents the flash when analysis completes but no data is available
+  if (!isAnalyzing && !telemetryDelta) {
     return null;
   }
 
@@ -51,172 +53,165 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
 
   const formatValue = (value: number) => value.toFixed(2);
 
-  if (isAnalyzing) {
-    return (
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle className="text-lg">Facial Telemetry Analysis</CardTitle>
-        </CardHeader>
-        <CardContent>
+  return (
+    <Card className="mt-4">
+      <CardHeader>
+        <CardTitle className="text-lg">Facial Telemetry Delta Analysis</CardTitle>
+        {telemetryDelta && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Overall Change:</span>
+            <Badge variant={getChangeLevel(telemetryDelta.overallDistance * 10).variant}>
+              {formatValue(telemetryDelta.overallDistance)} ({getChangeLevel(telemetryDelta.overallDistance * 10).level})
+            </Badge>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {isAnalyzing ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
               <p className="text-muted-foreground">Analyzing facial changes...</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    );
-  }
+        ) : telemetryDelta ? (
+          <>
+            {/* Eye Region Changes */}
+            <div>
+              <h4 className="font-medium mb-3 flex items-center">
+                <div className="w-3 h-3 mr-2 rounded-full bg-blue-500"></div>
+                Eye Region Changes
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Left Eye</span>
+                    <span>{formatValue(telemetryDelta.eyeDistances.leftEye)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.eyeDistances.leftEye * 10, 100)} className="h-2" />
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Right Eye</span>
+                    <span>{formatValue(telemetryDelta.eyeDistances.rightEye)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.eyeDistances.rightEye * 10, 100)} className="h-2" />
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Eye Spacing</span>
+                    <span>{formatValue(telemetryDelta.eyeDistances.eyeSpacing)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.eyeDistances.eyeSpacing / 2, 100)} className="h-2" />
+                </div>
+              </div>
+            </div>
 
-  if (!telemetryDelta) return null;
+            {/* Nose Changes */}
+            <div>
+              <h4 className="font-medium mb-3 flex items-center">
+                <div className="w-3 h-3 mr-2 rounded-full bg-yellow-500"></div>
+                Nose Changes
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Width</span>
+                    <span>{formatValue(telemetryDelta.noseChanges.width)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.noseChanges.width * 10, 100)} className="h-2" />
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Length</span>
+                    <span>{formatValue(telemetryDelta.noseChanges.length)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.noseChanges.length * 10, 100)} className="h-2" />
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Position</span>
+                    <span>{formatValue(telemetryDelta.noseChanges.position)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.noseChanges.position * 10, 100)} className="h-2" />
+                </div>
+              </div>
+            </div>
 
-  return (
-    <Card className="mt-4">
-      <CardHeader>
-        <CardTitle className="text-lg">Facial Telemetry Delta Analysis</CardTitle>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Overall Change:</span>
-          <Badge variant={getChangeLevel(telemetryDelta.overallDistance * 10).variant}>
-            {formatValue(telemetryDelta.overallDistance)} ({getChangeLevel(telemetryDelta.overallDistance * 10).level})
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Eye Region Changes */}
-        <div>
-          <h4 className="font-medium mb-3 flex items-center">
-            <div className="w-3 h-3 mr-2 rounded-full bg-blue-500"></div>
-            Eye Region Changes
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Mouth Changes */}
             <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Left Eye</span>
-                <span>{formatValue(telemetryDelta.eyeDistances.leftEye)}</span>
+              <h4 className="font-medium mb-3 flex items-center">
+                <div className="w-3 h-3 mr-2 rounded-full bg-red-500"></div>
+                Mouth Changes
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Width</span>
+                    <span>{formatValue(telemetryDelta.mouthChanges.width)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.mouthChanges.width * 10, 100)} className="h-2" />
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Height</span>
+                    <span>{formatValue(telemetryDelta.mouthChanges.height)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.mouthChanges.height * 10, 100)} className="h-2" />
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Position</span>
+                    <span>{formatValue(telemetryDelta.mouthChanges.position)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.mouthChanges.position * 10, 100)} className="h-2" />
+                </div>
               </div>
-              <Progress value={Math.min(telemetryDelta.eyeDistances.leftEye * 10, 100)} className="h-2" />
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Right Eye</span>
-                <span>{formatValue(telemetryDelta.eyeDistances.rightEye)}</span>
-              </div>
-              <Progress value={Math.min(telemetryDelta.eyeDistances.rightEye * 10, 100)} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Eye Spacing</span>
-                <span>{formatValue(telemetryDelta.eyeDistances.eyeSpacing)}</span>
-              </div>
-              <Progress value={Math.min(telemetryDelta.eyeDistances.eyeSpacing / 2, 100)} className="h-2" />
-            </div>
-          </div>
-        </div>
 
-        {/* Nose Changes */}
-        <div>
-          <h4 className="font-medium mb-3 flex items-center">
-            <div className="w-3 h-3 mr-2 rounded-full bg-yellow-500"></div>
-            Nose Changes
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Face Shape Changes */}
             <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Width</span>
-                <span>{formatValue(telemetryDelta.noseChanges.width)}</span>
+              <h4 className="font-medium mb-3 flex items-center">
+                <div className="w-3 h-3 mr-2 rounded-full bg-orange-500"></div>
+                Face Shape Changes
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Width</span>
+                    <span>{formatValue(telemetryDelta.faceShape.width)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.faceShape.width * 10, 100)} className="h-2" />
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Jawline</span>
+                    <span>{formatValue(telemetryDelta.faceShape.jawline)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.faceShape.jawline * 10, 100)} className="h-2" />
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Chin</span>
+                    <span>{formatValue(telemetryDelta.faceShape.chin)}</span>
+                  </div>
+                  <Progress value={Math.min(telemetryDelta.faceShape.chin * 10, 100)} className="h-2" />
+                </div>
               </div>
-              <Progress value={Math.min(telemetryDelta.noseChanges.width * 10, 100)} className="h-2" />
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Length</span>
-                <span>{formatValue(telemetryDelta.noseChanges.length)}</span>
-              </div>
-              <Progress value={Math.min(telemetryDelta.noseChanges.length * 10, 100)} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Position</span>
-                <span>{formatValue(telemetryDelta.noseChanges.position)}</span>
-              </div>
-              <Progress value={Math.min(telemetryDelta.noseChanges.position * 10, 100)} className="h-2" />
-            </div>
-          </div>
-        </div>
 
-        {/* Mouth Changes */}
-        <div>
-          <h4 className="font-medium mb-3 flex items-center">
-            <div className="w-3 h-3 mr-2 rounded-full bg-red-500"></div>
-            Mouth Changes
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Recognition Confidence Change */}
             <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Width</span>
-                <span>{formatValue(telemetryDelta.mouthChanges.width)}</span>
+              <h4 className="font-medium mb-3">Recognition Confidence Change</h4>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Confidence Delta:</span>
+                <Badge variant={telemetryDelta.confidenceChange > 0.1 ? 'default' : 'secondary'}>
+                  {formatValue(telemetryDelta.confidenceChange * 100)}%
+                </Badge>
               </div>
-              <Progress value={Math.min(telemetryDelta.mouthChanges.width * 10, 100)} className="h-2" />
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Height</span>
-                <span>{formatValue(telemetryDelta.mouthChanges.height)}</span>
-              </div>
-              <Progress value={Math.min(telemetryDelta.mouthChanges.height * 10, 100)} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Position</span>
-                <span>{formatValue(telemetryDelta.mouthChanges.position)}</span>
-              </div>
-              <Progress value={Math.min(telemetryDelta.mouthChanges.position * 10, 100)} className="h-2" />
-            </div>
-          </div>
-        </div>
-
-        {/* Face Shape Changes */}
-        <div>
-          <h4 className="font-medium mb-3 flex items-center">
-            <div className="w-3 h-3 mr-2 rounded-full bg-orange-500"></div>
-            Face Shape Changes
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Width</span>
-                <span>{formatValue(telemetryDelta.faceShape.width)}</span>
-              </div>
-              <Progress value={Math.min(telemetryDelta.faceShape.width * 10, 100)} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Jawline</span>
-                <span>{formatValue(telemetryDelta.faceShape.jawline)}</span>
-              </div>
-              <Progress value={Math.min(telemetryDelta.faceShape.jawline * 10, 100)} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Chin</span>
-                <span>{formatValue(telemetryDelta.faceShape.chin)}</span>
-              </div>
-              <Progress value={Math.min(telemetryDelta.faceShape.chin * 10, 100)} className="h-2" />
-            </div>
-          </div>
-        </div>
-
-        {/* Recognition Confidence Change */}
-        <div>
-          <h4 className="font-medium mb-3">Recognition Confidence Change</h4>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Confidence Delta:</span>
-            <Badge variant={telemetryDelta.confidenceChange > 0.1 ? 'default' : 'secondary'}>
-              {formatValue(telemetryDelta.confidenceChange * 100)}%
-            </Badge>
-          </div>
-        </div>
+          </>
+        ) : null}
       </CardContent>
     </Card>
   );
