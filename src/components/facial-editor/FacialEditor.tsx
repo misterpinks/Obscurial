@@ -209,12 +209,12 @@ const FacialEditor = () => {
     isWorkerReady
   });
 
-  // Hook for editor actions
+  // Hook for editor actions - make sure to pass the analyzeModifiedImage function
   const {
     handleResetSliders,
     handleRunAnalysis,
     handleToggleAutoAnalyze
-  } = useEditorActions(resetEffects, resetSliders, toggleAutoAnalyze, autoAnalyze);
+  } = useEditorActions(resetEffects, resetSliders, toggleAutoAnalyze, autoAnalyze, analyzeModifiedImage);
 
   // Hook for presets
   const { 

@@ -7,7 +7,7 @@ export const useEditorActions = (
   resetSliders: () => void,
   toggleAutoAnalyze: () => void,
   autoAnalyze: boolean,
-  analyzeModifiedImage?: () => void
+  analyzeModifiedImage?: () => Promise<void>
 ) => {
   const { toast } = useToast();
 
@@ -26,12 +26,12 @@ export const useEditorActions = (
       toast({
         variant: "destructive",
         title: "Analysis Error",
-        description: "Analysis function not available."
+        description: "Analysis function not available. Please try reloading the page."
       });
       return;
     }
 
-    console.log('Starting manual analysis...');
+    console.log('Starting manual analysis from handleRunAnalysis...');
     toast({
       title: "Analysis Started",
       description: "Analyzing facial changes..."
@@ -39,6 +39,7 @@ export const useEditorActions = (
     
     try {
       await analyzeModifiedImage();
+      console.log('Manual analysis completed successfully');
     } catch (error) {
       console.error('Analysis failed in handleRunAnalysis:', error);
       toast({
@@ -47,7 +48,7 @@ export const useEditorActions = (
         description: "Could not complete analysis. Please try again."
       });
     }
-  }, [toast, analyzeModifiedImage]);
+  }, [analyzeModifiedImage, toast]);
 
   const handleToggleAutoAnalyze = useCallback(() => {
     toggleAutoAnalyze();
