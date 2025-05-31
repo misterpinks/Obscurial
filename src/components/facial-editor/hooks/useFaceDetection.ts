@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import * as faceapi from 'face-api.js';
 import { useToast } from "@/components/ui/use-toast";
 import { createImageFromCanvas } from '../utils/canvasUtils';
@@ -17,16 +17,17 @@ export const useFaceDetection = (
   const [faceDetection, setFaceDetection] = useState<FaceDetection | null>(null);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const [detectionAttempts, setDetectionAttempts] = useState(0);
+  
+  // Track which image we've already processed to prevent loops
+  const processedImageRef = useRef<HTMLImageElement | null>(null);
   const isDetectingRef = useRef(false);
-  const lastProcessedImageRef = useRef<HTMLImageElement | null>(null);
 
   // Use a more sensitive detection option with a MUCH lower threshold to catch more faces
   const detectionOptions = () => {
-    // Reduce threshold further to 0.1 for better face detection
     return new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.1 });
   };
 
-  const detectFaces = async () => {
+  const detectFaces = useCallback(async () => {
     if (!originalImage || !isFaceApiLoaded) {
       console.log("Cannot detect faces: missing image or face API not loaded");
       return;
@@ -39,7 +40,7 @@ export const useFaceDetection = (
     }
 
     // Prevent reprocessing the same image
-    if (originalImage === lastProcessedImageRef.current) {
+    if (originalImage === processedImageRef.current) {
       console.log("Face detection already completed for this image, skipping");
       return;
     }
@@ -82,10 +83,10 @@ export const useFaceDetection = (
           original: detections.descriptor
         });
         
-        // Reset attempts counter
+        // Reset attempts counter and mark as processed
         setDetectionAttempts(0);
         setHasShownNoFaceToast(false);
-        lastProcessedImageRef.current = originalImage;
+        processedImageRef.current = originalImage;
         setInitialProcessingDone(true);
       } else {
         console.log("No face detected in the image");
@@ -114,7 +115,7 @@ export const useFaceDetection = (
               });
               
               setHasShownNoFaceToast(false);
-              lastProcessedImageRef.current = originalImage;
+              processedImageRef.current = originalImage;
               setInitialProcessingDone(true);
               setDetectionAttempts(0);
             } else {
@@ -135,7 +136,7 @@ export const useFaceDetection = (
       setIsAnalyzing(false);
       isDetectingRef.current = false;
     }
-  };
+  }, [originalImage, isFaceApiLoaded, detectionAttempts, hasShownNoFaceToast, setInitialProcessingDone, setHasShownNoFaceToast]);
   
   // Helper function to handle detection failure
   const handleDetectionFailure = () => {
@@ -150,7 +151,7 @@ export const useFaceDetection = (
       setHasShownNoFaceToast(true);
     }
     
-    lastProcessedImageRef.current = originalImage;
+    processedImageRef.current = originalImage;
     setInitialProcessingDone(true);
     setDetectionAttempts(0);
   };
