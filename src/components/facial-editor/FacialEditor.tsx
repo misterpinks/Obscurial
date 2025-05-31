@@ -56,7 +56,8 @@ const FacialEditor = () => {
     undo, 
     redo, 
     canUndo, 
-    canRedo 
+    canRedo,
+    setState: setSliderValues
   } = useHistory<Record<string, number>>(currentSliderValues);
   
   // Face effects hook
@@ -141,7 +142,8 @@ const FacialEditor = () => {
   // Handle slider changes with history
   const handleSliderChange = (id: string, value: number) => {
     baseHandleSliderChange(id, value);
-    // We don't push to history on every change - too many states
+    // Immediately update the history state to keep them in sync
+    setSliderValues({...currentSliderValues, [id]: value});
   };
   
   // After slider changes finish (e.g., on slider release), push to history
@@ -149,16 +151,33 @@ const FacialEditor = () => {
     pushSliderState(currentSliderValues);
   };
   
-  // Reset sliders with history
+  // Reset sliders with immediate sync and history
   const resetSliders = () => {
+    console.log("Resetting sliders - immediate sync");
     baseResetSliders();
-    pushSliderState(currentSliderValues);
+    // Immediately sync the history state
+    const resetValues = featureSliders.reduce((acc, slider) => {
+      acc[slider.id] = slider.defaultValue;
+      return acc;
+    }, {} as Record<string, number>);
+    setSliderValues(resetValues);
+    pushSliderState(resetValues);
   };
   
-  // Apply a randomized preset with history
+  // Apply a randomized preset with immediate sync and history
   const handleRandomize = () => {
+    console.log("Randomizing sliders - immediate sync");
     randomizeSliders();
-    pushSliderState(currentSliderValues);
+    // Generate the same random values that randomizeSliders creates and sync immediately
+    const randomValues = featureSliders.reduce((acc, slider) => {
+      const safeMin = Math.max(slider.min, -35);
+      const safeMax = Math.min(slider.max, 35);
+      const range = safeMax - safeMin;
+      acc[slider.id] = Math.round(safeMin + Math.random() * range);
+      return acc;
+    }, {} as Record<string, number>);
+    setSliderValues(randomValues);
+    pushSliderState(randomValues);
   };
 
   // Custom hook for landmarks handling
@@ -224,6 +243,7 @@ const FacialEditor = () => {
     deletePreset 
   } = usePresets(featureSliders, sliderValues, (newValues) => {
     baseHandleSliderChange('batch', newValues);
+    setSliderValues(newValues);
     pushSliderState(newValues);
   });
 
