@@ -43,10 +43,7 @@ export const useImageProcessingEffects = ({
 }: UseImageProcessingEffectsProps) => {
   // Use refs to track state and prevent loops
   const isMounted = useRef(true);
-  const imageInstanceRef = useRef<HTMLImageElement | null>(null);
-  const hasDrawnToCanvasRef = useRef<HTMLImageElement | null>(null);
-  const hasTriggeredDetectionRef = useRef<HTMLImageElement | null>(null);
-  const hasProcessedAfterDetectionRef = useRef<HTMLImageElement | null>(null);
+  const currentImageRef = useRef<HTMLImageElement | null>(null);
   
   // Cleanup function for unmounting
   useEffect(() => {
@@ -54,17 +51,6 @@ export const useImageProcessingEffects = ({
       isMounted.current = false;
     };
   }, []);
-
-  // Reset all refs when a new image is loaded
-  useEffect(() => {
-    if (originalImage && originalImage !== imageInstanceRef.current) {
-      console.log("New image detected, resetting all tracking refs");
-      imageInstanceRef.current = originalImage;
-      hasDrawnToCanvasRef.current = null;
-      hasTriggeredDetectionRef.current = null;
-      hasProcessedAfterDetectionRef.current = null;
-    }
-  }, [originalImage]);
 
   // Throttle processing for smoother UI during rapid changes
   const throttledProcess = useCallback(
@@ -76,12 +62,9 @@ export const useImageProcessingEffects = ({
     [processImage]
   );
 
-  // 1. Draw original image to canvas - ONLY ONCE per image
+  // 1. Draw original image to canvas whenever a new image is loaded
   useEffect(() => {
-    if (originalImage && 
-        originalCanvasRef.current && 
-        hasDrawnToCanvasRef.current !== originalImage) {
-      
+    if (originalImage && originalCanvasRef.current) {
       console.log("Drawing original image to canvas:", originalImage.width, "x", originalImage.height);
       
       const origCtx = originalCanvasRef.current.getContext("2d");
@@ -94,36 +77,27 @@ export const useImageProcessingEffects = ({
         origCtx.clearRect(0, 0, originalCanvasRef.current.width, originalCanvasRef.current.height);
         origCtx.drawImage(originalImage, 0, 0);
         
-        // Mark that we've drawn this image
-        hasDrawnToCanvasRef.current = originalImage;
         console.log("Original image successfully drawn to canvas");
+        
+        // Update current image reference
+        currentImageRef.current = originalImage;
+        
+        // Trigger face detection if API is loaded and this is a new image
+        if (isFaceApiLoaded && !initialProcessingDone) {
+          console.log("Triggering face detection for new image");
+          detectFaces();
+        }
       }
     }
-  }, [originalImage, originalCanvasRef]);
+  }, [originalImage, originalCanvasRef, isFaceApiLoaded, initialProcessingDone, detectFaces]);
 
-  // 2. Trigger face detection - ONLY ONCE per image, ONLY after drawing
-  useEffect(() => {
-    if (originalImage && 
-        isFaceApiLoaded && 
-        !initialProcessingDone && 
-        hasDrawnToCanvasRef.current === originalImage &&
-        hasTriggeredDetectionRef.current !== originalImage) {
-      
-      console.log("Triggering face detection for new image");
-      hasTriggeredDetectionRef.current = originalImage;
-      detectFaces();
-    }
-  }, [originalImage, isFaceApiLoaded, initialProcessingDone, hasDrawnToCanvasRef.current, detectFaces]);
-
-  // 3. Process image after detection completes - ONLY ONCE per image
+  // 2. Process image after detection completes
   useEffect(() => {
     if (originalImage && 
         initialProcessingDone && 
-        hasDrawnToCanvasRef.current === originalImage &&
-        hasProcessedAfterDetectionRef.current !== originalImage) {
+        currentImageRef.current === originalImage) {
       
       console.log("Processing image after face detection completed");
-      hasProcessedAfterDetectionRef.current = originalImage;
       
       // Use requestAnimationFrame for smooth UI
       window.requestAnimationFrame(() => {
@@ -141,11 +115,11 @@ export const useImageProcessingEffects = ({
     }
   }, [initialProcessingDone, originalImage, processImage, sliderValues, faceEffectOptions, setLastProcessedValues]);
 
-  // 4. Process image when slider values change - but only if we have completed initial processing
+  // 3. Process image when slider values change - but only if we have completed initial processing
   useEffect(() => {
     if (originalImage && 
         initialProcessingDone && 
-        hasProcessedAfterDetectionRef.current === originalImage) {
+        currentImageRef.current === originalImage) {
       
       // Check if values actually changed
       const currentValuesString = JSON.stringify({

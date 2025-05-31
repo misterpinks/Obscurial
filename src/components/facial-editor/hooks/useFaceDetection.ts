@@ -22,7 +22,7 @@ export const useFaceDetection = (
   const processedImageRef = useRef<HTMLImageElement | null>(null);
   const isDetectingRef = useRef(false);
 
-  // Use a more sensitive detection option with a MUCH lower threshold to catch more faces
+  // Use a more sensitive detection option with a lower threshold
   const detectionOptions = () => {
     return new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.1 });
   };
@@ -39,8 +39,8 @@ export const useFaceDetection = (
       return;
     }
 
-    // Prevent reprocessing the same image
-    if (originalImage === processedImageRef.current) {
+    // Only prevent reprocessing if it's the exact same image AND we've already successfully processed it
+    if (originalImage === processedImageRef.current && faceDetection) {
       console.log("Face detection already completed for this image, skipping");
       return;
     }
@@ -90,44 +90,7 @@ export const useFaceDetection = (
         setInitialProcessingDone(true);
       } else {
         console.log("No face detected in the image");
-        
-        // Try one more time with even lower threshold if this is the first attempt
-        if (detectionAttempts < 2) {
-          setDetectionAttempts(prev => prev + 1);
-          
-          console.log("Retrying face detection with fallback method");
-          
-          // Try a different detector as fallback
-          try {
-            const fallbackDetections = await faceapi
-              .detectSingleFace(originalImage, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.1 }))
-              .withFaceLandmarks()
-              .withFaceDescriptor();
-              
-            if (fallbackDetections) {
-              console.log("Face detected with fallback method, confidence:", fallbackDetections.detection.score);
-              
-              setFaceDetection({
-                landmarks: fallbackDetections.landmarks,
-                detection: fallbackDetections.detection,
-                confidence: fallbackDetections.detection.score,
-                original: fallbackDetections.descriptor
-              });
-              
-              setHasShownNoFaceToast(false);
-              processedImageRef.current = originalImage;
-              setInitialProcessingDone(true);
-              setDetectionAttempts(0);
-            } else {
-              handleDetectionFailure();
-            }
-          } catch (fallbackError) {
-            console.error("Fallback face detection failed:", fallbackError);
-            handleDetectionFailure();
-          }
-        } else {
-          handleDetectionFailure();
-        }
+        handleDetectionFailure();
       }
     } catch (error) {
       console.error("Error detecting face:", error);
@@ -136,7 +99,7 @@ export const useFaceDetection = (
       setIsAnalyzing(false);
       isDetectingRef.current = false;
     }
-  }, [originalImage, isFaceApiLoaded, detectionAttempts, hasShownNoFaceToast, setInitialProcessingDone, setHasShownNoFaceToast]);
+  }, [originalImage, isFaceApiLoaded, detectionAttempts, hasShownNoFaceToast, setInitialProcessingDone, setHasShownNoFaceToast, faceDetection]);
   
   // Helper function to handle detection failure
   const handleDetectionFailure = () => {
