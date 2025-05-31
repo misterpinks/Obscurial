@@ -54,7 +54,7 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
   const formatValue = (value: number) => value.toFixed(2);
 
   return (
-    <Card className="mt-4">
+    <Card className="mt-4 sticky">
       <CardHeader>
         <CardTitle className="text-lg">Facial Telemetry Delta Analysis</CardTitle>
         {telemetryDelta && (

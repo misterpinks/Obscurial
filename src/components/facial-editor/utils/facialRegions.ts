@@ -60,36 +60,36 @@ export const facialRegions: FacialRegion[] = [
     }
   },
   
-  // Face width - expanded
+  // Face width - expanded and DOUBLED effect
   {
     condition: (normX, normY, distFromCenter) => {
       return distFromCenter !== undefined && distFromCenter > 0.35 && distFromCenter < 1.2;
     },
     transform: (normX, normY, sliderValues, amplification) => {
       return {
-        displacementX: (sliderValues.faceWidth || 0) / 100 * normX * amplification * 1.3,
+        displacementX: (sliderValues.faceWidth || 0) / 100 * normX * amplification * 2.6, // Doubled from 1.3
         displacementY: 0
       };
     }
   },
   
-  // Chin shape - enlarged
+  // Chin shape - enlarged and DOUBLED effect
   {
     condition: (normX, normY) => normY > 0.25 && Math.abs(normX) < 0.4,
     transform: (normX, normY, sliderValues, amplification) => {
       return {
         displacementX: 0,
-        displacementY: (sliderValues.chinShape || 0) / 100 * (normY - 0.4) * amplification * 1.5
+        displacementY: (sliderValues.chinShape || 0) / 100 * (normY - 0.4) * amplification * 3.0 // Doubled from 1.5
       };
     }
   },
   
-  // Jawline - enlarged
+  // Jawline - enlarged and DOUBLED effect
   {
     condition: (normX, normY) => normY > 0.1 && Math.abs(normX) > 0.15 && Math.abs(normX) < 0.7,
     transform: (normX, normY, sliderValues, amplification) => {
       return {
-        displacementX: (sliderValues.jawline || 0) / 100 * (normX > 0 ? 1 : -1) * amplification * 1.3,
+        displacementX: (sliderValues.jawline || 0) / 100 * (normX > 0 ? 1 : -1) * amplification * 2.6, // Doubled from 1.3
         displacementY: 0
       };
     }

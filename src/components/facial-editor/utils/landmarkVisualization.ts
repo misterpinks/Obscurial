@@ -48,9 +48,9 @@ export const drawFaceLandmarks = (
       face: { points: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], color: '#F97316' }
     };
     
-    // Draw face bounding box - light green
+    // Draw face bounding box - bright green (#00ff00)
     if (faceDetection.detection && faceDetection.detection.box) {
-      ctx.strokeStyle = '#F2FCE2';
+      ctx.strokeStyle = '#00ff00';
       ctx.lineWidth = effectiveLineWidth * 2;
       const box = faceDetection.detection.box;
       ctx.strokeRect(box.x, box.y, box.width, box.height);

@@ -58,9 +58,9 @@ export const useLandmarksDrawing = ({
     };
     
     try {
-      // Draw face bounding box - light green
+      // Draw face bounding box - bright green (#00ff00)
       if (faceDetection.detection && faceDetection.detection.box) {
-        ctx.strokeStyle = '#F2FCE2';
+        ctx.strokeStyle = '#00ff00';
         ctx.lineWidth = lineWidth * 2;
         const box = faceDetection.detection.box;
         ctx.strokeRect(box.x, box.y, box.width, box.height);
