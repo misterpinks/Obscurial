@@ -7,7 +7,7 @@ import { FacialRegion } from './transformationTypes';
 
 // Base amplification factor for transformations
 export const getAmplificationFactor = (): number => {
-  return 4.0; // Increased for more dramatic effects
+  return 5.0; // Increased from 4.0 for more dramatic effects
 };
 
 // Define regions of the face that can be transformed
@@ -60,36 +60,36 @@ export const facialRegions: FacialRegion[] = [
     }
   },
   
-  // Face width - expanded and DOUBLED effect
+  // Face width - expanded and TRIPLED effect
   {
     condition: (normX, normY, distFromCenter) => {
       return distFromCenter !== undefined && distFromCenter > 0.35 && distFromCenter < 1.2;
     },
     transform: (normX, normY, sliderValues, amplification) => {
       return {
-        displacementX: (sliderValues.faceWidth || 0) / 100 * normX * amplification * 2.6, // Doubled from 1.3
+        displacementX: (sliderValues.faceWidth || 0) / 100 * normX * amplification * 3.9, // Tripled from 1.3
         displacementY: 0
       };
     }
   },
   
-  // Chin shape - enlarged and DOUBLED effect
+  // Chin shape - enlarged and TRIPLED effect
   {
     condition: (normX, normY) => normY > 0.25 && Math.abs(normX) < 0.4,
     transform: (normX, normY, sliderValues, amplification) => {
       return {
         displacementX: 0,
-        displacementY: (sliderValues.chinShape || 0) / 100 * (normY - 0.4) * amplification * 3.0 // Doubled from 1.5
+        displacementY: (sliderValues.chinShape || 0) / 100 * (normY - 0.4) * amplification * 4.5 // Tripled from 1.5
       };
     }
   },
   
-  // Jawline - enlarged and DOUBLED effect
+  // Jawline - enlarged and TRIPLED effect
   {
     condition: (normX, normY) => normY > 0.1 && Math.abs(normX) > 0.15 && Math.abs(normX) < 0.7,
     transform: (normX, normY, sliderValues, amplification) => {
       return {
-        displacementX: (sliderValues.jawline || 0) / 100 * (normX > 0 ? 1 : -1) * amplification * 2.6, // Doubled from 1.3
+        displacementX: (sliderValues.jawline || 0) / 100 * (normX > 0 ? 1 : -1) * amplification * 3.9, // Tripled from 1.3
         displacementY: 0
       };
     }
