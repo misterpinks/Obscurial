@@ -7,6 +7,32 @@ import FaceAnalysis from './FaceAnalysis';
 import AdjustmentSliders from './AdjustmentSliders';
 import RandomizeButton from './RandomizeButton';
 import EditorImageControls from './EditorImageControls';
+import FacialTelemetryDelta from './FacialTelemetryDelta';
+
+interface FacialTelemetryDelta {
+  overallDistance: number;
+  eyeDistances: {
+    leftEye: number;
+    rightEye: number;
+    eyeSpacing: number;
+  };
+  noseChanges: {
+    width: number;
+    length: number;
+    position: number;
+  };
+  mouthChanges: {
+    width: number;
+    height: number;
+    position: number;
+  };
+  faceShape: {
+    width: number;
+    jawline: number;
+    chin: number;
+  };
+  confidenceChange: number;
+}
 
 interface EditorContentProps {
   originalCanvasRef: RefObject<HTMLCanvasElement>;
@@ -40,6 +66,7 @@ interface EditorContentProps {
   onMaskPositionChange?: (newPosition: { x: number, y: number }) => void;
   onMaskScaleChange?: (newScale: number) => void;
   faceMaskSelector?: React.ReactNode;
+  facialTelemetryDelta?: FacialTelemetryDelta | null;
 }
 
 const EditorContent: React.FC<EditorContentProps> = ({
@@ -73,7 +100,8 @@ const EditorContent: React.FC<EditorContentProps> = ({
   maskScale,
   onMaskPositionChange,
   onMaskScaleChange,
-  faceMaskSelector
+  faceMaskSelector,
+  facialTelemetryDelta
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -134,6 +162,14 @@ const EditorContent: React.FC<EditorContentProps> = ({
           autoAnalyze={autoAnalyze}
           onToggleAutoAnalyze={onToggleAutoAnalyze}
         />
+        
+        {/* Facial Telemetry Delta section */}
+        {facialTelemetryDelta && (
+          <FacialTelemetryDelta 
+            telemetryDelta={facialTelemetryDelta}
+            isAnalyzing={isAnalyzing}
+          />
+        )}
         
         <EditorImageControls
           triggerFileInput={triggerFileInput}
