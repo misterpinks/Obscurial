@@ -38,9 +38,11 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
   telemetryDelta,
   isAnalyzing
 }) => {
-  // Only show the component if we're analyzing OR if we have telemetry data
-  // This prevents the flash when analysis completes but no data is available
-  if (!isAnalyzing && !telemetryDelta) {
+  // Always render the component if we're analyzing OR if we have data
+  // Use a stable key to prevent remounting
+  const shouldShow = isAnalyzing || telemetryDelta;
+  
+  if (!shouldShow) {
     return null;
   }
 
@@ -54,10 +56,10 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
   const formatValue = (value: number) => value.toFixed(2);
 
   return (
-    <Card className="mt-4">
+    <Card className="mt-4" key="telemetry-delta-card">
       <CardHeader>
         <CardTitle className="text-lg">Facial Telemetry Delta Analysis</CardTitle>
-        {telemetryDelta && (
+        {telemetryDelta && !isAnalyzing && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Overall Change:</span>
             <Badge variant={getChangeLevel(telemetryDelta.overallDistance * 10).variant}>
@@ -75,7 +77,7 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
             </div>
           </div>
         ) : telemetryDelta ? (
-          <>
+          <div key="telemetry-content">
             {/* Eye Region Changes */}
             <div>
               <h4 className="font-medium mb-3 flex items-center">
@@ -210,7 +212,7 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
                 </Badge>
               </div>
             </div>
-          </>
+          </div>
         ) : null}
       </CardContent>
     </Card>

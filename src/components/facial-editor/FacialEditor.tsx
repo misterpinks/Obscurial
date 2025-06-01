@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import EditorHeader from './EditorHeader';
@@ -56,8 +57,7 @@ const FacialEditor = () => {
     undo, 
     redo, 
     canUndo, 
-    canRedo,
-    setState: setSliderValues
+    canRedo
   } = useHistory<Record<string, number>>(currentSliderValues);
   
   // Face effects hook
@@ -139,11 +139,9 @@ const FacialEditor = () => {
     faceDetection
   });
   
-  // Handle slider changes with history
+  // Handle slider changes - use pushSliderState to update history
   const handleSliderChange = (id: string, value: number) => {
     baseHandleSliderChange(id, value);
-    // Immediately update the history state to keep them in sync
-    setSliderValues({...currentSliderValues, [id]: value});
   };
   
   // After slider changes finish (e.g., on slider release), push to history
@@ -151,33 +149,28 @@ const FacialEditor = () => {
     pushSliderState(currentSliderValues);
   };
   
-  // Reset sliders with immediate sync and history
+  // Reset sliders with history - use baseResetSliders and then push state
   const resetSliders = () => {
-    console.log("Resetting sliders - immediate sync");
+    console.log("Resetting sliders");
     baseResetSliders();
-    // Immediately sync the history state
-    const resetValues = featureSliders.reduce((acc, slider) => {
-      acc[slider.id] = slider.defaultValue;
-      return acc;
-    }, {} as Record<string, number>);
-    setSliderValues(resetValues);
-    pushSliderState(resetValues);
+    // Push the reset values to history after a brief delay to ensure state update
+    setTimeout(() => {
+      const resetValues = featureSliders.reduce((acc, slider) => {
+        acc[slider.id] = slider.defaultValue;
+        return acc;
+      }, {} as Record<string, number>);
+      pushSliderState(resetValues);
+    }, 10);
   };
   
-  // Apply a randomized preset with immediate sync and history
+  // Apply a randomized preset with history
   const handleRandomize = () => {
-    console.log("Randomizing sliders - immediate sync");
+    console.log("Randomizing sliders");
     randomizeSliders();
-    // Generate the same random values that randomizeSliders creates and sync immediately
-    const randomValues = featureSliders.reduce((acc, slider) => {
-      const safeMin = Math.max(slider.min, -35);
-      const safeMax = Math.min(slider.max, 35);
-      const range = safeMax - safeMin;
-      acc[slider.id] = Math.round(safeMin + Math.random() * range);
-      return acc;
-    }, {} as Record<string, number>);
-    setSliderValues(randomValues);
-    pushSliderState(randomValues);
+    // Push the randomized values to history after a brief delay
+    setTimeout(() => {
+      pushSliderState(currentSliderValues);
+    }, 10);
   };
 
   // Custom hook for landmarks handling
@@ -243,7 +236,6 @@ const FacialEditor = () => {
     deletePreset 
   } = usePresets(featureSliders, sliderValues, (newValues) => {
     baseHandleSliderChange('batch', newValues);
-    setSliderValues(newValues);
     pushSliderState(newValues);
   });
 
