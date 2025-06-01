@@ -184,13 +184,18 @@ const FacialEditor = () => {
     handleToggleAutoAnalyze
   } = useEditorActions(resetEffects, resetSliders, toggleAutoAnalyze, autoAnalyze, analyzeModifiedImage);
 
-  // Hook for presets
+  // Hook for presets - fix the function signature to match what's expected
   const { 
     presets, 
     applyPreset, 
     saveCurrentAsPreset, 
     deletePreset 
-  } = usePresets(featureSliders, sliderValues, handleSliderChange);
+  } = usePresets(featureSliders, sliderValues, (values: Record<string, number>) => {
+    // Convert the values object to individual calls
+    Object.entries(values).forEach(([id, value]) => {
+      handleSliderChange(id, value);
+    });
+  });
 
   // Process single image for batch processing
   const processSingleImage = async (img: HTMLImageElement): Promise<string> => {

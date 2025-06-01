@@ -6,6 +6,32 @@ import EditorContent from './EditorContent';
 import ImageUploader from './ImageUploader';
 import WebcamCapture from './WebcamCapture';
 import FacialRecognitionResources from './FacialRecognitionResources';
+import FacialTelemetryDelta from './FacialTelemetryDelta';
+
+interface FacialTelemetryDelta {
+  overallDistance: number;
+  eyeDistances: {
+    leftEye: number;
+    rightEye: number;
+    eyeSpacing: number;
+  };
+  noseChanges: {
+    width: number;
+    length: number;
+    position: number;
+  };
+  mouthChanges: {
+    width: number;
+    height: number;
+    position: number;
+  };
+  faceShape: {
+    width: number;
+    jawline: number;
+    chin: number;
+  };
+  confidenceChange: number;
+}
 
 interface EditorTabsProps {
   activeTab: string;
@@ -45,6 +71,7 @@ interface EditorTabsProps {
   onMaskScaleChange: (scale: number) => void;
   faceMaskSelector: React.ReactNode;
   presetsComponent: React.ReactNode;
+  facialTelemetryDelta: FacialTelemetryDelta | null;
 }
 
 const EditorTabs = ({
@@ -85,6 +112,7 @@ const EditorTabs = ({
   onMaskScaleChange,
   faceMaskSelector,
   presetsComponent,
+  facialTelemetryDelta,
 }: EditorTabsProps) => {
 
   return (
@@ -162,6 +190,12 @@ const EditorTabs = ({
               {presetsComponent}
             </div>
           )}
+          
+          {/* Facial Telemetry Delta section */}
+          <FacialTelemetryDelta 
+            telemetryDelta={facialTelemetryDelta}
+            isAnalyzing={isAnalyzing}
+          />
           
           {/* Facial Recognition Resources at the bottom */}
           <div className="mt-8">
