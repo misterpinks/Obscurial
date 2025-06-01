@@ -38,14 +38,6 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
   telemetryDelta,
   isAnalyzing
 }) => {
-  // Always render the component if we're analyzing OR if we have data
-  // Use a stable key to prevent remounting
-  const shouldShow = isAnalyzing || telemetryDelta;
-  
-  if (!shouldShow) {
-    return null;
-  }
-
   const getChangeLevel = (value: number) => {
     if (value < 2) return { level: 'Low', color: 'bg-green-500', variant: 'secondary' as const };
     if (value < 5) return { level: 'Medium', color: 'bg-yellow-500', variant: 'default' as const };
@@ -56,10 +48,10 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
   const formatValue = (value: number) => value.toFixed(2);
 
   return (
-    <Card className="mt-4" key="telemetry-delta-card">
+    <Card className="mt-4">
       <CardHeader>
         <CardTitle className="text-lg">Facial Telemetry Delta Analysis</CardTitle>
-        {telemetryDelta && !isAnalyzing && (
+        {telemetryDelta && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Overall Change:</span>
             <Badge variant={getChangeLevel(telemetryDelta.overallDistance * 10).variant}>
@@ -69,7 +61,7 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
         )}
       </CardHeader>
       <CardContent className="space-y-6">
-        {isAnalyzing && !telemetryDelta ? (
+        {isAnalyzing ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
@@ -77,7 +69,7 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
             </div>
           </div>
         ) : telemetryDelta ? (
-          <div key="telemetry-content">
+          <div>
             {/* Eye Region Changes */}
             <div>
               <h4 className="font-medium mb-3 flex items-center">
@@ -213,7 +205,13 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
               </div>
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <p className="text-muted-foreground">Click "Run Analysis" to see detailed facial changes</p>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

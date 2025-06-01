@@ -17,7 +17,6 @@ import {
   useTabs,
   useFileUpload,
   useLandmarks,
-  useHistory,
   usePresets,
   useBatchProcessing,
   useFaceEffects,
@@ -47,18 +46,8 @@ const FacialEditor = () => {
   // Load face models
   const { isFaceApiLoaded, modelsLoadingStatus } = useFaceApiModels();
   
-  // Feature sliders with history/undo support
-  const { featureSliders, sliderValues: currentSliderValues, handleSliderChange: baseHandleSliderChange, resetSliders: baseResetSliders, randomizeSliders } = useFeatureSliders();
-  
-  // Add history tracking for slider values
-  const { 
-    state: sliderValues, 
-    pushState: pushSliderState, 
-    undo, 
-    redo, 
-    canUndo, 
-    canRedo
-  } = useHistory<Record<string, number>>(currentSliderValues);
+  // Feature sliders - simplified without history
+  const { featureSliders, sliderValues, handleSliderChange, resetSliders, randomizeSliders } = useFeatureSliders();
   
   // Face effects hook
   const {
@@ -82,6 +71,7 @@ const FacialEditor = () => {
     isAnalyzing,
     faceDetection,
     facialDifference,
+    facialTelemetryDelta,
     initialProcessingDone,
     detectFaces,
     analyzeModifiedImage,
@@ -138,40 +128,6 @@ const FacialEditor = () => {
     isFaceApiLoaded,
     faceDetection
   });
-  
-  // Handle slider changes - use pushSliderState to update history
-  const handleSliderChange = (id: string, value: number) => {
-    baseHandleSliderChange(id, value);
-  };
-  
-  // After slider changes finish (e.g., on slider release), push to history
-  const handleSliderChangeComplete = () => {
-    pushSliderState(currentSliderValues);
-  };
-  
-  // Reset sliders with history - use baseResetSliders and then push state
-  const resetSliders = () => {
-    console.log("Resetting sliders");
-    baseResetSliders();
-    // Push the reset values to history after a brief delay to ensure state update
-    setTimeout(() => {
-      const resetValues = featureSliders.reduce((acc, slider) => {
-        acc[slider.id] = slider.defaultValue;
-        return acc;
-      }, {} as Record<string, number>);
-      pushSliderState(resetValues);
-    }, 10);
-  };
-  
-  // Apply a randomized preset with history
-  const handleRandomize = () => {
-    console.log("Randomizing sliders");
-    randomizeSliders();
-    // Push the randomized values to history after a brief delay
-    setTimeout(() => {
-      pushSliderState(currentSliderValues);
-    }, 10);
-  };
 
   // Custom hook for landmarks handling
   const { showLandmarks, toggleLandmarks, handleLandmarkMove } = useLandmarks(setFaceDetection);
@@ -234,10 +190,7 @@ const FacialEditor = () => {
     applyPreset, 
     saveCurrentAsPreset, 
     deletePreset 
-  } = usePresets(featureSliders, sliderValues, (newValues) => {
-    baseHandleSliderChange('batch', newValues);
-    pushSliderState(newValues);
-  });
+  } = usePresets(featureSliders, sliderValues, handleSliderChange);
 
   // Process single image for batch processing
   const processSingleImage = async (img: HTMLImageElement): Promise<string> => {
@@ -334,10 +287,10 @@ const FacialEditor = () => {
       {modelsLoadingStatus === 'error' && <ModelSetup />}
 
       <EditorToolbar 
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={undo}
-        onRedo={redo}
+        canUndo={false}
+        canRedo={false}
+        onUndo={() => {}}
+        onRedo={() => {}}
         batchJobs={batchJobs}
         isBatchProcessing={isBatchProcessing}
         onAddBatchImages={handleBatchUpload}
@@ -363,6 +316,7 @@ const FacialEditor = () => {
         isAnalyzing={isAnalyzing}
         faceDetection={faceDetection}
         facialDifference={facialDifference}
+        facialTelemetryDelta={facialTelemetryDelta}
         imageDimensions={imageDimensions}
         triggerFileInput={triggerFileInput}
         downloadImage={downloadImage}
@@ -373,9 +327,9 @@ const FacialEditor = () => {
         featureSliders={featureSliders}
         sliderValues={sliderValues}
         onSliderChange={handleSliderChange}
-        onSliderChangeComplete={handleSliderChangeComplete}
+        onSliderChangeComplete={() => {}}
         onResetSliders={handleResetSliders}
-        onRandomizeSliders={handleRandomize}
+        onRandomizeSliders={randomizeSliders}
         handleLandmarkMove={handleLandmarkMove}
         autoAnalyze={autoAnalyze}
         onToggleAutoAnalyze={handleToggleAutoAnalyze}
