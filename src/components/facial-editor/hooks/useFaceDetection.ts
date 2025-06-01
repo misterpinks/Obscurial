@@ -18,8 +18,8 @@ export const useFaceDetection = (
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const [detectionAttempts, setDetectionAttempts] = useState(0);
   
-  // Track which image we've already processed to prevent loops
-  const processedImageRef = useRef<HTMLImageElement | null>(null);
+  // Track which image we've already processed - use src instead of object reference
+  const processedImageSrcRef = useRef<string>('');
   const isDetectingRef = useRef(false);
 
   // Use a more sensitive detection option with a lower threshold
@@ -39,8 +39,9 @@ export const useFaceDetection = (
       return;
     }
 
-    // Check if we already processed this exact image
-    if (processedImageRef.current === originalImage && faceDetection) {
+    // Check if we already processed this exact image by comparing src
+    const currentImageSrc = originalImage.src;
+    if (processedImageSrcRef.current === currentImageSrc && faceDetection) {
       console.log("Face detection already completed for this image, skipping");
       return;
     }
@@ -86,7 +87,7 @@ export const useFaceDetection = (
         // Reset attempts counter and mark as processed
         setDetectionAttempts(0);
         setHasShownNoFaceToast(false);
-        processedImageRef.current = originalImage;
+        processedImageSrcRef.current = currentImageSrc;
         setInitialProcessingDone(true);
       } else {
         console.log("No face detected in the image");
@@ -114,7 +115,9 @@ export const useFaceDetection = (
       setHasShownNoFaceToast(true);
     }
     
-    processedImageRef.current = originalImage;
+    if (originalImage) {
+      processedImageSrcRef.current = originalImage.src;
+    }
     setInitialProcessingDone(true);
     setDetectionAttempts(0);
   };

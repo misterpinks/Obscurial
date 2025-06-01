@@ -316,7 +316,6 @@ const FacialEditor = () => {
         isAnalyzing={isAnalyzing}
         faceDetection={faceDetection}
         facialDifference={facialDifference}
-        facialTelemetryDelta={facialTelemetryDelta}
         imageDimensions={imageDimensions}
         triggerFileInput={triggerFileInput}
         downloadImage={downloadImage}
@@ -346,6 +345,7 @@ const FacialEditor = () => {
             onDeletePreset={deletePreset}
           />
         }
+        facialTelemetryDelta={facialTelemetryDelta}
       />
     </div>
   );

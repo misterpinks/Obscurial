@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -38,6 +37,15 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
   telemetryDelta,
   isAnalyzing
 }) => {
+  // Keep track of whether we've ever had telemetry data
+  const [hasEverHadData, setHasEverHadData] = React.useState(false);
+  
+  React.useEffect(() => {
+    if (telemetryDelta) {
+      setHasEverHadData(true);
+    }
+  }, [telemetryDelta]);
+
   const getChangeLevel = (value: number) => {
     if (value < 2) return { level: 'Low', color: 'bg-green-500', variant: 'secondary' as const };
     if (value < 5) return { level: 'Medium', color: 'bg-yellow-500', variant: 'default' as const };
@@ -47,6 +55,7 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
 
   const formatValue = (value: number) => value.toFixed(2);
 
+  // Always show the card - it will show different states based on data availability
   return (
     <Card className="mt-4">
       <CardHeader>
@@ -203,6 +212,12 @@ const FacialTelemetryDelta: React.FC<FacialTelemetryDeltaProps> = ({
                   {formatValue(telemetryDelta.confidenceChange * 100)}%
                 </Badge>
               </div>
+            </div>
+          </div>
+        ) : hasEverHadData ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <p className="text-muted-foreground">Analysis completed. Click "Run Analysis" to refresh the data.</p>
             </div>
           </div>
         ) : (
