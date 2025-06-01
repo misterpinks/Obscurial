@@ -1,4 +1,3 @@
-
 import React, { RefObject } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Eye, EyeOff } from "lucide-react";
@@ -9,7 +8,8 @@ import RandomizeButton from './RandomizeButton';
 import EditorImageControls from './EditorImageControls';
 import FacialTelemetryDelta from './FacialTelemetryDelta';
 
-interface FacialTelemetryDelta {
+// Import the type from the hook that defines it
+type FacialTelemetryDeltaType = {
   overallDistance: number;
   eyeDistances: {
     leftEye: number;
@@ -32,7 +32,7 @@ interface FacialTelemetryDelta {
     chin: number;
   };
   confidenceChange: number;
-}
+};
 
 interface EditorContentProps {
   originalCanvasRef: RefObject<HTMLCanvasElement>;
@@ -66,7 +66,7 @@ interface EditorContentProps {
   onMaskPositionChange?: (newPosition: { x: number, y: number }) => void;
   onMaskScaleChange?: (newScale: number) => void;
   faceMaskSelector?: React.ReactNode;
-  facialTelemetryDelta?: FacialTelemetryDelta | null;
+  facialTelemetryDelta?: FacialTelemetryDeltaType | null;
 }
 
 const EditorContent: React.FC<EditorContentProps> = ({
