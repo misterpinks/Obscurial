@@ -6,7 +6,6 @@ import EditorContent from './EditorContent';
 import ImageUploader from './ImageUploader';
 import WebcamCapture from './WebcamCapture';
 import FacialRecognitionResources from './FacialRecognitionResources';
-import FacialTelemetryDelta from './FacialTelemetryDelta';
 
 interface FacialTelemetryDelta {
   overallDistance: number;
@@ -182,6 +181,7 @@ const EditorTabs = ({
             onMaskScaleChange={onMaskScaleChange}
             faceMaskSelector={faceMaskSelector}
             originalImage={originalImage}
+            facialTelemetryDelta={facialTelemetryDelta}
           />
           
           {/* Presets section */}
@@ -190,12 +190,6 @@ const EditorTabs = ({
               {presetsComponent}
             </div>
           )}
-          
-          {/* Facial Telemetry Delta section */}
-          <FacialTelemetryDelta 
-            telemetryDelta={facialTelemetryDelta}
-            isAnalyzing={isAnalyzing}
-          />
           
           {/* Facial Recognition Resources at the bottom */}
           <div className="mt-8">
